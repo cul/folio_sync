@@ -3,10 +3,10 @@ namespace :script do
 
   task :run => :environment do
     # puts Rails.configuration.archivesspace["ASPACE_BASE_API"]
-    require "aspace_processor/refactored_search_repo_class"
+    require "folio_processor/folio_synchronizer"
 
     puts "Fetching MARC resources..."
-    processor = RefactoredSearchRepoClass.new
+    processor = FOLIOSynchronizer.new
     processor.fetch_recent_marc_resources
 
     puts "Script completed successfully."
