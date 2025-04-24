@@ -1,16 +1,16 @@
 class FOLIOSynchronizer
-  PAGE_SIZE = 10 # max 250
-  TIMEOUT = 60
   ONE_DAY_IN_SECONDS = 24 * 60 * 60
+  PAGE_SIZE = 20
 
   def initialize
+    @logger = Logger.new($stdout) # Ensure logger is initialized first
+
     begin
-      @client = ArchivesSpace::Client.new(aspace_config).login
+      @aspace_client = ArchivesSpace::Client.new(Config::ArchivesSpaceConfig.build).login
     rescue StandardError => e
       @logger.error("Failed to login to ArchivesSpace: #{e.message}")
       raise "ArchivesSpace login failed. Please check your configuration and credentials."
     end
-    @logger = Logger.new($stdout)
   end
 
   # Main method to fetch MARC data for all repositories
@@ -25,20 +25,8 @@ class FOLIOSynchronizer
 
   private
 
-  def aspace_config
-    ArchivesSpace::Configuration.new(
-      base_uri: Rails.configuration.archivesspace["ASPACE_BASE_API"],
-      username: Rails.configuration.archivesspace['ASPACE_DEV_API_USERNAME'],
-      password: Rails.configuration.archivesspace['ASPACE_DEV_API_PASSWORD'],
-      page_size: PAGE_SIZE,
-      throttle: 0,
-      verify_ssl: false,
-      timeout: TIMEOUT
-    )
-  end
-
   def get_all_repositories
-    response = @client.get("repositories")
+    response = @aspace_client.get("repositories")
     handle_response(response, "Error fetching repositories")
   end
 
@@ -60,7 +48,7 @@ class FOLIOSynchronizer
     # last_24h = Time.now.utc - (ONE_DAY_IN_SECONDS * 6)
     last_24 = Time.now.utc - ONE_DAY_IN_SECONDS # Use this line to get the last 24h date, wrap it in time_to_solr_date_format
 
-    # Include unpublished resources, this could change for other instances
+    # Include unpublished resources; this could change for other instances
     {
       query: {
         q: "primary_type:resource suppressed:false system_mtime:[#{time_to_solr_date_format(last_24h)} TO *]",
@@ -73,9 +61,7 @@ class FOLIOSynchronizer
 
   def retrieve_paginated_resources(repo_id, query_params)
     loop do
-      response = @client.get("repositories/#{repo_id}/search", query_params)
-      # break unless response.status_code == 200 # TODO: Instead of breaking, log the error
-      #Instead of breaking, log the error
+      response = @aspace_client.get("repositories/#{repo_id}/search", query_params)
       unless response.status_code == 200
         @logger.error("Error fetching resources: #{response.body}")
       end
@@ -95,7 +81,7 @@ class FOLIOSynchronizer
   end
 
   def fetch_and_save_marc(repo_id, resource_id)
-    response = @client.get("repositories/#{repo_id}/resources/marc21/#{resource_id}.xml")
+    response = @aspace_client.get("repositories/#{repo_id}/resources/marc21/#{resource_id}.xml")
     if response.status_code == 200 && response.parsed.present?
       save_marc_locally(response.parsed)
     else
