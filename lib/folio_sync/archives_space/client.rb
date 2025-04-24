@@ -33,7 +33,7 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
   # @return [void]
   def retrieve_paginated_resources(repo_id, query_params)
     query_params[:query][:page] ||= 1 # Ensure page is initialized
-  
+
     loop do
       response = self.get("repositories/#{repo_id}/search", query_params)
       handle_response(response, "Error fetching resources")

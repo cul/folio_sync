@@ -1,7 +1,7 @@
 namespace :folio_sync do
   desc "Get MARC resources"
 
-  task :run => :environment do
+  task run: :environment do
     puts "Fetching MARC resources..."
     processor = FolioSync::FolioSynchronizer.new
     processor.fetch_recent_marc_resources
@@ -9,7 +9,7 @@ namespace :folio_sync do
     puts "Script completed successfully."
   end
 
-  task :test => :environment do
+  task test: :environment do
     puts "Testing ASPace client..."
 
     client = FolioSync::ArchivesSpace::Client.instance

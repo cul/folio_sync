@@ -40,7 +40,7 @@ module FolioSync
     end
 
     # ?? Is getting the last 24 hours the best way to do this? Maybe a timestamp would work better?
-  
+
     # Builds query parameters for fetching resources updated within the last 24 hours.
     # The query includes unpublished resources and filters by system_mtime.
     def build_query_params(last_24h)
@@ -54,7 +54,7 @@ module FolioSync
         }
       }
     end
-    
+
     # This method will be replaced later
     def save_marc_locally(marc)
       File.open("marc_data.txt", "a+") do |file|
@@ -64,7 +64,7 @@ module FolioSync
     end
 
     def time_to_solr_date_format(time)
-      time.utc.strftime('%Y-%m-%dT%H:%M:%S.%LZ')
+      time.utc.strftime("%Y-%m-%dT%H:%M:%S.%LZ")
     end
 
     def extract_id(uri)

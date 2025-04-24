@@ -19,7 +19,7 @@ gem "kamal", require: false
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
 
-gem 'archivesspace-client'
+gem "archivesspace-client"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -31,10 +31,12 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
-  gem 'rspec-rails', '~> 7.1', '>= 7.1.1'
+  gem "rspec-rails", "~> 7.1", ">= 7.1.1"
 
   # rubocop + CUL presets
-  gem 'rubocul', '~> 4.0.3'
+  gem "rubocul", "~> 4.0.3"
+
+  gem 'simplecov', require: false
 end
 
 group :development do

@@ -98,6 +98,7 @@ GEM
       irb (~> 1.10)
       reline (>= 0.3.8)
     diff-lcs (1.6.0)
+    docile (1.4.1)
     dotenv (3.1.8)
     drb (2.2.1)
     dry-cli (0.7.0)
@@ -310,6 +311,12 @@ GEM
       rubocop-rspec
     ruby-progressbar (1.13.0)
     securerandom (0.4.1)
+    simplecov (0.22.0)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
+    simplecov-html (0.13.1)
+    simplecov_json_formatter (0.1.4)
     sshkit (1.24.0)
       base64
       logger
@@ -366,6 +373,7 @@ DEPENDENCIES
   rspec-rails (~> 7.1, >= 7.1.1)
   rubocop-rails-omakase
   rubocul (~> 4.0.3)
+  simplecov
   thruster
   tzinfo-data
   web-console

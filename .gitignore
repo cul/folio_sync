@@ -42,3 +42,6 @@
 
 # Ignore script output files for now
 marc_data.txt
+
+# Ignore SimpleCov files
+coverage

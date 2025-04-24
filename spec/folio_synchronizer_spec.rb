@@ -9,7 +9,7 @@ RSpec.describe FolioSync::FolioSynchronizer do
     end
 
     it 'initializes with the ArchivesSpace client' do
-      synchronizer = FolioSync::FolioSynchronizer.new
+      synchronizer = described_class.new
       expect(synchronizer.instance_variable_get(:@aspace_client)).to be_a(FolioSync::ArchivesSpace::Client)
     end
   end
