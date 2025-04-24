@@ -2,5 +2,5 @@
 
 ## Script
 ```bash
-rails script:run
+rails folio_sync:run
 ```
