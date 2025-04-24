@@ -10,4 +10,15 @@ namespace :folio_sync do
 
     puts "Script completed successfully."
   end
+
+  task :test => :environment do
+    require "folio_sync/archives_space/client"
+
+    puts "Testing ASPace client..."
+    client = FolioSync::ArchivesSpace::Client.instance
+    client.get_all_repositories.each do |repo|
+      puts "Repository ID: #{repo['uri']}"
+    end
+
+  end
 end
