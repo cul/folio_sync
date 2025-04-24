@@ -32,6 +32,9 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
 
   gem 'rspec-rails', '~> 7.1', '>= 7.1.1'
+
+  # rubocop + CUL presets
+  gem 'rubocul', '~> 4.0.3'
 end
 
 group :development do

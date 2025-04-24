@@ -1,7 +1,16 @@
 require 'rails_helper'
-require_relative '../lib/folio_sync/folio_synchronizer'
 
-# RSpec.describe FolioSynchronizer do
-#   let(:logger) { instance_double("Logger", info: nil, error: nil) }
-#   let(:synchronizer) { FolioSynchronizer.new }
-# end
+RSpec.describe FolioSync::FolioSynchronizer do
+  let(:instance) { described_class.new }
+
+  describe "#initialize" do
+    it 'can be instantiated' do
+      expect(instance).to be_a(described_class)
+    end
+
+    it 'initializes with the ArchivesSpace client' do
+      synchronizer = FolioSync::FolioSynchronizer.new
+      expect(synchronizer.instance_variable_get(:@aspace_client)).to be_a(FolioSync::ArchivesSpace::Client)
+    end
+  end
+end

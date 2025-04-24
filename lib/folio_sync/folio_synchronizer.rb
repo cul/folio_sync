@@ -21,7 +21,7 @@ module FolioSync
     private
 
     def fetch_resources_for_repo(repo_id)
-      last_24h = Time.now.utc - ONE_DAY_IN_SECONDS
+      last_24h = Time.now.utc - (ONE_DAY_IN_SECONDS * 8) # remove * 8 later, this is for testing as we don't have data for the past 24 hours
       query_params = build_query_params(last_24h)
 
       @aspace_client.retrieve_paginated_resources(repo_id, query_params) do |resources|
@@ -39,9 +39,10 @@ module FolioSync
       save_marc_locally(marc_data) if marc_data
     end
 
-    # Builds query parameters for fetching resources updated since the given timestamp.
+    # ?? Is getting the last 24 hours the best way to do this? Maybe a timestamp would work better?
+  
+    # Builds query parameters for fetching resources updated within the last 24 hours.
     # The query includes unpublished resources and filters by system_mtime.
-    # Returns a hash with query details including fields, page size, and the time range.
     def build_query_params(last_24h)
       # Include unpublished resources; this could change for other instances
       {
