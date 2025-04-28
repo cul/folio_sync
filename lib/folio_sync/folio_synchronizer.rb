@@ -11,9 +11,9 @@ module FolioSync
     # Main method, will be replaced with something like sync_resources_to_folio
     def fetch_recent_marc_resources
       @aspace_client.get_all_repositories.each do |repo|
-        next log_repository_skip(repo) unless repo["publish"]
+        next log_repository_skip(repo) unless repo['publish']
 
-        repo_id = extract_id(repo["uri"])
+        repo_id = extract_id(repo['uri'])
         fetch_resources_for_repo(repo_id)
       end
     end
@@ -21,13 +21,13 @@ module FolioSync
     private
 
     def fetch_resources_for_repo(repo_id)
-      last_24h = Time.now.utc - (ONE_DAY_IN_SECONDS * 8) # remove * 8 later, this is for testing as we don't have data for the past 24 hours
+      last_24h = Time.now.utc - (ONE_DAY_IN_SECONDS * 10) # remove * 8 later, this is for testing as we don't have data for the past 24 hours
       query_params = build_query_params(last_24h)
 
       @aspace_client.retrieve_paginated_resources(repo_id, query_params) do |resources|
         resources.each do |resource|
           log_resource_processing(resource)
-          fetch_and_save_marc(repo_id, extract_id(resource["uri"]))
+          fetch_and_save_marc(repo_id, extract_id(resource['uri']))
         end
       end
     end
@@ -41,8 +41,8 @@ module FolioSync
 
     # Builds query parameters for fetching resources updated within the last 24 hours.
     # The query includes unpublished resources and filters by system_mtime.
+    # Note: Other instances may have different requirements for the query.
     def build_query_params(last_24h)
-      # Include unpublished resources; this could change for other instances
       {
         query: {
           q: "primary_type:resource suppressed:false system_mtime:[#{time_to_solr_date_format(last_24h)} TO *]",
@@ -55,18 +55,18 @@ module FolioSync
 
     # This method will be replaced later
     def save_marc_locally(marc)
-      File.open("marc_data.txt", "a+") do |file|
+      File.open('marc_data.txt', 'a+') do |file|
         file.puts(marc)
-        file.puts("-----")
+        file.puts('-----')
       end
     end
 
     def time_to_solr_date_format(time)
-      time.utc.strftime("%Y-%m-%dT%H:%M:%S.%LZ")
+      time.utc.strftime('%Y-%m-%dT%H:%M:%S.%LZ')
     end
 
     def extract_id(uri)
-      uri.split("/").last
+      uri.split('/').last
     end
 
     def log_repository_skip(repo)

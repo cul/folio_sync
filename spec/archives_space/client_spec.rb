@@ -21,10 +21,10 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
 
   before do
     allow(Rails.configuration).to receive(:archivesspace).and_return({
-      "ASPACE_BASE_API" => base_uri,
-      "ASPACE_API_USERNAME" => username,
-      "ASPACE_API_PASSWORD" => password,
-      "ASPACE_TIMEOUT" => timeout
+      'ASPACE_BASE_API' => base_uri,
+      'ASPACE_API_USERNAME' => username,
+      'ASPACE_API_PASSWORD' => password,
+      'ASPACE_TIMEOUT' => timeout
     })
   end
 
@@ -32,13 +32,13 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     expect(described_class).to be < ArchivesSpace::Client
   end
 
-  describe "#initialize" do
+  describe '#initialize' do
     it 'can be instantiated' do
       expect(instance).to be_a(described_class)
     end
   end
 
-  describe ".instance" do
+  describe '.instance' do
     before do
       allow_any_instance_of(described_class).to receive(:login)
     end
@@ -50,45 +50,50 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     end
   end
 
-
-  describe "#retrieve_paginated_resources" do
-    let(:query_params) { { query: { q: "primary_type:resource", page: 1, page_size: 2 } } }
+  describe '#retrieve_paginated_resources' do
+    let(:query_params) { { query: { q: 'primary_type:resource', page: 1, page_size: 2 } } }
     let(:response_page_1) { double('Response') }
     let(:response_page_2) { double('Response') }
-    let(:resources_page_1) { [ { 'uri' => "/repositories/#{repository_id}/resources/1" }, { 'uri' => "/repositories/#{repository_id}/resources/2" } ] }
-    let(:resources_page_2) { [ { 'uri' => "/repositories/#{repository_id}/resources/3" }, { 'uri' => "/repositories/#{repository_id}/resources/4" } ] }
+    let(:resources_page_1) do
+      [{ 'uri' => "/repositories/#{repository_id}/resources/1" },
+       { 'uri' => "/repositories/#{repository_id}/resources/2" }]
+    end
+    let(:resources_page_2) do
+      [{ 'uri' => "/repositories/#{repository_id}/resources/3" },
+       { 'uri' => "/repositories/#{repository_id}/resources/4" }]
+    end
 
     let(:response_body_page_1) do
       {
-        "results" => resources_page_1,
-        "this_page" => 1,
-        "last_page" => 2,
-        "page_size" => 2,
-        "total_hits" => 4
+        'results' => resources_page_1,
+        'this_page' => 1,
+        'last_page' => 2,
+        'page_size' => 2,
+        'total_hits' => 4
       }
     end
 
     let(:response_body_page_2) do
       {
-        "results" => resources_page_2,
-        "this_page" => 2,
-        "last_page" => 2,
-        "page_size" => 2,
-        "total_hits" => 4
+        'results' => resources_page_2,
+        'this_page' => 2,
+        'last_page' => 2,
+        'page_size' => 2,
+        'total_hits' => 4
       }
     end
 
     before do
       allow(instance).to receive(:get).with(
         "repositories/#{repository_id}/search",
-        { query: { q: "primary_type:resource", page: 1, page_size: 2 } }
+        { query: { q: 'primary_type:resource', page: 1, page_size: 2 } }
       ).and_return(response_page_1)
 
       allow(response_page_1).to receive_messages(status_code: 200, parsed: response_body_page_1)
 
       allow(instance).to receive(:get).with(
         "repositories/#{repository_id}/search",
-        { query: { q: "primary_type:resource", page: 2, page_size: 2 } }
+        { query: { q: 'primary_type:resource', page: 2, page_size: 2 } }
       ).and_return(response_page_2)
 
       allow(response_page_2).to receive_messages(status_code: 200, parsed: response_body_page_2)
