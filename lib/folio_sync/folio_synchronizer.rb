@@ -39,8 +39,6 @@ module FolioSync
       save_marc_locally(marc_data) if marc_data
     end
 
-    # ?? Is getting the last 24 hours the best way to do this? Maybe a timestamp would work better?
-
     # Builds query parameters for fetching resources updated within the last 24 hours.
     # The query includes unpublished resources and filters by system_mtime.
     def build_query_params(last_24h)
