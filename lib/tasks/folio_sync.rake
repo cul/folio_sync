@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 namespace :folio_sync do
   desc 'Get MARC resources'
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
   def self.instance
     unless @instance
@@ -36,7 +38,7 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
       handle_response(response, 'Error fetching resources')
 
       data = response.parsed
-      puts "Page: #{data['this_page']}, Total Pages: #{data['last_page']}"
+      Rails.logger.debug "Page: #{data['this_page']}, Total Pages: #{data['last_page']}"
       yield(data['results']) if block_given?
 
       break if data['this_page'] >= data['last_page']

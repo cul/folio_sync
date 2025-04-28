@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module FolioSync
   class FolioSynchronizer
     ONE_DAY_IN_SECONDS = 24 * 60 * 60
@@ -21,7 +23,7 @@ module FolioSync
     private
 
     def fetch_resources_for_repo(repo_id)
-      last_24h = Time.now.utc - (ONE_DAY_IN_SECONDS * 10) # remove * 8 later, this is for testing as we don't have data for the past 24 hours
+      last_24h = Time.now.utc - ONE_DAY_IN_SECONDS
       query_params = build_query_params(last_24h)
 
       @aspace_client.retrieve_paginated_resources(repo_id, query_params) do |resources|

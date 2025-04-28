@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe FolioSync::FolioSynchronizer do
@@ -68,7 +70,7 @@ RSpec.describe FolioSync::FolioSynchronizer do
     it 'builds query parameters for the last 24 hours' do
       instance.send(:fetch_resources_for_repo, repo_id)
       expect(instance).to have_received(:build_query_params).with(Time.utc(2023, 1,
-                                                                           1) - described_class::ONE_DAY_IN_SECONDS * 8)
+                                                                           1) - described_class::ONE_DAY_IN_SECONDS)
     end
 
     it 'retrieves paginated resources from the ArchivesSpace client' do
