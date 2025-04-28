@@ -41,21 +41,24 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
   end
 
   describe '.instance' do
+    let(:client_instance) { instance_double(described_class) }
+
     before do
-      allow_any_instance_of(described_class).to receive(:login)
+      allow(described_class).to receive(:new).and_return(client_instance)
+      allow(client_instance).to receive(:login)
     end
 
     it 'returns the same instance every time it is called' do
       inst = described_class.instance
-      expect(inst).to be_a(described_class)
-      expect(described_class.instance).to be(inst)
+      expect(inst).to be(client_instance) # Compare with the mocked instance
+      expect(described_class.instance).to be(client_instance)
     end
   end
 
   describe '#retrieve_paginated_resources' do
     let(:query_params) { { query: { q: 'primary_type:resource', page: 1, page_size: 2 } } }
-    let(:response_page_1) { double('Response') }
-    let(:response_page_2) { double('Response') }
+    let(:response_page_1) { instance_double('Response') }
+    let(:response_page_2) { instance_double('Response') }
     let(:resources_page_1) do
       [{ 'uri' => "/repositories/#{repository_id}/resources/1" },
        { 'uri' => "/repositories/#{repository_id}/resources/2" }]

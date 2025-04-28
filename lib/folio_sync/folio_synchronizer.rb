@@ -3,7 +3,7 @@
 module FolioSync
   class FolioSynchronizer
     ONE_DAY_IN_SECONDS = 24 * 60 * 60
-    PAGE_SIZE = 20
+    PAGE_SIZE = 200
 
     def initialize
       @logger = Logger.new($stdout) # Ensure logger is initialized first
