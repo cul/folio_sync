@@ -2,20 +2,17 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
   def self.instance
     unless @instance
       @instance = self.new(ArchivesSpace::Configuration.new({
-        base_uri: Rails.configuration.archivesspace["ASPACE_BASE_API"],
-        username: Rails.configuration.archivesspace["ASPACE_API_USERNAME"],
-        password: Rails.configuration.archivesspace["ASPACE_API_PASSWORD"],
-        timeout:  Rails.configuration.archivesspace["ASPACE_TIMEOUT"],
-        verify_ssl: true
-      }))
+          base_uri: Rails.configuration.archivesspace["ASPACE_BASE_API"],
+          username: Rails.configuration.archivesspace["ASPACE_API_USERNAME"],
+          password: Rails.configuration.archivesspace["ASPACE_API_PASSWORD"],
+          timeout:  Rails.configuration.archivesspace["ASPACE_TIMEOUT"],
+        }))
+      
       @instance.login # logs in automatically when it is initialized
     end
     @instance
   end
 
-  # ?? This method is the same as the one from ASpace gem,
-  # should we still have it as a separate method? Or should we just call
-  # get("repositories") in the synchronizer and handle the response there?
   def get_all_repositories
     response = self.get("repositories")
     handle_response(response, "Error fetching repositories")
@@ -48,8 +45,6 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
     end
   end
 
-  # ?? Same issue as get_all_repositories - should we keep this method
-  # if we only add response handling
   # @param repo_id [String] The ID of the repository to fetch resources from.
   # @param resource_id [String] The ID of the resource to fetch MARC data for.
   #
@@ -63,11 +58,13 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
 
   private
 
+  # To do: create custom error classes for different types of errors
   def handle_response(response, error_message)
     if response.status_code == 200
       response.parsed
     else
       raise "#{error_message}: #{response.body}"
+      # raise FolioSync::Exceptions::ArchivesSpaceRequestError, "#{error_message}: #{response.body}"
     end
   end
 end

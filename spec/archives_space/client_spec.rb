@@ -19,18 +19,14 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
   let(:password) { 'password' }
   let(:timeout)  { 10 }
 
-  # Mocking the Rails configuration for ArchivesSpace
-  # ?? Is this the right way to do this?
   before do
-    allow(Rails).to receive_message_chain(:configuration, :archivesspace).and_return({
+    allow(Rails.configuration).to receive(:archivesspace).and_return({
       "ASPACE_BASE_API" => base_uri,
       "ASPACE_API_USERNAME" => username,
       "ASPACE_API_PASSWORD" => password,
       "ASPACE_TIMEOUT" => timeout
     })
   end
-
-
 
   it 'is a subclass of ArchivesSpace::Client' do
     expect(described_class).to be < ArchivesSpace::Client

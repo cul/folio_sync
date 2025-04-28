@@ -1,7 +1,5 @@
-# Omakase Ruby styling for Rails
 inherit_gem:
   rubocul: rubocul_default.yml
-  rubocop-rails-omakase: rubocop.yml 
 
 AllCops:
   TargetRubyVersion: 3.3.5
