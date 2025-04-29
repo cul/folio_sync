@@ -44,7 +44,7 @@ RSpec.describe FolioSync::FolioSynchronizer do
     end
 
     it 'processes published repositories with a modified_since timestamp' do
-      allow(Time).to receive(:now).and_return(Time.utc(2025, 4, 1, 12, 00, 00, 123_939))
+      allow(Time).to receive(:now).and_return(Time.utc(2025, 4, 1, 12, 0o0, 0o0, 123_939))
       modified_since = Time.now.utc - described_class::ONE_DAY_IN_SECONDS
       instance.fetch_recent_marc_resources
       expect(instance).to have_received(:fetch_resources_for_repo_since_time).with('1', modified_since: modified_since)
@@ -70,7 +70,7 @@ RSpec.describe FolioSync::FolioSynchronizer do
     end
 
     it 'builds query parameters with the provided modified_since timestamp' do
-      allow(Time).to receive(:now).and_return(Time.utc(2025, 4, 1, 12, 00, 00, 123_939))
+      allow(Time).to receive(:now).and_return(Time.utc(2025, 4, 1, 12, 0o0, 0o0, 123_939))
       modified_since = Time.now.utc - described_class::ONE_DAY_IN_SECONDS
       instance.send(:fetch_resources_for_repo_since_time, repo_id, modified_since: modified_since)
       expect(instance).to have_received(:build_query_params).with(modified_since)

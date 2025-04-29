@@ -48,15 +48,13 @@ module FolioSync
     # Note: Other instances may have different requirements for the query.
     def build_query_params(modified_since = nil)
       query = {
-        q: "primary_type:resource suppressed:false",
+        q: 'primary_type:resource suppressed:false',
         page: 1,
         page_size: PAGE_SIZE,
         fields: %w[id system_mtime title publish]
       }
 
-      if modified_since
-        query[:q] += " system_mtime:[#{time_to_solr_date_format(modified_since)} TO *]"
-      end
+      query[:q] += " system_mtime:[#{time_to_solr_date_format(modified_since)} TO *]" if modified_since
 
       query
     end
