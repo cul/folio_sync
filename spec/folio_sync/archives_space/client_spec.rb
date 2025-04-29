@@ -56,7 +56,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
   end
 
   describe '#retrieve_paginated_resources' do
-    let(:query_params) { { query: { q: 'primary_type:resource', page: 1, page_size: 2 } } }
+    let(:query_params) { { q: 'primary_type:resource', page: 1, page_size: 2 } }
     let(:response_page_1) { instance_double('Response') }
     let(:response_page_2) { instance_double('Response') }
     let(:resources_page_1) do

@@ -57,7 +57,7 @@ RSpec.describe FolioSync::FolioSynchronizer do
   describe '#fetch_resources_for_repo' do
     let(:repo_id) { '1' }
     let(:resources) { [{ 'uri' => '/resources/1', 'title' => 'Resource 1', 'id' => '1' }] }
-    let(:query_params) { { query: { q: 'test_query', page: 1, page_size: 20 } } }
+    let(:query_params) { { q: 'test_query', page: 1, page_size: 20 } }
 
     before do
       allow(Time).to receive(:now).and_return(Time.utc(2023, 1, 1))
@@ -95,12 +95,10 @@ RSpec.describe FolioSync::FolioSynchronizer do
     it 'builds the correct query parameters' do
       result = instance.send(:build_query_params, last_24h)
       expect(result).to eq({
-        query: {
-          q: 'primary_type:resource suppressed:false system_mtime:[2023-01-01T00:00:00.000Z TO *]',
-          page: 1,
-          page_size: described_class::PAGE_SIZE,
-          fields: %w[id system_mtime title publish]
-        }
+        q: 'primary_type:resource suppressed:false system_mtime:[2023-01-01T00:00:00.000Z TO *]',
+        page: 1,
+        page_size: described_class::PAGE_SIZE,
+        fields: %w[id system_mtime title publish]
       })
     end
   end

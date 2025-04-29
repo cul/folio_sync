@@ -46,12 +46,10 @@ module FolioSync
     # Note: Other instances may have different requirements for the query.
     def build_query_params(last_24h)
       {
-        query: {
-          q: "primary_type:resource suppressed:false system_mtime:[#{time_to_solr_date_format(last_24h)} TO *]",
-          page: 1,
-          page_size: PAGE_SIZE,
-          fields: %w[id system_mtime title publish]
-        }
+        q: "primary_type:resource suppressed:false system_mtime:[#{time_to_solr_date_format(last_24h)} TO *]",
+        page: 1,
+        page_size: PAGE_SIZE,
+        fields: %w[id system_mtime title publish]
       }
     end
 
