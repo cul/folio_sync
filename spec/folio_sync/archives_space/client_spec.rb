@@ -66,8 +66,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
 
     before do
       allow(instance).to receive(:get).with('repositories').and_return(response)
-      allow(response).to receive(:status_code).and_return(200)
-      allow(response).to receive(:parsed).and_return(repositories)
+      allow(response).to receive_messages(status_code: 200, parsed: repositories)
     end
 
     it 'fetches all repositories from ArchivesSpace' do
@@ -76,12 +75,12 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     end
 
     it 'raises an error if the response status code is not 200' do
-      allow(response).to receive(:status_code).and_return(500)
-      allow(response).to receive(:body).and_return('Internal Server Error')
+      allow(response).to receive_messages(status_code: 500, body: 'Internal Server Error')
 
       expect {
         instance.get_all_repositories
-      }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError, 'Error fetching repositories: Internal Server Error')
+      }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
+                       'Error fetching repositories: Internal Server Error')
     end
   end
 
@@ -89,26 +88,27 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     let(:repo_id) { '1' }
     let(:resource_id) { '123' }
     let(:response) { instance_double('Response') }
-    let(:marc_data) { { "collection" => { "record" => { "controlfield" => [{ "tag" => "001", "value" => "123456" }] } } } }
+    let(:marc_data) do
+      { 'collection' => { 'record' => { 'controlfield' => [{ 'tag' => '001', 'value' => '123456' }] } } }
+    end
 
     before do
       allow(instance).to receive(:get).with("repositories/#{repo_id}/resources/marc21/#{resource_id}.xml").and_return(response)
-      allow(response).to receive(:status_code).and_return(200)
-      allow(response).to receive(:parsed).and_return(marc_data)
+      allow(response).to receive_messages(status_code: 200, parsed: marc_data)
     end
 
     it 'fetches MARC data for the given repository and resource' do
       result = instance.fetch_marc_data(repo_id, resource_id)
       expect(result).to eq(marc_data)
     end
-  
+
     it 'raises an error if the response status code is not 200' do
-      allow(response).to receive(:status_code).and_return(404)
-      allow(response).to receive(:body).and_return('Not Found')
-  
+      allow(response).to receive_messages(status_code: 404, body: 'Not Found')
+
       expect {
         instance.fetch_marc_data(repo_id, resource_id)
-      }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError, 'Failed to fetch MARC data for resource 123: Not Found')
+      }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
+                       'Failed to fetch MARC data for resource 123: Not Found')
     end
   end
 

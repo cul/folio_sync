@@ -31,8 +31,8 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
   #
   # @return [void]
   def retrieve_paginated_resources(repo_id, query_params)
-    query = query_params.dup # Duplicate query_params so we don't modify the original  
-    query[:page] ||= 1 # Ensure page is initialized  
+    query = query_params.dup # Duplicate query_params so we don't modify the original
+    query[:page] ||= 1 # Ensure page is initialized
 
     loop do
       response = self.get("repositories/#{repo_id}/search", { query: query })
@@ -44,7 +44,7 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
 
       break if data['this_page'] >= data['last_page']
 
-      query[:page] += 1 
+      query[:page] += 1
     end
   end
 
