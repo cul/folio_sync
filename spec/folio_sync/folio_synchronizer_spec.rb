@@ -34,7 +34,7 @@ RSpec.describe FolioSync::FolioSynchronizer do
 
     before do
       allow(aspace_client).to receive(:get_all_repositories).and_return(repositories)
-      allow(instance).to receive(:fetch_resources_for_repo)
+      allow(instance).to receive(:fetch_resources_for_repo_since_time)
       allow(instance).to receive(:log_repository_skip)
     end
 
@@ -43,9 +43,11 @@ RSpec.describe FolioSync::FolioSynchronizer do
       expect(aspace_client).to have_received(:get_all_repositories)
     end
 
-    it 'processes published repositories' do
+    it 'processes published repositories with a modified_since timestamp' do
+      allow(Time).to receive(:now).and_return(Time.utc(2025, 4, 1, 12, 00, 00, 123_939))
+      modified_since = Time.now.utc - described_class::ONE_DAY_IN_SECONDS
       instance.fetch_recent_marc_resources
-      expect(instance).to have_received(:fetch_resources_for_repo).with('1')
+      expect(instance).to have_received(:fetch_resources_for_repo_since_time).with('1', modified_since: modified_since)
     end
 
     it 'skips unpublished repositories' do
@@ -54,7 +56,7 @@ RSpec.describe FolioSync::FolioSynchronizer do
     end
   end
 
-  describe '#fetch_resources_for_repo' do
+  describe '#fetch_resources_for_repo_since_time' do
     let(:repo_id) { '1' }
     let(:resources) { [{ 'uri' => '/resources/1', 'title' => 'Resource 1', 'id' => '1' }] }
     let(:query_params) { { q: 'test_query', page: 1, page_size: 20 } }
@@ -67,35 +69,46 @@ RSpec.describe FolioSync::FolioSynchronizer do
       allow(instance).to receive(:fetch_and_save_marc)
     end
 
-    it 'builds query parameters for the last 24 hours' do
-      instance.send(:fetch_resources_for_repo, repo_id)
-      expect(instance).to have_received(:build_query_params).with(Time.utc(2023, 1,
-                                                                           1) - described_class::ONE_DAY_IN_SECONDS)
+    it 'builds query parameters with the provided modified_since timestamp' do
+      allow(Time).to receive(:now).and_return(Time.utc(2025, 4, 1, 12, 00, 00, 123_939))
+      modified_since = Time.now.utc - described_class::ONE_DAY_IN_SECONDS
+      instance.send(:fetch_resources_for_repo_since_time, repo_id, modified_since: modified_since)
+      expect(instance).to have_received(:build_query_params).with(modified_since)
     end
 
     it 'retrieves paginated resources from the ArchivesSpace client' do
-      instance.send(:fetch_resources_for_repo, repo_id)
+      instance.send(:fetch_resources_for_repo_since_time, repo_id)
       expect(aspace_client).to have_received(:retrieve_paginated_resources).with(repo_id, query_params)
     end
 
     it 'logs each resource being processed' do
-      instance.send(:fetch_resources_for_repo, repo_id)
+      instance.send(:fetch_resources_for_repo_since_time, repo_id)
       expect(instance).to have_received(:log_resource_processing).with(resources[0])
     end
 
     it 'fetches and saves MARC data for each resource' do
-      instance.send(:fetch_resources_for_repo, repo_id)
+      instance.send(:fetch_resources_for_repo_since_time, repo_id)
       expect(instance).to have_received(:fetch_and_save_marc).with(repo_id, '1')
     end
   end
 
   describe '#build_query_params' do
-    let(:last_24h) { Time.utc(2023, 1, 1) }
+    let(:modified_since) { Time.utc(2023, 1, 1) }
 
-    it 'builds the correct query parameters' do
-      result = instance.send(:build_query_params, last_24h)
+    it 'builds query parameters with a modification time filter' do
+      result = instance.send(:build_query_params, modified_since)
       expect(result).to eq({
         q: 'primary_type:resource suppressed:false system_mtime:[2023-01-01T00:00:00.000Z TO *]',
+        page: 1,
+        page_size: described_class::PAGE_SIZE,
+        fields: %w[id system_mtime title publish]
+      })
+    end
+
+    it 'builds query parameters without a modification time filter when modified_since is nil' do
+      result = instance.send(:build_query_params, nil)
+      expect(result).to eq({
+        q: 'primary_type:resource suppressed:false',
         page: 1,
         page_size: described_class::PAGE_SIZE,
         fields: %w[id system_mtime title publish]

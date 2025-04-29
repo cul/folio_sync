@@ -12,19 +12,20 @@ module FolioSync
 
     # Main method, will be replaced with something like sync_resources_to_folio
     def fetch_recent_marc_resources
+      modified_since = Time.now.utc - ONE_DAY_IN_SECONDS
+
       @aspace_client.get_all_repositories.each do |repo|
         next log_repository_skip(repo) unless repo['publish']
 
         repo_id = extract_id(repo['uri'])
-        fetch_resources_for_repo(repo_id)
+        fetch_resources_for_repo_since_time(repo_id, modified_since: modified_since)
       end
     end
 
     private
 
-    def fetch_resources_for_repo(repo_id)
-      last_24h = Time.now.utc - ONE_DAY_IN_SECONDS
-      query_params = build_query_params(last_24h)
+    def fetch_resources_for_repo_since_time(repo_id, modified_since: nil)
+      query_params = build_query_params(modified_since)
 
       @aspace_client.retrieve_paginated_resources(repo_id, query_params) do |resources|
         resources.each do |resource|
@@ -41,16 +42,23 @@ module FolioSync
       save_marc_locally(marc_data) if marc_data
     end
 
-    # Builds query parameters for fetching resources updated within the last 24 hours.
-    # The query includes unpublished resources and filters by system_mtime.
+    # Builds query parameters for fetching resources.
+    # If a modification time is provided, the query filters resources updated since that time.
+    # Otherwise, it retrieves all unsuppressed resources.
     # Note: Other instances may have different requirements for the query.
-    def build_query_params(last_24h)
-      {
-        q: "primary_type:resource suppressed:false system_mtime:[#{time_to_solr_date_format(last_24h)} TO *]",
+    def build_query_params(modified_since = nil)
+      query = {
+        q: "primary_type:resource suppressed:false",
         page: 1,
         page_size: PAGE_SIZE,
         fields: %w[id system_mtime title publish]
       }
+
+      if modified_since
+        query[:q] += " system_mtime:[#{time_to_solr_date_format(modified_since)} TO *]"
+      end
+
+      query
     end
 
     # This method will be replaced later
