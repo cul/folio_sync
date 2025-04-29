@@ -3,10 +3,10 @@
 require 'rails_helper'
 
 RSpec.describe FolioSync::ArchivesSpace::Client do
-  let(:base_uri) { 'https://example-test.example.com/api' }
+  let(:base_url) { 'https://example-test.example.com/api' }
   let(:archives_space_configuration) do
     ArchivesSpace::Configuration.new({
-      base_uri: base_uri,
+      base_uri: base_url,
       username: username,
       password: password,
       timeout: timeout
@@ -23,7 +23,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
 
   before do
     allow(Rails.configuration).to receive(:archivesspace).and_return({
-      'ASPACE_BASE_API' => base_uri,
+      'ASPACE_BASE_API' => base_url,
       'ASPACE_API_USERNAME' => username,
       'ASPACE_API_PASSWORD' => password,
       'ASPACE_TIMEOUT' => timeout

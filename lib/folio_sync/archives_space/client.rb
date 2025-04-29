@@ -4,7 +4,7 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
   def self.instance
     unless @instance
       @instance = self.new(ArchivesSpace::Configuration.new({
-        base_uri: Rails.configuration.archivesspace['base_uri'],
+        base_uri: Rails.configuration.archivesspace['base_url'],
         username: Rails.configuration.archivesspace['username'],
         password: Rails.configuration.archivesspace['password'],
         timeout: Rails.configuration.archivesspace['timeout']
