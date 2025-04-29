@@ -1,5 +1,5 @@
 # FOLIO Sync
-The purpose of this application is to sync Archives Space records to FOLIO.  It automates retrieving unsuppressed resources from Archives Space that were modified in the last 24 hours and syncing them to FOLIO. This ensures that FOLIO always has up-to-date records from Archives Space.
+The purpose of this application is to sync ArchivesSpace records to FOLIO.  It automates retrieving unsuppressed resources from ArchivesSpace that were modified in the last 24 hours and syncing them to FOLIO. This ensures that FOLIO always has up-to-date records from ArchivesSpace.
 
 ## Setup
 1. Install the required gems:
@@ -7,11 +7,11 @@ The purpose of this application is to sync Archives Space records to FOLIO.  It 
    bundle install
    ```
 
-2. Create a configuration file for Archives Space credentials:
+2. Create a configuration file for ArchivesSpace credentials:
    ```bash
    cp config/templates/archivesspace.yml config/archivesspace.yml
    ```
-   Edit `config/archivesspace.yml` to include your Archives Space API credentials:
+   Edit `config/archivesspace.yml` to include your ArchivesSpace API credentials:
    ```yaml
    development:
      base_url: "https://your-archivesspace-instance/api"
