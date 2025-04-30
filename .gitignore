@@ -32,3 +32,16 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# Ignore secrets file
+/config/secrets.yml
+/config/archivesspace.yml
+
+# Ignore Mac system files
+.DS_Store
+
+# Ignore script output files for now
+marc_data.txt
+
+# Ignore SimpleCov files
+coverage

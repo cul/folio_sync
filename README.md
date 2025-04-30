@@ -1,24 +1,38 @@
-# README
+# FOLIO Sync
+The purpose of this application is to sync ArchivesSpace records to FOLIO.  It automates retrieving unsuppressed resources from ArchivesSpace that were modified in the last 24 hours and syncing them to FOLIO. This ensures that FOLIO always has up-to-date records from ArchivesSpace.
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Setup
+1. Install the required gems:
+   ```bash
+   bundle install
+   ```
 
-Things you may want to cover:
+2. Create a configuration file for ArchivesSpace credentials:
+   ```bash
+   cp config/templates/archivesspace.yml config/archivesspace.yml
+   ```
+   Edit `config/archivesspace.yml` to include your ArchivesSpace API credentials:
+   ```yaml
+   development:
+     base_url: "https://your-archivesspace-instance/api"
+     username: "your-username"
+     password: "your-password"
+   ```
 
-* Ruby version
+## Running the script
+```bash
+rails folio_sync:run
+```
 
-* System dependencies
+## Structure
+This application was created using `rails new`. However, since we're using it as a script for now, we're not using Rails' MVC (Model-View-Controller) structure. For clarity, the app folder was kept but it's empty as we don't need its content.
 
-* Configuration
+Some of the default Rails setup was skipped during the initialization:
+```bash
+rails new folio_sync --skip-action-mailer --skip-action-mailbox --skip-action-text --skip-active-record --skip-active-storage --skip-action-cable --skip-sprockets --skip-javascript --skip-hotwire --skip-jbuilder --skip-test --skip-system-test --skip-bootsnap
+```
 
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+## Testing
+```bash
+bundle exec rspec
+```
