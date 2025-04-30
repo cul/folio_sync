@@ -8,10 +8,16 @@ module FolioSync
     def initialize
       @logger = Logger.new($stdout) # Ensure logger is initialized first
       @aspace_client = FolioSync::ArchivesSpace::Client.instance
+      @folio_client = FolioSync::Folio::Client.instance
     end
 
     # Main method, will be replaced with something like sync_resources_to_folio
     def fetch_recent_marc_resources
+      puts 'Folio checking health...'
+      @folio_client.check_health
+      puts 'Folio health check complete.'
+
+      return
       modified_since = Time.now.utc - ONE_DAY_IN_SECONDS
 
       @aspace_client.get_all_repositories.each do |repo|
