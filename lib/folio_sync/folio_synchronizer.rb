@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+require "nokogiri"
+require "marc"
 
 module FolioSync
   class FolioSynchronizer
@@ -11,41 +13,70 @@ module FolioSync
       @folio_client = FolioSync::Folio::Client.instance
     end
 
-    # Main method, will be replaced with something like sync_resources_to_folio
-    def fetch_recent_marc_resources
-      puts 'Folio checking health...'
-      @folio_client.check_health
-      puts 'Folio health check complete.'
+    def fetch_and_sync_resources_to_folio
+      fetch_and_save_recent_marc_resources
+      # sync_resources_to_folio
+    end
 
-      return
-      modified_since = Time.now.utc - ONE_DAY_IN_SECONDS
+    def sync_resources_to_folio
+      # Iterate over all files in the tmp/marc_files directory
+      # Use foreach for better performance with large directories
+      Dir.foreach("tmp/marc_files") do |file|
+        next if filename == '.' or filename == '..'
+        
+        puts "Processing file: #{file}"     
+        bib_id = File.basename(file, ".xml")
+
+        # ?? Maybe this should be in the folio client when creating the record
+        folio_marc = @folio_client.get_marc_record(bib_id)
+
+        # TODO: Create a new MARC record in FOLIO if it doesn't exist
+        # if folio_marc.nil?
+        #   @logger.info("FOLIO MARC not found for ID: #{bib_id}")
+        #   next
+        # end
+
+        @folio_client.create_updated_marc_record(bib_id, folio_marc)
+      end
+    end
+
+    def fetch_and_save_recent_marc_resources
+      modified_since = Time.now.utc - (ONE_DAY_IN_SECONDS * 20)
 
       @aspace_client.get_all_repositories.each do |repo|
         next log_repository_skip(repo) unless repo['publish']
 
         repo_id = extract_id(repo['uri'])
-        fetch_resources_for_repo_since_time(repo_id, modified_since: modified_since)
+        fetch_resources_in_repo_since_time_and_save_locally(repo_id, modified_since: modified_since)
       end
     end
 
     private
 
-    def fetch_resources_for_repo_since_time(repo_id, modified_since: nil)
+    def fetch_resources_in_repo_since_time_and_save_locally(repo_id, modified_since: nil)
       query_params = build_query_params(modified_since)
 
       @aspace_client.retrieve_paginated_resources(repo_id, query_params) do |resources|
         resources.each do |resource|
+          # bib_id = resource['identifier']
+
           log_resource_processing(resource)
-          fetch_and_save_marc(repo_id, extract_id(resource['uri']))
+          fetch_and_save_marc(repo_id, extract_id(resource['uri']), resource['identifier'])
         end
       end
     end
 
-    def fetch_and_save_marc(repo_id, resource_id)
+    def fetch_and_save_marc(repo_id, resource_id, bib_id)
       marc_data = @aspace_client.fetch_marc_data(repo_id, resource_id)
 
-      # For now we're saving the MARC data locally
-      save_marc_locally(marc_data) if marc_data
+      if marc_data
+        puts "Saving MARC data locally... for resource with bibid: #{bib_id}"
+        
+        # ! To check: other instances might use the same bib_id
+        File.open("tmp/marc_files/#{bib_id}.xml", "wb") do |f| 
+          f.write marc_data.body
+        end 
+      end
     end
 
     # Builds query parameters for fetching resources.
@@ -57,20 +88,12 @@ module FolioSync
         q: 'primary_type:resource suppressed:false',
         page: 1,
         page_size: PAGE_SIZE,
-        fields: %w[id system_mtime title publish]
+        fields: %w[id identifier system_mtime title publish]
       }
 
       query[:q] += " system_mtime:[#{time_to_solr_date_format(modified_since)} TO *]" if modified_since
 
       query
-    end
-
-    # This method will be replaced later
-    def save_marc_locally(marc)
-      File.open('marc_data.txt', 'a+') do |file|
-        file.puts(marc)
-        file.puts('-----')
-      end
     end
 
     def time_to_solr_date_format(time)

@@ -46,3 +46,9 @@ marc_data.txt
 
 # Ignore SimpleCov files
 coverage
+
+# Ignore everything in the tmp/marc_files directory
+/tmp/marc_files/*
+
+# Ignore all .xml files in the project
+*.xml

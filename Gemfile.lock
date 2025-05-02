@@ -380,6 +380,7 @@ DEPENDENCIES
   debug
   folio_api_client (~> 0.3.0)
   kamal
+  marc
   propshaft
   puma (>= 5.0)
   rails (~> 8.0.2)

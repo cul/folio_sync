@@ -23,14 +23,28 @@ class FolioSync::Folio::Client < FolioApiClient
     handle_response(response, 'Error checking FOLIO health')
   end
 
+  def get_marc_record(hrid)
+    response = self.find_marc_record(instance_record_hrid: hrid)
+
+    # This response returns Marc::Record
+    response
+  end
+
+  def create_updated_marc_record(bib_id, folio_marc)
+    updated_marc = FolioSync::Folio::MarcRecord.new(bib_id, folio_marc)
+
+    # TODO: Implement the logic to update the FOLIO MARC record
+  end
+
   private
 
   def handle_response(response, error_message)
     unless response['status'] == 'ok'
       # TODO: Raise an exception
-      puts "#{error_message}: #{response}"
+      # puts "#{error_message}: #{response}"
+      raise FolioSync::Exceptions::FolioRequestError, "#{error_message}: #{response}"
     end
 
-    response
+    response.parsed
   end
 end

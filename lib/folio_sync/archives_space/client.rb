@@ -56,7 +56,8 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
   # @raise [FolioSync::Exceptions::ArchivesSpaceRequestError] If the request fails.
   def fetch_marc_data(repo_id, resource_id)
     response = self.get("repositories/#{repo_id}/resources/marc21/#{resource_id}.xml")
-    handle_response(response, "Failed to fetch MARC data for resource #{resource_id}")
+    response
+    # handle_response(response, "Failed to fetch MARC data for resource #{resource_id}")
   end
 
   private

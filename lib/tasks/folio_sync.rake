@@ -6,17 +6,15 @@ namespace :folio_sync do
   task run: :environment do
     puts 'Fetching MARC resources...'
     processor = FolioSync::FolioSynchronizer.new
-    processor.fetch_recent_marc_resources
+    processor.fetch_and_sync_resources_to_folio
 
     puts 'Script completed successfully.'
   end
 
   task test: :environment do
-    puts 'Testing ASPace client...'
+    puts 'Testing FOLIO client...'
 
-    client = FolioSync::ArchivesSpace::Client.instance
-    client.get_all_repositories.each do |repo|
-      puts "Repository ID: #{repo['uri']}"
-    end
+    marc = FolioSync::Folio::TestRecord.new('bibid-test')
+    marc.process_record
   end
 end
