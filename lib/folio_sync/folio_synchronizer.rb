@@ -21,7 +21,8 @@ module FolioSync
     def sync_resources_to_folio
       # Iterate over all files in the tmp/marc_files directory
       # Use foreach for better performance with large directories
-      Dir.foreach("tmp/marc_files") do |file|
+      marc_dir = Rails.root.join("tmp/marc_files")
+      Dir.foreach(marc_dir) do |file|
         next if filename == '.' or filename == '..'
         
         puts "Processing file: #{file}"     
@@ -73,9 +74,8 @@ module FolioSync
         puts "Saving MARC data locally... for resource with bibid: #{bib_id}"
         
         # ! To check: other instances might use the same bib_id
-        File.open("tmp/marc_files/#{bib_id}.xml", "wb") do |f| 
-          f.write marc_data.body
-        end 
+        file_path = Rails.root.join("tmp/marc_files/#{bib_id}.xml")
+        File.binwrite(file_path, marc_data.body)
       end
     end
 

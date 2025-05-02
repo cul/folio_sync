@@ -5,7 +5,8 @@ class FolioSync::Folio::MarcRecord
   attr_reader :aspace_record
 
   def initialize(bib_id, folio_marc)
-    @aspace_record = MARC::XMLReader.new(File.join(File.dirname(__FILE__), "#{bib_id}.xml"), parser: "nokogiri")
+    aspace_marc_path = Rails.root.join("tmp/marc_files", "#{bib_id}.xml")
+    @aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: "nokogiri")
     puts @aspace_record
   end
 
