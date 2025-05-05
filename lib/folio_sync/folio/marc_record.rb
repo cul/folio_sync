@@ -1,11 +1,11 @@
 class FolioSync::Folio::MarcRecord
   attr_reader :marc_record, :bibid
 
-  def initialize(bibid, folio_marc = nil)
+  def initialize(bibid, _folio_marc = nil)
     @bibid = bibid
 
-    aspace_marc_path = Rails.root.join("tmp/marc_files", "#{bibid}.xml").to_s
-    aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: "nokogiri")
+    aspace_marc_path = Rails.root.join('tmp/marc_files', "#{bibid}.xml").to_s
+    aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
 
     @marc_record = aspace_record.first
   end
@@ -21,32 +21,32 @@ class FolioSync::Folio::MarcRecord
   end
 
   def process_record
-    puts "Processing..."
+    puts 'Processing...'
     add_controlfield_001
     add_controlfield_003
-    update_datafield_100 
+    update_datafield_100
     update_datafield_856
     add_965noexportAUTH
     corpname_punctuation
-    
+
     puts @marc_record
     @marc_record
   end
 
   # Add bibid to controlfield 001 if it doesn't exist
   def add_controlfield_001
-    unless @marc_record['001']
-      ctrl_field = MARC::ControlField.new('001', @bibid)
-      @marc_record.append(ctrl_field)
-    end
+    return if @marc_record['001']
+
+    ctrl_field = MARC::ControlField.new('001', @bibid)
+    @marc_record.append(ctrl_field)
   end
 
   # Add NNC to controlfield 003 if it doesn't exist
   def add_controlfield_003
-    unless @marc_record['003']
-      ctrl_field = MARC::ControlField.new('003', 'NNC')
-      @marc_record.append(ctrl_field)
-    end
+    return if @marc_record['003']
+
+    ctrl_field = MARC::ControlField.new('003', 'NNC')
+    @marc_record.append(ctrl_field)
   end
 
   # Update datafield 100 - remove trailing punctuation from subfield d and remove subfield e
@@ -55,11 +55,9 @@ class FolioSync::Folio::MarcRecord
     return unless field_100
 
     field_100.subfields.delete_if { |sf| sf.code == 'e' }
-    
+
     field_100.subfields.each do |subfield|
-      if subfield.code == 'd'
-        subfield.value = remove_trailing_punctuation(subfield.value)
-      end
+      subfield.value = remove_trailing_punctuation(subfield.value) if subfield.code == 'd'
     end
   end
 
@@ -70,7 +68,7 @@ class FolioSync::Folio::MarcRecord
 
     field_856.subfields.delete_if { |sf| sf.code == 'z' }
     subfield_3 = field_856.subfields.find { |sf| sf.code == '3' }
-    
+
     if subfield_3
       subfield_3.value = 'Finding aid'
     else
@@ -94,7 +92,7 @@ class FolioSync::Folio::MarcRecord
     end
   end
 
-  # Processes a corpname datafield (110 or 610) to remove trailing punctuation from subfields a and b.  
+  # Processes a corpname datafield (110 or 610) to remove trailing punctuation from subfields a and b.
   # - If subfield `a` exists but `b` is not present
   #   - Remove punctuation from `a`
   # - If both subfield `a` and `b` exist
@@ -102,16 +100,16 @@ class FolioSync::Folio::MarcRecord
   def process_corpname_datafield(field)
     subfields_a = field.subfields.select { |sf| sf.code == 'a' }
 
-    if subfields_a.any?
-      subfields_b = field.subfields.select { |sf| sf.code == 'b' }
-      if subfields_b.empty?
-        subfields_a.each do |subfield|
-          subfield.value = remove_trailing_punctuation(subfield.value)
-        end
-      else
-        subfields_b.each do |subfield|
-          subfield.value = remove_trailing_punctuation(subfield.value)
-        end
+    return unless subfields_a.any?
+
+    subfields_b = field.subfields.select { |sf| sf.code == 'b' }
+    if subfields_b.empty?
+      subfields_a.each do |subfield|
+        subfield.value = remove_trailing_punctuation(subfield.value)
+      end
+    else
+      subfields_b.each do |subfield|
+        subfield.value = remove_trailing_punctuation(subfield.value)
       end
     end
   end

@@ -45,4 +45,4 @@ group :development do
   gem 'web-console'
 end
 
-gem "folio_api_client", "~> 0.3.0"
+gem 'folio_api_client', '~> 0.3.0'

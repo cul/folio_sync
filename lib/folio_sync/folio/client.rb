@@ -24,8 +24,8 @@ class FolioSync::Folio::Client < FolioApiClient
   end
 
   def get_marc_record(hrid)
-    response = self.find_marc_record(instance_record_hrid: hrid)
-    response # Returns Marc::Record
+    # Returns Marc::Record
+    self.find_marc_record(instance_record_hrid: hrid)
   end
 
   def create_or_update_folio_record(bibid)
@@ -51,7 +51,7 @@ class FolioSync::Folio::Client < FolioApiClient
   # If the record already exists in FOLIO, update it
   def update_existing_folio_marc_record(bibid, folio_marc)
     marc_record = FolioSync::Folio::MarcRecord.new(bibid, folio_marc)
-    updated_record = marc_record.process_record
+    marc_record.process_record
 
     # TODO: Call the FOLIO API to update the record
   end

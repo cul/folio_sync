@@ -1,6 +1,7 @@
 # frozen_string_literal: true
-require "nokogiri"
-require "marc"
+
+require 'nokogiri'
+require 'marc'
 
 module FolioSync
   class FolioSynchronizer
@@ -21,12 +22,12 @@ module FolioSync
     def sync_resources_to_folio
       # Iterate over all files in the tmp/marc_files directory
       # Use foreach for better performance with large directories
-      marc_dir = Rails.root.join("tmp/marc_files")
+      marc_dir = Rails.root.join('tmp/marc_files')
       Dir.foreach(marc_dir) do |file|
-        next if file == '.' or file == '..'
+        next if ['.', '..'].include?(file)
 
-        puts "Processing file: #{file}"     
-        bib_id = File.basename(file, ".xml")
+        puts "Processing file: #{file}"
+        bib_id = File.basename(file, '.xml')
         @folio_client.create_or_update_folio_record(bib_id)
       end
     end
@@ -58,13 +59,13 @@ module FolioSync
     def fetch_and_save_marc(repo_id, resource_id, bib_id)
       marc_data = @aspace_client.fetch_marc_data(repo_id, resource_id)
 
-      if marc_data
-        puts "Saving MARC data locally... for resource with bibid: #{bib_id}"
-        
-        # ! To check: other instances might use the same bib_id
-        file_path = Rails.root.join("tmp/marc_files/#{bib_id}.xml")
-        File.binwrite(file_path, marc_data.body)
-      end
+      return unless marc_data
+
+      puts "Saving MARC data locally... for resource with bibid: #{bib_id}"
+
+      # ! To check: other instances might use the same bib_id
+      file_path = Rails.root.join("tmp/marc_files/#{bib_id}.xml")
+      File.binwrite(file_path, marc_data.body)
     end
 
     # Builds query parameters for fetching resources.

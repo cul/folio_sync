@@ -30,5 +30,5 @@ namespace :folio_sync do
     marc.process_record
 
     puts "MARC processing completed for bib_id: #{bib_id}"
-  end  
+  end
 end
