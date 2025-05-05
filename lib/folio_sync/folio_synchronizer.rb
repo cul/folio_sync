@@ -14,8 +14,8 @@ module FolioSync
     end
 
     def fetch_and_sync_resources_to_folio
-      fetch_and_save_recent_marc_resources
-      # sync_resources_to_folio
+      # fetch_and_save_recent_marc_resources
+      sync_resources_to_folio
     end
 
     def sync_resources_to_folio
@@ -23,21 +23,11 @@ module FolioSync
       # Use foreach for better performance with large directories
       marc_dir = Rails.root.join("tmp/marc_files")
       Dir.foreach(marc_dir) do |file|
-        next if filename == '.' or filename == '..'
-        
+        next if file == '.' or file == '..'
+
         puts "Processing file: #{file}"     
         bib_id = File.basename(file, ".xml")
-
-        # ?? Maybe this should be in the folio client when creating the record
-        folio_marc = @folio_client.get_marc_record(bib_id)
-
-        # TODO: Create a new MARC record in FOLIO if it doesn't exist
-        # if folio_marc.nil?
-        #   @logger.info("FOLIO MARC not found for ID: #{bib_id}")
-        #   next
-        # end
-
-        @folio_client.create_updated_marc_record(bib_id, folio_marc)
+        @folio_client.create_or_update_folio_record(bib_id)
       end
     end
 
@@ -59,8 +49,6 @@ module FolioSync
 
       @aspace_client.retrieve_paginated_resources(repo_id, query_params) do |resources|
         resources.each do |resource|
-          # bib_id = resource['identifier']
-
           log_resource_processing(resource)
           fetch_and_save_marc(repo_id, extract_id(resource['uri']), resource['identifier'])
         end

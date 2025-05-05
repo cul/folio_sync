@@ -1,13 +1,23 @@
 class FolioSync::Folio::TestRecord
   attr_reader :marc_record, :bibid
 
-  def initialize(bibid)
+  def initialize(bibid, folio_marc = nil)
     @bibid = bibid
 
     aspace_marc_path = Rails.root.join("tmp/marc_files", "#{bibid}.xml").to_s
     aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: "nokogiri")
 
     @marc_record = aspace_record.first
+  end
+
+  # If the record doesn't exist in FOLIO, create a new one
+  def create_new_folio_marc_record
+    # process_record + update 035 field
+  end
+
+  # If the record already exists in FOLIO, update it
+  def update_existing_folio_marc_record
+    process_record
   end
 
   def process_record
@@ -19,7 +29,6 @@ class FolioSync::Folio::TestRecord
     add_965noexportAUTH
     corpname_punctuation
     
-    puts @marc_record
     @marc_record
   end
 
@@ -48,7 +57,7 @@ class FolioSync::Folio::TestRecord
     
     field_100.subfields.each do |subfield|
       if subfield.code == 'd'
-        subfield.value =  subfield.value.gsub(/[,.]$/, '')
+        subfield.value = remove_trailing_punctuation(subfield.value)
       end
     end
   end
@@ -96,14 +105,18 @@ class FolioSync::Folio::TestRecord
       subfields_b = field.subfields.select { |sf| sf.code == 'b' }
       if subfields_b.empty?
         subfields_a.each do |subfield|
-          subfield.value = subfield.value.gsub(/[,.]$/, '')
+          subfield.value = remove_trailing_punctuation(subfield.value)
         end
       else
         subfields_b.each do |subfield|
-          subfield.value = subfield.value.gsub(/[,.]$/, '')
+          subfield.value = remove_trailing_punctuation(subfield.value)
         end
       end
     end
+  end
+
+  def remove_trailing_punctuation(value)
+    value.gsub(/[,.]$/, '')
   end
 
   def save_to_xml(output_path)
