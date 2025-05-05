@@ -3,10 +3,10 @@ class FolioSync::Folio::TestRecord
 
   def initialize(bibid)
     @bibid = bibid
-    
-    # Uncomment the following line later
-    # aspace_record = MARC::XMLReader.new(File.join(File.dirname(__FILE__), "#{bibid}.xml"), parser: "nokogiri")
-    aspace_record = MARC::XMLReader.new(File.join(File.dirname(__FILE__), "test.xml"), parser: "nokogiri")
+
+    aspace_marc_path = Rails.root.join("tmp/marc_files", "#{bibid}.xml").to_s
+    aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: "nokogiri")
+
     @marc_record = aspace_record.first
   end
 
@@ -15,10 +15,9 @@ class FolioSync::Folio::TestRecord
     add_controlfield_001
     add_controlfield_003
     update_datafield_100 
-
     update_datafield_856
     add_965noexportAUTH
-    # corpname_punctuation # TODO: implement
+    corpname_punctuation
     
     puts @marc_record
     @marc_record
@@ -49,7 +48,7 @@ class FolioSync::Folio::TestRecord
     
     field_100.subfields.each do |subfield|
       if subfield.code == 'd'
-        subfield.value =  subfield.value.gsub(/[,.]$/, '') # Remove trailing commas or periods
+        subfield.value =  subfield.value.gsub(/[,.]$/, '')
       end
     end
   end
@@ -77,7 +76,34 @@ class FolioSync::Folio::TestRecord
 
   # Processes corpname punctuation in 110 and 610 datafields
   def corpname_punctuation
-    # TODO
+    field_110 = @marc_record['110']
+    process_corpname_datafield(field_110) if field_110
+
+    @marc_record.fields.each_by_tag('610') do |field_610|
+      process_corpname_datafield(field_610)
+    end
+  end
+
+  # Processes a corpname datafield (110 or 610) to remove trailing punctuation from subfields a and b.  
+  # - If subfield `a` exists but `b` is not present
+  #   - Remove punctuation from `a`
+  # - If both subfield `a` and `b` exist
+  #   - Remove punctuation from `b
+  def process_corpname_datafield(field)
+    subfields_a = field.subfields.select { |sf| sf.code == 'a' }
+
+    if subfields_a.any?
+      subfields_b = field.subfields.select { |sf| sf.code == 'b' }
+      if subfields_b.empty?
+        subfields_a.each do |subfield|
+          subfield.value = subfield.value.gsub(/[,.]$/, '')
+        end
+      else
+        subfields_b.each do |subfield|
+          subfield.value = subfield.value.gsub(/[,.]$/, '')
+        end
+      end
+    end
   end
 
   def save_to_xml(output_path)
