@@ -30,7 +30,7 @@ module FolioSync
     end
 
     def fetch_and_save_recent_marc_resources
-      modified_since = Time.now.utc - (ONE_DAY_IN_SECONDS * 20)
+      modified_since = Time.now.utc - ONE_DAY_IN_SECONDS
 
       @aspace_client.get_all_repositories.each do |repo|
         next log_repository_skip(repo) unless repo['publish']
@@ -62,7 +62,7 @@ module FolioSync
 
       # ! To check: other instances might use the same bib_id
       file_path = Rails.root.join("tmp/marc_files/#{bib_id}.xml")
-      File.binwrite(file_path, marc_data.body)
+      File.binwrite(file_path, marc_data)
     end
 
     # Builds query parameters for fetching resources.

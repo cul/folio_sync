@@ -89,12 +89,19 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     let(:resource_id) { '123' }
     let(:response) { instance_double('Response') }
     let(:marc_data) do
-      { 'collection' => { 'record' => { 'controlfield' => [{ 'tag' => '001', 'value' => '123456' }] } } }
+      <<-XML
+        <record>
+          <controlfield tag="001">123456</controlfield>
+          <datafield tag="245">
+            <subfield code="a">Title of the Resource</subfield>
+          </datafield>
+        </record>
+      XML
     end
 
     before do
       allow(instance).to receive(:get).with("repositories/#{repo_id}/resources/marc21/#{resource_id}.xml").and_return(response)
-      allow(response).to receive_messages(status_code: 200, parsed: marc_data)
+      allow(response).to receive_messages(status_code: 200, body: marc_data)
     end
 
     it 'fetches MARC data for the given repository and resource' do

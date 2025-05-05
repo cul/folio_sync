@@ -21,7 +21,7 @@ class FolioSync::Folio::Client < FolioApiClient
     handle_response(response, 'Error checking FOLIO health')
   end
 
-  # @param hrid [String] The HRID of the instance record to fetch.
+  # @param hrid [String] The HRID (BIBID) of the instance record to fetch.
   def get_marc_record(hrid)
     # Returns Marc::Record
     self.find_marc_record(instance_record_hrid: hrid)
