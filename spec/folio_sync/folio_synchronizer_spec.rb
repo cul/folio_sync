@@ -5,10 +5,12 @@ require 'rails_helper'
 RSpec.describe FolioSync::FolioSynchronizer do
   let(:instance) { described_class.new }
   let(:aspace_client) { instance_double(FolioSync::ArchivesSpace::Client) }
+  let(:folio_client) { instance_double(FolioSync::Folio::Client) }
   let(:logger) { instance_double(Logger, info: nil) }
 
   before do
     allow(FolioSync::ArchivesSpace::Client).to receive(:instance).and_return(aspace_client)
+    allow(FolioSync::Folio::Client).to receive(:instance).and_return(folio_client)
     allow(Logger).to receive(:new).and_return(logger)
   end
 
@@ -22,43 +24,48 @@ RSpec.describe FolioSync::FolioSynchronizer do
       expect(synchronizer.instance_variable_get(:@aspace_client)).to eq(aspace_client)
     end
 
+    it 'initializes with the FOLIO client' do
+      synchronizer = described_class.new
+      expect(synchronizer.instance_variable_get(:@folio_client)).to eq(folio_client)
+    end
+
     it 'initializes with a logger' do
       expect(instance.instance_variable_get(:@logger)).to eq(logger)
     end
   end
 
-  describe '#fetch_recent_marc_resources' do
+  describe '#fetch_and_save_recent_marc_resources' do
     let(:repositories) do
       [{ 'uri' => '/repositories/1', 'publish' => true }, { 'uri' => '/repositories/2', 'publish' => false }]
     end
 
     before do
       allow(aspace_client).to receive(:get_all_repositories).and_return(repositories)
-      allow(instance).to receive(:fetch_resources_for_repo_since_time)
+      allow(instance).to receive(:fetch_resources_in_repo_since_time_and_save_locally)
       allow(instance).to receive(:log_repository_skip)
     end
 
     it 'fetches all repositories from the ArchivesSpace client' do
-      instance.fetch_recent_marc_resources
+      instance.fetch_and_save_recent_marc_resources
       expect(aspace_client).to have_received(:get_all_repositories)
     end
 
     it 'processes published repositories with a modified_since timestamp' do
       allow(Time).to receive(:now).and_return(Time.utc(2025, 4, 1, 12, 0o0, 0o0, 123_939))
       modified_since = Time.now.utc - described_class::ONE_DAY_IN_SECONDS
-      instance.fetch_recent_marc_resources
-      expect(instance).to have_received(:fetch_resources_for_repo_since_time).with('1', modified_since: modified_since)
+      instance.fetch_and_save_recent_marc_resources
+      expect(instance).to have_received(:fetch_resources_in_repo_since_time_and_save_locally).with('1', modified_since: modified_since)
     end
 
     it 'skips unpublished repositories' do
-      instance.fetch_recent_marc_resources
+      instance.fetch_and_save_recent_marc_resources
       expect(instance).to have_received(:log_repository_skip).with(repositories[1])
     end
   end
 
-  describe '#fetch_resources_for_repo_since_time' do
+  describe '#fetch_resources_in_repo_since_time_and_save_locally' do
     let(:repo_id) { '1' }
-    let(:resources) { [{ 'uri' => '/resources/1', 'title' => 'Resource 1', 'id' => '1' }] }
+    let(:resources) { [{ 'uri' => '/resources/1', 'title' => 'Resource 1', 'id' => '1', 'identifier' => '123'}] }
     let(:query_params) { { q: 'test_query', page: 1, page_size: 20 } }
 
     before do
@@ -72,23 +79,23 @@ RSpec.describe FolioSync::FolioSynchronizer do
     it 'builds query parameters with the provided modified_since timestamp' do
       allow(Time).to receive(:now).and_return(Time.utc(2025, 4, 1, 12, 0o0, 0o0, 123_939))
       modified_since = Time.now.utc - described_class::ONE_DAY_IN_SECONDS
-      instance.send(:fetch_resources_for_repo_since_time, repo_id, modified_since: modified_since)
+      instance.send(:fetch_resources_in_repo_since_time_and_save_locally, repo_id, modified_since: modified_since)
       expect(instance).to have_received(:build_query_params).with(modified_since)
     end
 
     it 'retrieves paginated resources from the ArchivesSpace client' do
-      instance.send(:fetch_resources_for_repo_since_time, repo_id)
+      instance.send(:fetch_resources_in_repo_since_time_and_save_locally, repo_id)
       expect(aspace_client).to have_received(:retrieve_paginated_resources).with(repo_id, query_params)
     end
 
     it 'logs each resource being processed' do
-      instance.send(:fetch_resources_for_repo_since_time, repo_id)
+      instance.send(:fetch_resources_in_repo_since_time_and_save_locally, repo_id)
       expect(instance).to have_received(:log_resource_processing).with(resources[0])
     end
 
     it 'fetches and saves MARC data for each resource' do
-      instance.send(:fetch_resources_for_repo_since_time, repo_id)
-      expect(instance).to have_received(:fetch_and_save_marc).with(repo_id, '1')
+      instance.send(:fetch_resources_in_repo_since_time_and_save_locally, repo_id)
+      expect(instance).to have_received(:fetch_and_save_marc).with(repo_id, '1', '123')
     end
   end
 
@@ -101,7 +108,7 @@ RSpec.describe FolioSync::FolioSynchronizer do
         q: 'primary_type:resource suppressed:false system_mtime:[2023-01-01T00:00:00.000Z TO *]',
         page: 1,
         page_size: described_class::PAGE_SIZE,
-        fields: %w[id system_mtime title publish]
+        fields: %w[id identifier system_mtime title publish]
       })
     end
 
@@ -111,7 +118,7 @@ RSpec.describe FolioSync::FolioSynchronizer do
         q: 'primary_type:resource suppressed:false',
         page: 1,
         page_size: described_class::PAGE_SIZE,
-        fields: %w[id system_mtime title publish]
+        fields: %w[id identifier system_mtime title publish]
       })
     end
   end
