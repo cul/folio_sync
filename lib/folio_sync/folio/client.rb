@@ -50,7 +50,7 @@ class FolioSync::Folio::Client < FolioApiClient
 
   # If the record already exists in FOLIO, update it
   def update_existing_folio_marc_record(bibid, folio_marc)
-    marc_record = FolioSync::Folio::TestRecord.new(bibid, folio_marc)
+    marc_record = FolioSync::Folio::MarcRecord.new(bibid, folio_marc)
     updated_record = marc_record.process_record
 
     # TODO: Call the FOLIO API to update the record
@@ -61,7 +61,6 @@ class FolioSync::Folio::Client < FolioApiClient
   def handle_response(response, error_message)
     unless response['status'] == 'ok'
       # TODO: Raise an exception
-      # puts "#{error_message}: #{response}"
       raise FolioSync::Exceptions::FolioRequestError, "#{error_message}: #{response}"
     end
 

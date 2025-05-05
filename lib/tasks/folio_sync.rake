@@ -11,10 +11,24 @@ namespace :folio_sync do
     puts 'Script completed successfully.'
   end
 
-  task test: :environment do
-    puts 'Testing FOLIO client...'
+  # Add a MARC XML test file to tmp/marc_files directory to verify the processing
+  # Run as:
+  # rake 'folio_sync:test[<bib_id>]'
+  # ! Quotes are necessary to pass the argument correctly
+  task :test, [:bib_id] => :environment do |_task, args|
+    bib_id = args[:bib_id]
 
-    marc = FolioSync::Folio::TestRecord.new('bibid-test')
+    if bib_id.nil?
+      puts 'Error: Please provide a bib_id as an argument. Remember to use quotes.'
+      puts "Usage: 'folio_sync:test[<bib_id>]' "
+      exit 1
+    end
+
+    puts "Testing MARC processing for bib_id: #{bib_id}"
+
+    marc = FolioSync::Folio::MarcRecord.new(bib_id)
     marc.process_record
-  end
+
+    puts "MARC processing completed for bib_id: #{bib_id}"
+  end  
 end
