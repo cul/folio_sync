@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'nokogiri'
-require 'marc'
-
 module FolioSync
   class FolioSynchronizer
     ONE_DAY_IN_SECONDS = 24 * 60 * 60
@@ -15,7 +12,7 @@ module FolioSync
     end
 
     def fetch_and_sync_resources_to_folio
-      # fetch_and_save_recent_marc_resources
+      fetch_and_save_recent_marc_resources
       sync_resources_to_folio
     end
 

@@ -12,8 +12,6 @@ class FolioSync::Folio::Client < FolioApiClient
           timeout: Rails.configuration.folio['timeout']
         )
       )
-
-      @instance.refresh_auth_token! # Ensure the client is authenticated
     end
     @instance
   end
@@ -23,6 +21,7 @@ class FolioSync::Folio::Client < FolioApiClient
     handle_response(response, 'Error checking FOLIO health')
   end
 
+  # @param hrid [String] The HRID of the instance record to fetch.
   def get_marc_record(hrid)
     # Returns Marc::Record
     self.find_marc_record(instance_record_hrid: hrid)
@@ -36,14 +35,15 @@ class FolioSync::Folio::Client < FolioApiClient
       update_existing_folio_marc_record(bibid, folio_marc)
     else
       puts "FOLIO MARC record doesn't exist for bibid: #{bibid}"
-      return
       create_new_folio_marc_record(bibid)
     end
   end
 
   # If the record doesn't exist in FOLIO, create a new one
   def create_new_folio_marc_record(bibid)
-    # process_record + update 035 field
+    # TODO: Should also update 035 field
+    marc_record = FolioSync::Folio::MarcRecord.new(bibid)
+    marc_record.process_record
 
     # TODO: Call the FOLIO API to create a new record
   end
@@ -60,7 +60,6 @@ class FolioSync::Folio::Client < FolioApiClient
 
   def handle_response(response, error_message)
     unless response['status'] == 'ok'
-      # TODO: Raise an exception
       raise FolioSync::Exceptions::FolioRequestError, "#{error_message}: #{response}"
     end
 
