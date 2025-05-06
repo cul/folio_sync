@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class FolioSync::Folio::MarcRecord
   attr_reader :marc_record, :bibid
 
@@ -11,7 +13,7 @@ class FolioSync::Folio::MarcRecord
   end
 
   def process_record
-    puts 'Processing...'
+    Rails.logger.debug 'Processing...'
     add_controlfield_001
     add_controlfield_003
     update_datafield_100

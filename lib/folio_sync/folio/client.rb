@@ -28,10 +28,8 @@ class FolioSync::Folio::Client < FolioApiClient
     folio_marc = get_marc_record(bibid)
 
     if folio_marc
-      puts "FOLIO MARC record exists for bibid: #{bibid}"
       update_existing_folio_marc_record(bibid, folio_marc)
     else
-      puts "FOLIO MARC record doesn't exist for bibid: #{bibid}"
       create_new_folio_marc_record(bibid)
     end
   end

@@ -23,7 +23,7 @@ module FolioSync
       Dir.foreach(marc_dir) do |file|
         next if ['.', '..'].include?(file)
 
-        puts "Processing file: #{file}"
+        Rails.logger.debug "Processing file: #{file}"
         bib_id = File.basename(file, '.xml')
         @folio_client.create_or_update_folio_record(bib_id)
       end
@@ -57,8 +57,6 @@ module FolioSync
       marc_data = @aspace_client.fetch_marc_data(repo_id, resource_id)
 
       return unless marc_data
-
-      puts "Saving MARC data locally... for resource with bibid: #{bib_id}"
 
       # ! To check: other instances might use the same bib_id
       file_path = Rails.root.join("tmp/marc_files/#{bib_id}.xml")

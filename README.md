@@ -24,6 +24,34 @@ The purpose of this application is to sync ArchivesSpace records to FOLIO.  It a
 rails folio_sync:run
 ```
 
+## Tasks
+
+### `folio_sync:process_marc_xml`
+This task allows you to test the processing of a MARC XML file for a specific `bib_id`. It reads the MARC XML file from the `tmp/marc_files` directory, processes it, and applies the necessary transformations.
+
+#### Usage:
+```bash
+rake 'folio_sync:process_marc_xml[<bib_id>]'
+```
+
+#### Example:
+```bash
+rake 'folio_sync:process_marc_xml[123456]'
+```
+
+### `folio_sync:folio_health_check`
+This task performs a health check on the FOLIO API to ensure it is reachable and functioning correctly.
+
+#### Usage:
+```bash
+rake folio_sync:folio_health_check
+```
+
+#### Example:
+```bash
+rake folio_sync:folio_health_check
+```
+
 ## Structure
 This application was created using `rails new`. However, since we're using it as a script for now, we're not using Rails' MVC (Model-View-Controller) structure. For clarity, the app folder was kept but it's empty as we don't need its content.
 
