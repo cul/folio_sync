@@ -13,14 +13,14 @@ namespace :folio_sync do
 
   # Add a MARC XML test file to tmp/marc_files directory to verify the processing
   # Run as:
-  # rake 'folio_sync:test[<bib_id>]'
+  # rake 'folio_sync:process_marc_xml[<bib_id>]'
   # ! Quotes are necessary to pass the argument correctly
-  task :test, [:bib_id] => :environment do |_task, args|
+  task :process_marc_xml, [:bib_id] => :environment do |_task, args|
     bib_id = args[:bib_id]
 
     if bib_id.nil?
       puts 'Error: Please provide a bib_id as an argument. Remember to use quotes.'
-      puts "Usage: 'folio_sync:test[<bib_id>]' "
+      puts "Usage: rake 'folio_sync:process_marc_xml[<bib_id>]' "
       exit 1
     end
 
@@ -30,5 +30,11 @@ namespace :folio_sync do
     marc.process_record
 
     puts "MARC processing completed for bib_id: #{bib_id}"
+  end
+
+  task :folio_health_check => :environment do
+    puts 'FOLIO health check response:'
+    client = FolioSync::Folio::Client.instance
+    puts client.check_health
   end
 end

@@ -34,6 +34,23 @@ RSpec.describe FolioSync::FolioSynchronizer do
     end
   end
 
+  describe '#fetch_and_sync_resources_to_folio' do
+    before do
+      allow(instance).to receive(:fetch_and_save_recent_marc_resources)
+      allow(instance).to receive(:sync_resources_to_folio)
+    end
+
+    it 'fetches and saves recent MARC resources' do
+      instance.fetch_and_sync_resources_to_folio
+      expect(instance).to have_received(:fetch_and_save_recent_marc_resources)
+    end
+
+    it 'syncs resources to FOLIO' do
+      instance.fetch_and_sync_resources_to_folio
+      expect(instance).to have_received(:sync_resources_to_folio)
+    end
+  end
+
   describe '#fetch_and_save_recent_marc_resources' do
     let(:repositories) do
       [{ 'uri' => '/repositories/1', 'publish' => true }, { 'uri' => '/repositories/2', 'publish' => false }]
@@ -120,6 +137,59 @@ RSpec.describe FolioSync::FolioSynchronizer do
         page_size: described_class::PAGE_SIZE,
         fields: %w[id identifier system_mtime title publish]
       })
+    end
+  end
+
+  describe '#fetch_and_save_marc' do
+    let(:repo_id) { '1' }
+    let(:resource_id) { '123' }
+    let(:bib_id) { '456' }
+    let(:marc_data) { '<record><controlfield tag="001">123456</controlfield></record>' }
+    let(:file_path) { Rails.root.join("tmp/marc_files/#{bib_id}.xml") }
+
+    before do
+      allow(aspace_client).to receive(:fetch_marc_data).with(repo_id, resource_id).and_return(marc_data)
+      allow(File).to receive(:binwrite)
+    end
+
+    it 'fetches MARC data from the ArchivesSpace client' do
+      instance.send(:fetch_and_save_marc, repo_id, resource_id, bib_id)
+      expect(aspace_client).to have_received(:fetch_marc_data).with(repo_id, resource_id)
+    end
+
+    it 'saves MARC data to a local file' do
+      instance.send(:fetch_and_save_marc, repo_id, resource_id, bib_id)
+      expect(File).to have_received(:binwrite).with(file_path, marc_data)
+    end
+
+    it 'does not save if MARC data is nil' do
+      allow(aspace_client).to receive(:fetch_marc_data).and_return(nil)
+      instance.send(:fetch_and_save_marc, repo_id, resource_id, bib_id)
+      expect(File).not_to have_received(:binwrite)
+    end
+  end
+
+  describe '#sync_resources_to_folio' do
+    let(:marc_dir) { Rails.root.join('tmp/marc_files') }
+    let(:files) { ['file1.xml', 'file2.xml'] }
+
+    before do
+      allow(Dir).to receive(:foreach).with(marc_dir).and_yield('.').and_yield('..').and_yield(files[0]).and_yield(files[1])
+      allow(folio_client).to receive(:create_or_update_folio_record)
+    end
+
+    it 'processes each MARC file in the directory' do
+      instance.sync_resources_to_folio
+      files.each do |file|
+        bib_id = File.basename(file, '.xml')
+        expect(folio_client).to have_received(:create_or_update_folio_record).with(bib_id)
+      end
+    end
+
+    it 'skips "." and ".." entries' do
+      instance.sync_resources_to_folio
+      expect(folio_client).not_to have_received(:create_or_update_folio_record).with('.')
+      expect(folio_client).not_to have_received(:create_or_update_folio_record).with('..')
     end
   end
 end

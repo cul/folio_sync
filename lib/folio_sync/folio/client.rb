@@ -17,8 +17,7 @@ class FolioSync::Folio::Client < FolioApiClient
   end
 
   def check_health
-    response = self.get('/admin/health')
-    handle_response(response, 'Error checking FOLIO health')
+    self.get('/admin/health')
   end
 
   # @param hrid [String] The HRID (BIBID) of the instance record to fetch.
