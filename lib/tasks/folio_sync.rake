@@ -32,7 +32,7 @@ namespace :folio_sync do
     puts "MARC processing completed for bib_id: #{bib_id}"
   end
 
-  task :folio_health_check => :environment do
+  task folio_health_check: :environment do
     puts 'FOLIO health check response:'
     client = FolioSync::Folio::Client.instance
     puts client.check_health

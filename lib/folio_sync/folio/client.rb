@@ -2,17 +2,15 @@
 
 class FolioSync::Folio::Client < FolioApiClient
   def self.instance
-    unless @instance
-      @instance = self.new(
-        FolioApiClient::Configuration.new(
-          url: Rails.configuration.folio['base_url'],
-          username: Rails.configuration.folio['username'],
-          password: Rails.configuration.folio['password'],
-          tenant: Rails.configuration.folio['tenant'],
-          timeout: Rails.configuration.folio['timeout']
-        )
+    @instance ||= self.new(
+      FolioApiClient::Configuration.new(
+        url: Rails.configuration.folio['base_url'],
+        username: Rails.configuration.folio['username'],
+        password: Rails.configuration.folio['password'],
+        tenant: Rails.configuration.folio['tenant'],
+        timeout: Rails.configuration.folio['timeout']
       )
-    end
+    )
     @instance
   end
 
@@ -58,9 +56,7 @@ class FolioSync::Folio::Client < FolioApiClient
   private
 
   def handle_response(response, error_message)
-    unless response['status'] == 'ok'
-      raise FolioSync::Exceptions::FolioRequestError, "#{error_message}: #{response}"
-    end
+    raise FolioSync::Exceptions::FolioRequestError, "#{error_message}: #{response}" unless response['status'] == 'ok'
 
     response.parsed
   end

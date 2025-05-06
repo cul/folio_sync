@@ -71,7 +71,8 @@ RSpec.describe FolioSync::FolioSynchronizer do
       allow(Time).to receive(:now).and_return(Time.utc(2025, 4, 1, 12, 0o0, 0o0, 123_939))
       modified_since = Time.now.utc - described_class::ONE_DAY_IN_SECONDS
       instance.fetch_and_save_recent_marc_resources
-      expect(instance).to have_received(:fetch_resources_in_repo_since_time_and_save_locally).with('1', modified_since: modified_since)
+      expect(instance).to have_received(:fetch_resources_in_repo_since_time_and_save_locally).with('1',
+                                                                                                   modified_since: modified_since)
     end
 
     it 'skips unpublished repositories' do
@@ -82,7 +83,7 @@ RSpec.describe FolioSync::FolioSynchronizer do
 
   describe '#fetch_resources_in_repo_since_time_and_save_locally' do
     let(:repo_id) { '1' }
-    let(:resources) { [{ 'uri' => '/resources/1', 'title' => 'Resource 1', 'id' => '1', 'identifier' => '123'}] }
+    let(:resources) { [{ 'uri' => '/resources/1', 'title' => 'Resource 1', 'id' => '1', 'identifier' => '123' }] }
     let(:query_params) { { q: 'test_query', page: 1, page_size: 20 } }
 
     before do

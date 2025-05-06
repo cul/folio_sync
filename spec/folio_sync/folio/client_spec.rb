@@ -106,21 +106,21 @@ RSpec.describe FolioSync::Folio::Client do
         </record>
       XML
     end
-  
-    # Ensure the tmp/marc_files directory exists 
+
+    # Ensure the tmp/marc_files directory exists
     # and create a mock MARC file
     before do
       FileUtils.mkdir_p(File.dirname(marc_file_path))
       File.write(marc_file_path, mock_marc_xml)
-  
+
       allow(FolioSync::Folio::MarcRecord).to receive(:new).and_call_original
     end
-  
+
     # Clean up the mock MARC file
     after do
       File.delete(marc_file_path) if File.exist?(marc_file_path)
     end
-  
+
     it 'creates a new MARC record' do
       expect {
         instance.create_new_folio_marc_record(bibid)
@@ -128,7 +128,7 @@ RSpec.describe FolioSync::Folio::Client do
       expect(FolioSync::Folio::MarcRecord).to have_received(:new).with(bibid)
     end
   end
-  
+
   describe '#update_existing_folio_marc_record' do
     let(:bibid) { '123456' }
     let(:marc_file_path) { Rails.root.join('tmp/marc_files', "#{bibid}.xml") }
@@ -143,20 +143,20 @@ RSpec.describe FolioSync::Folio::Client do
       XML
     end
     let(:folio_marc) { double('FolioMarc') }
-  
-    # Ensure the tmp/marc_files directory exists 
+
+    # Ensure the tmp/marc_files directory exists
     # and create a mock MARC file
     before do
       FileUtils.mkdir_p(File.dirname(marc_file_path))
-      File.write(marc_file_path, mock_marc_xml)  
+      File.write(marc_file_path, mock_marc_xml)
       allow(FolioSync::Folio::MarcRecord).to receive(:new).and_call_original
     end
-  
+
     # Clean up the mock MARC file
     after do
       File.delete(marc_file_path) if File.exist?(marc_file_path)
     end
-  
+
     it 'updates an existing MARC record' do
       expect {
         instance.update_existing_folio_marc_record(bibid, folio_marc)
