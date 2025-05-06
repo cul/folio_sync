@@ -10,16 +10,6 @@ class FolioSync::Folio::MarcRecord
     @marc_record = aspace_record.first
   end
 
-  # If the record doesn't exist in FOLIO, create a new one
-  def create_new_folio_marc_record
-    # process_record + update 035 field
-  end
-
-  # If the record already exists in FOLIO, update it
-  def update_existing_folio_marc_record
-    process_record
-  end
-
   def process_record
     puts 'Processing...'
     add_controlfield_001
@@ -27,9 +17,8 @@ class FolioSync::Folio::MarcRecord
     update_datafield_100
     update_datafield_856
     add_965noexportAUTH
-    corpname_punctuation
+    remove_corpname_punctuation
 
-    puts @marc_record
     @marc_record
   end
 
@@ -83,7 +72,7 @@ class FolioSync::Folio::MarcRecord
   end
 
   # Processes corpname punctuation in 110 and 610 datafields
-  def corpname_punctuation
+  def remove_corpname_punctuation
     field_110 = @marc_record['110']
     process_corpname_datafield(field_110) if field_110
 
@@ -92,11 +81,7 @@ class FolioSync::Folio::MarcRecord
     end
   end
 
-  # Processes a corpname datafield (110 or 610) to remove trailing punctuation from subfields a and b.
-  # - If subfield `a` exists but `b` is not present
-  #   - Remove punctuation from `a`
-  # - If both subfield `a` and `b` exist
-  #   - Remove punctuation from `b
+  # Processes a corpname datafield (110 or 610) to remove trailing commas from subfields a and b.
   def process_corpname_datafield(field)
     subfields_a = field.subfields.select { |sf| sf.code == 'a' }
 
@@ -105,23 +90,20 @@ class FolioSync::Folio::MarcRecord
     subfields_b = field.subfields.select { |sf| sf.code == 'b' }
     if subfields_b.empty?
       subfields_a.each do |subfield|
-        subfield.value = remove_trailing_punctuation(subfield.value)
+        subfield.value = remove_trailing_commas(subfield.value)
       end
     else
       subfields_b.each do |subfield|
-        subfield.value = remove_trailing_punctuation(subfield.value)
+        subfield.value = remove_trailing_commas(subfield.value)
       end
     end
   end
 
-  def remove_trailing_punctuation(value)
-    value.gsub(/[,.]$/, '')
+  def remove_trailing_commas(value)
+    value.gsub(/[.]$/, '')
   end
 
-  def save_to_xml(output_path)
-    writer = MARC::XMLWriter.new(output_path)
-    writer.write(@marc_record)
-    writer.close
-    puts "Saved processed record to #{output_path}"
+  def remove_trailing_punctuation(value)
+    value.gsub(/[,.]$/, '')
   end
 end
