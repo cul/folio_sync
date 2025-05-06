@@ -63,14 +63,6 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
 
   private
 
-  # def handle_response(response, error_message)
-  #   unless response.status_code == 200
-  #     raise FolioSync::Exceptions::ArchivesSpaceRequestError, "#{error_message}: #{response.body}"
-  #   end
-
-  #   response.parsed
-  # end
-
   def handle_response(response, error_message)
     unless response.status_code == 200
       raise FolioSync::Exceptions::ArchivesSpaceRequestError, "#{error_message}: #{response.body}"
