@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe FolioSync::Folio::MarcRecord do
+RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
   let(:bibid) { '123456' }
   let(:marc_file_path) { Rails.root.join('tmp/marc_files', "#{bibid}.xml") }
   let(:mock_marc_xml) do

@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe FolioSync::FolioSynchronizer do
+RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   let(:instance) { described_class.new }
   let(:aspace_client) { instance_double(FolioSync::ArchivesSpace::Client) }
   let(:folio_client) { instance_double(FolioSync::Folio::Client) }
@@ -173,24 +173,32 @@ RSpec.describe FolioSync::FolioSynchronizer do
   describe '#sync_resources_to_folio' do
     let(:marc_dir) { Rails.root.join('tmp/marc_files') }
     let(:files) { ['file1.xml', 'file2.xml'] }
+    let(:bibid) { '123456' }
+    let(:enhancer) { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) }
+    let(:marc_record) { double('MARC::Record') }
 
     before do
       allow(Dir).to receive(:foreach).with(marc_dir).and_yield('.').and_yield('..').and_yield(files[0]).and_yield(files[1])
+      allow(File).to receive(:basename).and_return(bibid)
+      allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).and_return(enhancer)
+      allow(enhancer).to receive(:process_record)
+      allow(enhancer).to receive(:marc_record).and_return(marc_record)
       allow(folio_client).to receive(:create_or_update_folio_record)
     end
 
     it 'processes each MARC file in the directory' do
       instance.sync_resources_to_folio
       files.each do |file|
-        bib_id = File.basename(file, '.xml')
-        expect(folio_client).to have_received(:create_or_update_folio_record).with(bib_id)
+        expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to have_received(:new).with(File.basename(file, '.xml'))
+        expect(enhancer).to have_received(:process_record)
+        expect(folio_client).to have_received(:create_or_update_folio_record).with(marc_record)
       end
     end
 
     it 'skips "." and ".." entries' do
       instance.sync_resources_to_folio
-      expect(folio_client).not_to have_received(:create_or_update_folio_record).with('.')
-      expect(folio_client).not_to have_received(:create_or_update_folio_record).with('..')
+      expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('.')
+      expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('..')
     end
   end
 end

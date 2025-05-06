@@ -5,7 +5,7 @@ namespace :folio_sync do
     desc 'Fetch ArchivesSpace MARC resources and sync to FOLIO'
     task run: :environment do
       puts 'Fetching MARC resources...'
-      processor = FolioSync::FolioSynchronizer.new
+      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new
       processor.fetch_and_sync_resources_to_folio
 
       puts 'Script completed successfully.'
@@ -27,7 +27,7 @@ namespace :folio_sync do
 
       puts "Testing MARC processing for bib_id: #{bib_id}"
 
-      marc = FolioSync::Folio::MarcRecord.new(bib_id)
+      marc = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id)
       marc.process_record
 
       puts "MARC processing completed for bib_id: #{bib_id}"
