@@ -13,8 +13,7 @@ module FolioSync
 
         # TODO: If folio_record exists, update the 035 field
         @folio_record = FolioSync::Folio::Client.instance.get_marc_record(bibid)
-        puts "FOLIO record: #{@folio_record}"
-    
+
         @marc_record = aspace_record.first
       end
 
@@ -30,11 +29,6 @@ module FolioSync
         @marc_record
       end
 
-      # Temporary method for old tests
-      def process_record
-        enhance!
-      end
-    
       # Add bibid to controlfield 001 if it doesn't exist
       def add_controlfield_001
         return if @marc_record['001']

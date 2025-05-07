@@ -28,9 +28,9 @@ namespace :folio_sync do
       puts "Testing MARC processing for bib_id: #{bib_id}"
 
       marc = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id)
-      marc.process_record
+      marc.enhance!
 
-      puts "MARC processing completed for bib_id: #{bib_id}"
+      puts "Processed MARC record: #{marc.marc_record}"
     end
 
     desc 'Perform a health check on the FOLIO API'

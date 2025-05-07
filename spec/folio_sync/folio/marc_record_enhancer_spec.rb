@@ -27,12 +27,18 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
       </record>
     XML
   end
+  let(:mock_folio_record) { double('MARC::Record') }
 
-  # Ensure the tmp/marc_files directory exists
-  # And create a mock MARC file
   before do
+    # Ensure the tmp/marc_files directory exists
+    # And create a mock MARC file
     FileUtils.mkdir_p(File.dirname(marc_file_path))
     File.write(marc_file_path, mock_marc_xml)
+
+    # Mock the FOLIO client
+    folio_client = instance_double(FolioSync::Folio::Client)
+    allow(FolioSync::Folio::Client).to receive(:instance).and_return(folio_client)
+    allow(folio_client).to receive(:get_marc_record).with(bibid).and_return(mock_folio_record)
   end
 
   # Clean up the mock MARC file
@@ -48,10 +54,10 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
     end
   end
 
-  describe '#process_record' do
+  describe '#enhance!' do
     it 'processes the MARC record and applies all transformations' do
       marc_record = described_class.new(bibid)
-      processed_record = marc_record.process_record
+      processed_record = marc_record.enhance!
 
       # Check controlfield 001
       expect(processed_record['001'].value).to eq('123456')
