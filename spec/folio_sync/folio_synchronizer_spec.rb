@@ -173,25 +173,29 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   describe '#sync_resources_to_folio' do
     let(:marc_dir) { Rails.root.join('tmp/marc_files') }
     let(:files) { ['file1.xml', 'file2.xml'] }
-    let(:bibid) { '123456' }
-    let(:enhancer) { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) }
-    let(:marc_record) { double('MARC::Record') }
+    let(:enhancers) { files.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
+    let(:marc_records) { enhancers.map { double('MARC::Record') } }
 
     before do
+      # Mock directory iteration
       allow(Dir).to receive(:foreach).with(marc_dir).and_yield('.').and_yield('..').and_yield(files[0]).and_yield(files[1])
-      allow(File).to receive(:basename).and_return(bibid)
-      allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).and_return(enhancer)
-      allow(enhancer).to receive(:process_record)
-      allow(enhancer).to receive(:marc_record).and_return(marc_record)
+
+      # Mock MarcRecordEnhancer behavior for each file
+      files.each_with_index do |file, index|
+        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(File.basename(file, '.xml')).and_return(enhancers[index])
+        allow(enhancers[index]).to receive(:enhance!)
+        allow(enhancers[index]).to receive(:marc_record).and_return(marc_records[index])
+      end
       allow(folio_client).to receive(:create_or_update_folio_record)
     end
 
     it 'processes each MARC file in the directory' do
       instance.sync_resources_to_folio
-      files.each do |file|
-        expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to have_received(:new).with(File.basename(file, '.xml'))
-        expect(enhancer).to have_received(:process_record)
-        expect(folio_client).to have_received(:create_or_update_folio_record).with(marc_record)
+      files.each_with_index do |file, index|
+        bib_id = File.basename(file, '.xml')
+        expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to have_received(:new).with(bib_id)
+        expect(enhancers[index]).to have_received(:enhance!)
+        expect(folio_client).to have_received(:create_or_update_folio_record).with(marc_records[index])
       end
     end
 

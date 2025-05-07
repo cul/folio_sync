@@ -27,11 +27,10 @@ module FolioSync
           Rails.logger.debug "Processing file: #{file}"
           bibid = File.basename(file, '.xml')
 
-       
           enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bibid)
-          enhancer.process_record
+          enhancer.enhance!
           marc_record = enhancer.marc_record
-          FolioSync::Folio::Client.instance.create_or_update_folio_record(marc_record)
+          @folio_client.create_or_update_folio_record(marc_record)
         end
       end
 
