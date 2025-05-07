@@ -41,4 +41,9 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem 'web-console'
+
+  gem "capistrano", "~> 3.19.2", require: false
+  gem "capistrano-rails", "~> 1.4", require: false
+  gem "capistrano-passenger", "~> 0.1", require: false # allows restart passenger workers
+  gem "capistrano-cul", require: false # common set of tasks shared across cul apps
 end
