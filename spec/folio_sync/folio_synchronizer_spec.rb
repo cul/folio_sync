@@ -182,7 +182,8 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
 
       # Mock MarcRecordEnhancer behavior for each file
       files.each_with_index do |file, index|
-        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(File.basename(file, '.xml')).and_return(enhancers[index])
+        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(File.basename(file,
+                                                                                                       '.xml')).and_return(enhancers[index])
         allow(enhancers[index]).to receive(:enhance!)
         allow(enhancers[index]).to receive(:marc_record).and_return(marc_records[index])
       end
