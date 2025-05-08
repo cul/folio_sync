@@ -28,7 +28,7 @@ module FolioSync
           bibid = File.basename(file, '.xml')
 
           enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bibid)
-          enhancer.enhance!
+          enhancer.enhance_marc_record!
           marc_record = enhancer.marc_record
           @folio_client.create_or_update_folio_record(marc_record)
         end

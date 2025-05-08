@@ -17,7 +17,7 @@ module FolioSync
         @marc_record = aspace_record.first
       end
 
-      def enhance!
+      def enhance_marc_record!
         Rails.logger.debug 'Processing...'
         add_controlfield_001
         add_controlfield_003

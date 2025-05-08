@@ -184,7 +184,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       files.each_with_index do |file, index|
         allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(File.basename(file,
                                                                                                        '.xml')).and_return(enhancers[index])
-        allow(enhancers[index]).to receive(:enhance!)
+        allow(enhancers[index]).to receive(:enhance_marc_record!)
         allow(enhancers[index]).to receive(:marc_record).and_return(marc_records[index])
       end
       allow(folio_client).to receive(:create_or_update_folio_record)
@@ -195,7 +195,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       files.each_with_index do |file, index|
         bib_id = File.basename(file, '.xml')
         expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to have_received(:new).with(bib_id)
-        expect(enhancers[index]).to have_received(:enhance!)
+        expect(enhancers[index]).to have_received(:enhance_marc_record!)
         expect(folio_client).to have_received(:create_or_update_folio_record).with(marc_records[index])
       end
     end
