@@ -12,12 +12,13 @@ module FolioSync
         aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
 
         # TODO: If folio_record exists, update the 035 field
-        @folio_record = FolioSync::Folio::Client.instance.get_marc_record(bibid)
+        folio_reader = FolioSync::Folio::Reader.new
+        @folio_record = folio_reader.get_marc_record(bibid)
 
         @marc_record = aspace_record.first
       end
 
-      def enhance!
+      def enhance_marc_record!
         Rails.logger.debug 'Processing...'
         add_controlfield_001
         add_controlfield_003
