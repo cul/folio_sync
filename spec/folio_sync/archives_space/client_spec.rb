@@ -84,7 +84,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     end
   end
 
-  describe '#fetch_marc_data' do
+  describe '#fetch_marc_xml_resource' do
     let(:repo_id) { '1' }
     let(:resource_id) { '123' }
     let(:response) { instance_double('Response') }
@@ -105,7 +105,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     end
 
     it 'fetches MARC data for the given repository and resource' do
-      result = instance.fetch_marc_data(repo_id, resource_id)
+      result = instance.fetch_marc_xml_resource(repo_id, resource_id)
       expect(result).to eq(marc_data)
     end
 
@@ -113,7 +113,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
       allow(response).to receive_messages(status_code: 404, body: 'Not Found')
 
       expect {
-        instance.fetch_marc_data(repo_id, resource_id)
+        instance.fetch_marc_xml_resource(repo_id, resource_id)
       }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
                        'Failed to fetch MARC data for resource 123: Not Found')
     end
