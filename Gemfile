@@ -21,6 +21,10 @@ gem 'kamal', require: false
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem 'thruster', require: false
 
+# Version 1.18 doesn't run on a Linux because our GLIBC version is less than required 2.29
+# Nokogiri 1.17 runs successfully 
+gem "nokogiri", "~> 1.17.2"
+
 gem 'archivesspace-client'
 
 group :development, :test do
