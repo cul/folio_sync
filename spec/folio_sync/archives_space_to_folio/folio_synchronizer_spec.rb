@@ -24,7 +24,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   end
 
   describe '#fetch_and_sync_resources_to_folio' do
-    let(:current_time) { Time.utc(2025, 5, 11, 15, 25, 23, 516125) }
+    let(:current_time) { Time.utc(2025, 5, 11, 15, 25, 23, 516_125) }
     let(:modified_since) { current_time - described_class::ONE_DAY_IN_SECONDS }
 
     before do
@@ -79,7 +79,8 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
 
       # Mock MarcRecordEnhancer behavior for each file
       files.each_with_index do |file, index|
-        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(File.basename(file, '.xml')).and_return(enhancers[index])
+        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(File.basename(file,
+                                                                                                       '.xml')).and_return(enhancers[index])
         allow(enhancers[index]).to receive(:enhance_marc_record!)
         allow(enhancers[index]).to receive(:marc_record).and_return(marc_records[index])
       end

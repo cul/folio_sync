@@ -6,8 +6,7 @@ module FolioSync
       end
 
       # TODO: Call the FOLIO API to create/update a record
-      def create_or_update_folio_record(marc_record)
-      end
+      def create_or_update_folio_record(marc_record); end
     end
   end
 end
