@@ -73,7 +73,7 @@ RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
 
     it 'builds query parameters with the provided modified_since timestamp' do
       allow(Time).to receive(:now).and_return(Time.utc(2025, 4, 1, 12, 0o0, 0o0, 123_939))
-      modified_since = Time.now.utc - described_class::ONE_DAY_IN_SECONDS
+      modified_since = Time.now.utc - FolioSync::ArchivesSpaceToFolio::FolioSynchronizer::ONE_DAY_IN_SECONDS
       instance.send(:export_resources_from_repository, repo_id, modified_since)
       expect(instance).to have_received(:build_query_params).with(modified_since)
     end
