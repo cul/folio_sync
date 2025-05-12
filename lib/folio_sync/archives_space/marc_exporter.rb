@@ -3,7 +3,6 @@
 module FolioSync
   module ArchivesSpace
     class MarcExporter
-      ONE_DAY_IN_SECONDS = 24 * 60 * 60
       PAGE_SIZE = 200
 
       def initialize
