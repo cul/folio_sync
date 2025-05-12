@@ -31,12 +31,12 @@ This task allows you to test the processing of a MARC XML file for a specific `b
 
 #### Usage:
 ```bash
-rake 'folio_sync:aspace_to_folio:process_marc_xml[<bib_id>]'
+bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=<bib_id>
 ```
 
 #### Example:
 ```bash
-rake 'folio_sync:aspace_to_folio:process_marc_xml[123456]'
+bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789
 ```
 
 ### `folio_sync:aspace_to_folio:folio_health_check`
