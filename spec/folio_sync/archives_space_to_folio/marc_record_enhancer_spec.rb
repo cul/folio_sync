@@ -5,6 +5,13 @@ require 'rails_helper'
 RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
   let(:bibid) { '123456' }
   let(:marc_file_path) { Rails.root.join('tmp/marc_files', "#{bibid}.xml") }
+  let(:field_856_xml) do
+    <<-XML
+      <datafield tag="856" ind1="4" ind2="2">
+        <subfield code="z">Old subfield z</subfield>
+      </datafield>
+    XML
+  end
   let(:mock_marc_xml) do
     <<-XML
       <record xmlns="http://www.loc.gov/MARC21/slim">
@@ -14,9 +21,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
           <subfield code="d">1990.</subfield>
           <subfield code="e">Editor</subfield>
         </datafield>
-        <datafield tag="856" ind1="4" ind2="2">
-          <subfield code="z">Old subfield z</subfield>
-        </datafield>
+        #{field_856_xml}
         <datafield tag="110" ind1="2" ind2=" ">
           <subfield code="a">Corporate Name.</subfield>
         </datafield>
@@ -87,6 +92,23 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
       field_610 = processed_record.fields('610').first
       expect(field_610['a']).to eq('Another Corporate Name.')
       expect(field_610['b']).to eq('Subfield b')
+    end
+  end
+
+  describe '#update_datafield_856' do
+    let(:field_856_xml) do
+      <<-XML
+        <datafield tag="856" ind1="4" ind2="2">
+          <subfield code="z">Old subfield z</subfield>
+          <subfield code="3">Lemon aid</subfield>
+        </datafield>
+      XML
+    end
+    let(:marc_record) { described_class.new(bibid) }
+    let(:processed_record) { marc_record.enhance_marc_record! }
+
+    it 'updates an existing 856 $3 value to "Finding aid"' do
+      expect(processed_record['856']['3']).to eq('Finding aid')
     end
   end
 end
