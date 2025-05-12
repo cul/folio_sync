@@ -3,18 +3,21 @@
 module FolioSync
   module ArchivesSpaceToFolio
     class FolioSynchronizer
+      ONE_DAY_IN_SECONDS = 24 * 60 * 60
+
       def initialize
         @logger = Logger.new($stdout)
       end
 
       def fetch_and_sync_resources_to_folio
-        download_archivesspace_marc_xml
+        last_24_hours = Time.now.utc - ONE_DAY_IN_SECONDS
+        download_archivesspace_marc_xml(last_24_hours)
         sync_resources_to_folio
       end
 
-      def download_archivesspace_marc_xml
+      def download_archivesspace_marc_xml(modified_since)
         exporter = FolioSync::ArchivesSpace::MarcExporter.new
-        exporter.export_recent_resources
+        exporter.export_recent_resources(modified_since)
       end
 
       def sync_resources_to_folio

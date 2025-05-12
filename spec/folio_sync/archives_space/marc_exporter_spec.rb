@@ -13,27 +13,58 @@ RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
   end
 
   describe '#initialize' do
-  it 'can be instantiated' do
-    expect(instance).to be_a(described_class)
+    it 'can be instantiated' do
+      expect(instance).to be_a(described_class)
+    end
+
+    it 'initializes with the ArchivesSpace client' do
+      synchronizer = described_class.new
+      expect(synchronizer.instance_variable_get(:@client)).to eq(client)
+    end
+
+    it 'initializes with a logger' do
+      expect(instance.instance_variable_get(:@logger)).to eq(logger)
+    end
   end
 
-  it 'initializes with the ArchivesSpace client' do
-    synchronizer = described_class.new
-    expect(synchronizer.instance_variable_get(:@client)).to eq(client)
-  end
+  describe '#export_recent_resources' do
+    let(:repositories) do
+      [
+        { 'uri' => '/repositories/1', 'publish' => true },
+        { 'uri' => '/repositories/2', 'publish' => false }
+      ]
+    end
+    let(:modified_since) { Time.utc(2023, 1, 1) }
 
-  it 'initializes with a logger' do
-    expect(instance.instance_variable_get(:@logger)).to eq(logger)
+    before do
+      allow(client).to receive(:get_all_repositories).and_return(repositories)
+      allow(instance).to receive(:log_repository_skip)
+      allow(instance).to receive(:export_resources_from_repository)
+    end
+
+    it 'fetches all repositories from the ArchivesSpace client' do
+      instance.export_recent_resources(modified_since)
+      expect(client).to have_received(:get_all_repositories)
+    end
+
+    it 'processes published repositories' do
+      instance.export_recent_resources(modified_since)
+      expect(instance).to have_received(:export_resources_from_repository).with('1', modified_since)
+    end
+
+    it 'skips unpublished repositories' do
+      instance.export_recent_resources(modified_since)
+      expect(instance).to have_received(:log_repository_skip).with(repositories[1])
+    end
   end
-end
 
   describe '#export_resources_from_repository' do
     let(:repo_id) { '1' }
     let(:resources) { [{ 'uri' => '/resources/1', 'title' => 'Resource 1', 'id' => '1', 'identifier' => '123' }] }
     let(:query_params) { { q: 'test_query', page: 1, page_size: 20 } }
+    let(:modified_since) { Time.utc(2023, 1, 1) }
 
     before do
-      allow(Time).to receive(:now).and_return(Time.utc(2023, 1, 1))
       allow(instance).to receive(:build_query_params).and_return(query_params)
       allow(client).to receive(:retrieve_paginated_resources).and_yield(resources)
       allow(instance).to receive(:log_resource_processing)
@@ -48,17 +79,17 @@ end
     end
 
     it 'retrieves paginated resources from the ArchivesSpace client' do
-      instance.send(:export_resources_from_repository, repo_id)
+      instance.send(:export_resources_from_repository, repo_id, modified_since)
       expect(client).to have_received(:retrieve_paginated_resources).with(repo_id, query_params)
     end
 
     it 'logs each resource being processed' do
-      instance.send(:export_resources_from_repository, repo_id)
+      instance.send(:export_resources_from_repository, repo_id, modified_since)
       expect(instance).to have_received(:log_resource_processing).with(resources[0])
     end
 
     it 'fetches and saves MARC data for each resource' do
-      instance.send(:export_resources_from_repository, repo_id)
+      instance.send(:export_resources_from_repository, repo_id, modified_since)
       expect(instance).to have_received(:export_marc_for_resource).with(repo_id, '1', '123')
     end
   end
@@ -95,13 +126,13 @@ end
     let(:file_path) { Rails.root.join("tmp/marc_files/#{bib_id}.xml") }
 
     before do
-      allow(client).to receive(:export_marc_for_resource).with(repo_id, resource_id).and_return(marc_data)
+      allow(client).to receive(:fetch_marc_xml_resource).with(repo_id, resource_id).and_return(marc_data)
       allow(File).to receive(:binwrite)
     end
 
     it 'fetches MARC data from the ArchivesSpace client' do
       instance.send(:export_marc_for_resource, repo_id, resource_id, bib_id)
-      expect(client).to have_received(:export_marc_for_resource).with(repo_id, resource_id)
+      expect(client).to have_received(:fetch_marc_xml_resource).with(repo_id, resource_id)
     end
 
     it 'saves MARC data to a local file' do
@@ -110,7 +141,8 @@ end
     end
 
     it 'does not save if MARC data is nil' do
-      allow(client).to receive(:export_marc_for_resource).and_return(nil)
+      allow(client).to receive(:fetch_marc_xml_resource).and_return(nil)
+      expect(logger).to receive(:error).with("No MARC found for repo #{repo_id} and resource_id #{resource_id}")
       instance.send(:export_marc_for_resource, repo_id, resource_id, bib_id)
       expect(File).not_to have_received(:binwrite)
     end

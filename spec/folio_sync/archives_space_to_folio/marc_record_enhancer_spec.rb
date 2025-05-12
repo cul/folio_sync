@@ -35,10 +35,10 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
     FileUtils.mkdir_p(File.dirname(marc_file_path))
     File.write(marc_file_path, mock_marc_xml)
 
-    # Mock the FOLIO client
-    folio_client = instance_double(FolioSync::Folio::Client)
-    allow(FolioSync::Folio::Client).to receive(:instance).and_return(folio_client)
-    allow(folio_client).to receive(:get_marc_record).with(bibid).and_return(mock_folio_record)
+    # Mock FOLIO::Reader
+    folio_reader = instance_double(FolioSync::Folio::Reader)
+    allow(FolioSync::Folio::Reader).to receive(:new).and_return(folio_reader)
+    allow(folio_reader).to receive(:get_marc_record).with(bibid).and_return(mock_folio_record)
   end
 
   # Clean up the mock MARC file

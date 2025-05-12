@@ -62,21 +62,4 @@ RSpec.describe FolioSync::Folio::Client do
       }.to raise_error(Faraday::BadRequestError, 'the server responded with status 400')
     end
   end
-
-  describe '#get_marc_record' do
-    let(:response) { instance_double('Response', parsed: marc_record) }
-
-    before do
-      allow(instance).to receive(:find_marc_record).with(instance_record_hrid: bibid).and_return(response)
-    end
-
-    it 'fetches the MARC record for the given HRID' do
-      result = instance.get_marc_record(bibid)
-      expect(result).to eq(response)
-    end
-  end
-
-  # This method has not been implemented yet
-  # describe '#create_or_update_folio_record' do
-  # end
 end
