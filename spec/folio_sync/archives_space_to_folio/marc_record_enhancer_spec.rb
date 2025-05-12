@@ -55,10 +55,10 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
   end
 
   describe '#enhance_marc_record!' do
-    it 'processes the MARC record and applies all transformations' do
-      marc_record = described_class.new(bibid)
-      processed_record = marc_record.enhance_marc_record!
+    let(:marc_record) { described_class.new(bibid) }
+    let(:processed_record) { marc_record.enhance_marc_record! }
 
+    it 'processes the MARC record and applies all transformations' do
       # Check controlfield 001
       expect(processed_record['001'].value).to eq('123456')
 
