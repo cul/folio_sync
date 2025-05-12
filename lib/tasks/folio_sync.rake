@@ -19,4 +19,12 @@ namespace :folio_sync do
       puts "Repository ID: #{repo['uri']}"
     end
   end
+
+  task :email_test => :environment do
+    ApplicationMailer.with(
+      to: 'testemail@test.com',
+      subject: 'Hysync Test Marc Sync Error Email',
+      errors: ['Test error 1', 'Test error 2']
+    ).folio_sync_error_email.deliver
+  end
 end

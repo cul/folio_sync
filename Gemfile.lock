@@ -375,6 +375,7 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
+  actionmailer (~> 8.0.2)
   archivesspace-client
   brakeman
   capistrano (~> 3.19.2)
