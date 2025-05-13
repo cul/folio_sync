@@ -42,13 +42,13 @@ namespace :folio_sync do
       client = FolioSync::Folio::Client.instance
       puts client.check_health
     end
-  end
 
-  task :email_test => :environment do
-    ApplicationMailer.with(
-      to: 'testemail@test.com',
-      subject: 'Hysync Test Marc Sync Error Email',
-      errors: ['Test error 1', 'Test error 2']
-    ).folio_sync_error_email.deliver
+    task :email_test => :environment do
+      ApplicationMailer.with(
+        to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
+        subject: 'FOLIO Test - Marc Sync Errors',
+        errors: ['Test error 1', 'Test error 2']
+      ).folio_sync_error_email.deliver
+    end
   end
 end

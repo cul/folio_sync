@@ -37,6 +37,7 @@
 /config/secrets.yml
 /config/archivesspace.yml
 /config/folio.yml
+/config/folio_sync.yml
 
 # Ignore Mac system files
 .DS_Store
