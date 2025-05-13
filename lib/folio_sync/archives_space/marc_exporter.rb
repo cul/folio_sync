@@ -26,13 +26,19 @@ module FolioSync
 
         @client.retrieve_paginated_resources(repo_id, query_params) do |resources|
           resources.each do |resource|
-            log_resource_processing(resource)
-            export_marc_for_resource(repo_id, extract_id(resource['uri']), resource['identifier'])
+            begin
+              log_resource_processing(resource)
+              export_marc_for_resource(repo_id, extract_id(resource['uri']), resource['identifier'])
+            rescue => e
+              @logger.error("Error exporting MARC for resource #{resource['identifier']} (repo_id: #{repo_id}): #{e.message}")
+              next
+            end
           end
         end
       end
 
       def export_marc_for_resource(repo_id, resource_id, bib_id)
+        # marc_data = @client.fetch_marc_xml_resource(repo_id, 2)
         marc_data = @client.fetch_marc_xml_resource(repo_id, resource_id)
         return @logger.error("No MARC found for repo #{repo_id} and resource_id #{resource_id}") unless marc_data
 

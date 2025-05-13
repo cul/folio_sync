@@ -2,6 +2,8 @@
 
 module FolioSync::Exceptions
   class FolioSyncException < StandardError; end
+  # class DownloadError < StandardError; end
+  # class SyncError < StandardError; end
 
   class ArchivesSpaceRequestError < FolioSyncException; end
 

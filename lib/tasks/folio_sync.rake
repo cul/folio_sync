@@ -8,7 +8,25 @@ namespace :folio_sync do
       processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new
       processor.fetch_and_sync_resources_to_folio
 
-      puts 'Script completed successfully.'
+      if processor.syncing_errors.any? || processor.downloading_errors.any?
+        puts 'Errors occurred during processing:'
+
+        puts 'Downloading errors:'
+        puts processor.downloading_errors unless processor.downloading_errors.empty?
+
+        puts "=========================="
+        puts 'Syncing errors:'
+        puts processor.syncing_errors unless processor.syncing_errors.empty?
+
+        ApplicationMailer.with(
+          to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
+          subject: 'FOLIO Sync Errors',
+          downloading_errors: processor.downloading_errors,
+          syncing_errors: processor.syncing_errors,
+        ).folio_sync_error_email.deliver
+      else
+        puts 'Script completed successfully.'
+      end
     end
 
     # Add a MARC XML test file to tmp/marc_files directory to verify the processing
@@ -43,6 +61,7 @@ namespace :folio_sync do
       puts client.check_health
     end
 
+    desc 'Test the email functionality'
     task :email_test => :environment do
       ApplicationMailer.with(
         to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
