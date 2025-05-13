@@ -16,12 +16,12 @@ namespace :folio_sync do
     # rake 'folio_sync:aspace_to_folio:process_marc_xml[<bib_id>]'
     # ! Quotes are necessary to pass the argument correctly
     desc 'Process a MARC XML file for a given bib_id'
-    task :process_marc_xml => :environment do
+    task process_marc_xml: :environment do
       bib_id = ENV['bib_id']
 
       if bib_id.nil?
         puts 'Error: Please provide a bib_id.'
-        puts "Usage: bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789"
+        puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789'
         exit 1
       end
 
