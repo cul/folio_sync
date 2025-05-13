@@ -21,7 +21,35 @@ The purpose of this application is to sync ArchivesSpace records to FOLIO.  It a
 
 ## Running the script
 ```bash
-rails folio_sync:run
+rails folio_sync:aspace_to_folio:run
+```
+
+## Tasks
+
+### `folio_sync:aspace_to_folio:process_marc_xml`
+This task allows you to test the processing of a MARC XML file for a specific `bib_id`. It reads the MARC XML file from the `tmp/marc_files` directory, processes it, and applies the necessary transformations.
+
+#### Usage:
+```bash
+bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=<bib_id>
+```
+
+#### Example:
+```bash
+bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789
+```
+
+### `folio_sync:aspace_to_folio:folio_health_check`
+This task performs a health check on the FOLIO API to ensure it is reachable and functioning correctly.
+
+#### Usage:
+```bash
+rake folio_sync:aspace_to_folio:folio_health_check
+```
+
+#### Example:
+```bash
+rake folio_sync:aspace_to_folio:folio_health_check
 ```
 
 ## Structure
