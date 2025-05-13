@@ -22,12 +22,14 @@ gem 'kamal', require: false
 gem 'thruster', require: false
 
 # Version 1.18 doesn't run on a Linux because our GLIBC version is less than required 2.29
-# Nokogiri 1.17 runs successfully 
-gem "nokogiri", "~> 1.17.2"
+# Nokogiri 1.17 runs successfully
+gem 'nokogiri', '~> 1.17.2'
 
 gem 'archivesspace-client'
 
 gem 'actionmailer', '~> 8.0.2'
+
+gem 'marc'
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -48,8 +50,10 @@ group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem 'web-console'
 
-  gem "capistrano", "~> 3.19.2", require: false
-  gem "capistrano-rails", "~> 1.4", require: false
-  gem "capistrano-passenger", "~> 0.1", require: false # allows restart passenger workers
-  gem "capistrano-cul", require: false # common set of tasks shared across cul apps
+  gem 'capistrano', '~> 3.19.2', require: false
+  gem 'capistrano-cul', require: false # common set of tasks shared across cul apps
+  gem 'capistrano-passenger', '~> 0.1', require: false # allows restart passenger workers
+  gem 'capistrano-rails', '~> 1.4', require: false
 end
+
+gem 'folio_api_client', '~> 0.3.0'

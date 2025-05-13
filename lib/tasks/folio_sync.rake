@@ -1,22 +1,46 @@
 # frozen_string_literal: true
 
 namespace :folio_sync do
-  desc 'Get MARC resources'
+  namespace :aspace_to_folio do
+    desc 'Fetch ArchivesSpace MARC resources and sync to FOLIO'
+    task run: :environment do
+      puts 'Fetching MARC resources...'
+      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new
+      processor.fetch_and_sync_resources_to_folio
 
-  task run: :environment do
-    puts 'Fetching MARC resources...'
-    processor = FolioSync::FolioSynchronizer.new
-    processor.fetch_recent_marc_resources
+      puts 'Script completed successfully.'
+    end
 
-    puts 'Script completed successfully.'
-  end
+    # Add a MARC XML test file to tmp/marc_files directory to verify the processing
+    # Run as:
+    # rake 'folio_sync:aspace_to_folio:process_marc_xml[<bib_id>]'
+    # ! Quotes are necessary to pass the argument correctly
+    desc 'Process a MARC XML file for a given bib_id'
+    task process_marc_xml: :environment do
+      bib_id = ENV['bib_id']
 
-  task test: :environment do
-    puts 'Testing ASPace client...'
+      if bib_id.nil?
+        puts 'Error: Please provide a bib_id.'
+        puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789'
+        exit 1
+      end
 
-    client = FolioSync::ArchivesSpace::Client.instance
-    client.get_all_repositories.each do |repo|
-      puts "Repository ID: #{repo['uri']}"
+      puts "Testing MARC processing for bib_id: #{bib_id}"
+
+      folio_reader = FolioSync::Folio::Reader.new
+      folio_reader.get_marc_record(bib_id)
+
+      enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id)
+      marc_record = enhancer.enhance_marc_record!
+
+      puts "Processed MARC record: #{marc_record}"
+    end
+
+    desc 'Perform a health check on the FOLIO API'
+    task folio_health_check: :environment do
+      puts 'FOLIO health check response:'
+      client = FolioSync::Folio::Client.instance
+      puts client.check_health
     end
   end
 

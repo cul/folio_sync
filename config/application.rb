@@ -23,6 +23,7 @@ Bundler.require(*Rails.groups)
 module FolioSync
   class Application < Rails::Application
     config.archivesspace = config_for(:archivesspace)
+    config.folio = config_for(:folio)
 
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0

@@ -18,6 +18,7 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
   def get_all_repositories
     response = self.get('repositories')
     handle_response(response, 'Error fetching repositories')
+    response.parsed
   end
 
   # This method fetches all resources for a given repository
@@ -51,12 +52,13 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
   # @param repo_id [String] The ID of the repository to fetch resources from.
   # @param resource_id [String] The ID of the resource to fetch MARC data for.
   #
-  # @return [Hash] The parsed MARC data for the resource.
+  # @return [Hash] The XML MARC data for the resource.
   #
   # @raise [FolioSync::Exceptions::ArchivesSpaceRequestError] If the request fails.
-  def fetch_marc_data(repo_id, resource_id)
+  def fetch_marc_xml_resource(repo_id, resource_id)
     response = self.get("repositories/#{repo_id}/resources/marc21/#{resource_id}.xml")
     handle_response(response, "Failed to fetch MARC data for resource #{resource_id}")
+    response.body
   end
 
   private
@@ -66,6 +68,6 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
       raise FolioSync::Exceptions::ArchivesSpaceRequestError, "#{error_message}: #{response.body}"
     end
 
-    response.parsed
+    response
   end
 end

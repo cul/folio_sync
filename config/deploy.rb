@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
 # config valid for current version and patch releases of Capistrano
-lock "~> 3.19.2"
+lock '~> 3.19.2'
 
 # Until we retire all old CentOS VMs, we need to set the rvm_custom_path because rvm is installed
 # in a non-standard location for our AlmaLinux VMs.  This is because our service accounts need to
 # maintain two rvm installations for two different Linux OS versions.
-set :rvm_custom_path, "~/.rvm-alma8"                      # default ~/.rvm
+set :rvm_custom_path, '~/.rvm-alma8' # default ~/.rvm
 
-set :remote_user, "renserv"
-set :application, "folio_sync"
+set :remote_user, 'renserv'
+set :application, 'folio_sync'
 set :repo_name, fetch(:application)
 set :repo_url, "git@github.com:cul/#{fetch(:repo_name)}.git"
 set :deploy_name, "#{fetch(:application)}_#{fetch(:stage)}" # e.g. folio_sync_dev
@@ -22,12 +22,12 @@ set :deploy_to, "/opt/passenger/#{fetch(:deploy_name)}"
 # Default value for :linked_files is []
 append  :linked_files,
         # 'config/database.yml',
-        "config/folio.yml",
-        "config/archivesspace.yml",
-        "config/master.key" # we don't use this often, when we do it is for API keys
+        'config/folio.yml',
+        'config/archivesspace.yml',
+        'config/master.key' # we don't use this often, when we do it is for API keys
 
 # Default value for linked_dirs is []
-append :linked_dirs, "log", "tmp/pids", "node_modules"
+append :linked_dirs, 'log', 'tmp/pids', 'node_modules'
 # Capi will create symlinks to the linked_files and linked_dirs so that we can load
 # in config values without committing them to repo + these files can be shared across
 # deployments. They will actually exist inside the 'shared directory'
@@ -53,10 +53,9 @@ set :log_level, :info
 #   SSHKit.config.command_map.prefix[command_to_prefix].push("nvm exec #{fetch(:nvm_node_version)}") # prefix all node-related commands with this string that specifies the node version to use
 # end
 
-
 # RVM Setup, for selecting the correct ruby version (instead of capistrano-rvm gem)
 set :rvm_ruby_version, fetch(:deploy_name) # This RVM alias must exist on the server
-[ :rake, :gem, :bundle, :ruby ].each do |command_to_prefix|
+[:rake, :gem, :bundle, :ruby].each do |command_to_prefix|
   SSHKit.config.command_map.prefix[command_to_prefix].push(
     "#{fetch(:rvm_custom_path, '~/.rvm')}/bin/rvm #{fetch(:rvm_ruby_version)} do" # prefix all ruby-related commands with this string that specifies rb version to use
   )

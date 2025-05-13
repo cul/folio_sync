@@ -1,0 +1,13 @@
+development:
+  base_url: https://example-dev.folio.com/api
+  username: example-user
+  password: example-password
+  tenant: example-tenant
+  timeout: 60
+
+production:
+  base_url: https://example-prod.folio.com/api
+  username: example-user
+  password: example-password
+  tenant: example-tenant
+  timeout: 60
