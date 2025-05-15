@@ -123,7 +123,7 @@ RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
     let(:resource_id) { '123' }
     let(:bib_id) { '456' }
     let(:marc_data) { '<record><controlfield tag="001">123456</controlfield></record>' }
-    let(:file_path) { Rails.root.join("tmp/marc_files/#{bib_id}.xml") }
+    let(:file_path) { File.join(Rails.configuration.folio_sync['marc_download_directory'], "#{bib_id}.xml") }
 
     before do
       allow(client).to receive(:fetch_marc_xml_resource).with(repo_id, resource_id).and_return(marc_data)

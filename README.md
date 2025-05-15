@@ -27,7 +27,7 @@ rails folio_sync:aspace_to_folio:run
 ## Tasks
 
 ### `folio_sync:aspace_to_folio:process_marc_xml`
-This task allows you to test the processing of a MARC XML file for a specific `bib_id`. It reads the MARC XML file from the `tmp/marc_files` directory, processes it, and applies the necessary transformations.
+This task allows you to test the processing of a MARC XML file for a specific `bib_id`. It reads the MARC XML file from the `marc_download_directory` specified in `folio_sync.yml` file, processes it, and applies the necessary transformations.
 
 #### Usage:
 ```bash

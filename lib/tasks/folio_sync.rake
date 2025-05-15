@@ -11,9 +11,9 @@ namespace :folio_sync do
       puts 'Script completed successfully.'
     end
 
-    # Add a MARC XML test file to tmp/marc_files directory to verify the processing
+    # Add a MARC XML test file to the directory specified in folio_sync.yml
     # Run as:
-    # rake 'folio_sync:aspace_to_folio:process_marc_xml[<bib_id>]'
+    # bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=<bib_id>'
     # ! Quotes are necessary to pass the argument correctly
     desc 'Process a MARC XML file for a given bib_id'
     task process_marc_xml: :environment do

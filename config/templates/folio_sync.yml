@@ -1,0 +1,5 @@
+development:
+  marc_download_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
+
+test:
+  marc_download_directory: <%= Rails.root.join('tmp/test/downloaded_files') %>

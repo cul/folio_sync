@@ -21,9 +21,9 @@ module FolioSync
       end
 
       def sync_resources_to_folio
-        # Iterate over all files in the tmp/marc_files directory
+        # Iterate over all files in the directory specified in the folio_sync.yml
         # Use foreach for better performance with large directories
-        marc_dir = Rails.root.join('tmp/marc_files')
+        marc_dir = Rails.configuration.folio_sync['marc_download_directory']
         folio_writer = FolioSync::Folio::Writer.new
 
         Dir.foreach(marc_dir) do |file|
