@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # deployed.rb is for shared configuration -- it is loaded by each env config file
 # This is copied from the rails generated environments/production.rb file
 # bibdata_dev.rn and bibdata_prod.rb are identical at the moment.
@@ -32,7 +34,7 @@ Rails.application.configure do
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [:request_id]
-  config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
+  config.logger   = ActiveSupport::TaggedLogging.logger($stdout)
 
   # Change to "debug" to log everything (including potentially personally-identifiable information!)
   config.log_level = ENV.fetch('RAILS_LOG_LEVEL', 'error')
