@@ -4,7 +4,9 @@ require 'rails_helper'
 
 RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
   let(:bibid) { '123456' }
-  let(:marc_file_path) { Rails.root.join('tmp/marc_files', "#{bibid}.xml") }
+  let(:marc_file_path) do
+    File.join(Rails.configuration.folio_sync['marc_download_directory'], "#{bibid}.xml")
+  end
   let(:field_856_xml) do
     <<-XML
       <datafield tag="856" ind1="4" ind2="2">
@@ -35,9 +37,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
   let(:mock_folio_record) { double('MARC::Record') }
 
   before do
-    # Ensure the tmp/marc_files directory exists
-    # And create a mock MARC file
-    FileUtils.mkdir_p(File.dirname(marc_file_path))
+    FileUtils.mkdir_p(Rails.configuration.folio_sync['marc_download_directory'])
     File.write(marc_file_path, mock_marc_xml)
 
     # Mock FOLIO::Reader

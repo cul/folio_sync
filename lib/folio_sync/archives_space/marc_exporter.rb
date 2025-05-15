@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require 'fileutils'
 
 module FolioSync
   module ArchivesSpace
@@ -8,6 +9,10 @@ module FolioSync
       def initialize
         @logger = Logger.new($stdout) # Ensure logger is initialized first
         @client = FolioSync::ArchivesSpace::Client.instance
+
+        # If directory doesn't exist, create it
+        download_directory = Rails.configuration.folio_sync['marc_download_directory']
+        FileUtils.mkdir_p(download_directory)
       end
 
       def export_recent_resources(modified_since = nil)
@@ -37,7 +42,7 @@ module FolioSync
         return @logger.error("No MARC found for repo #{repo_id} and resource_id #{resource_id}") unless marc_data
 
         # ! To check: other instances might use the same bib_id
-        file_path = Rails.root.join("tmp/marc_files/#{bib_id}.xml")
+        file_path = File.join(Rails.configuration.folio_sync['marc_download_directory'], "#{bib_id}.xml")
         File.binwrite(file_path, marc_data)
       end
 

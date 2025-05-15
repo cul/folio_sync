@@ -24,6 +24,7 @@ module FolioSync
   class Application < Rails::Application
     config.archivesspace = config_for(:archivesspace)
     config.folio = config_for(:folio)
+    config.folio_sync = config_for(:folio_sync)
 
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0
