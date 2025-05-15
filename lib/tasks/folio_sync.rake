@@ -15,20 +15,20 @@ namespace :folio_sync do
         unless processor.downloading_errors.empty?
           puts 'Downloading errors:'
           puts processor.downloading_errors
-          puts "=========================="
+          puts '=========================='
         end
 
         unless processor.syncing_errors.empty?
           puts 'Syncing errors:'
           puts processor.syncing_errors
-          puts "=========================="
+          puts '=========================='
         end
 
         ApplicationMailer.with(
           to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
           subject: 'FOLIO Sync Errors',
           downloading_errors: processor.downloading_errors,
-          syncing_errors: processor.syncing_errors,
+          syncing_errors: processor.syncing_errors
         ).folio_sync_error_email.deliver
       else
         puts 'Script completed successfully.'
@@ -36,7 +36,7 @@ namespace :folio_sync do
     end
 
     desc 'Sync already downloaded resources to FOLIO'
-    task :sync_exported_resources => :environment do
+    task sync_exported_resources: :environment do
       puts 'Syncing exported resources...'
       processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new
       processor.sync_resources_to_folio
@@ -84,7 +84,7 @@ namespace :folio_sync do
     end
 
     desc 'Test the email functionality'
-    task :email_test => :environment do
+    task email_test: :environment do
       ApplicationMailer.with(
         to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
         subject: 'FOLIO Test - Marc Sync Errors',

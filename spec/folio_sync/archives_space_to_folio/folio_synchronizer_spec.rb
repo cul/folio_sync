@@ -69,7 +69,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
 
     it 'logs errors if exporting_errors are present' do
       instance.download_archivesspace_marc_xml(modified_since)
-      expect(logger).to have_received(:error).with("Errors encountered during MARC export: #{exporting_errors}")
+      expect(logger).to have_received(:error).with("Errors encountered during MARC XML download: #{exporting_errors}")
     end
 
     it 'updates @downloading_errors with exporting_errors if present' do

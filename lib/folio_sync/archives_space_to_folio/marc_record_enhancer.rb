@@ -28,7 +28,7 @@ module FolioSync
           update_datafield_856
           add_965noexportAUTH
           remove_corpname_punctuation
-        rescue => e
+        rescue StandardError => e
           raise "Error enhacing ArchivesSpace MARC record: #{e.message}"
         end
 

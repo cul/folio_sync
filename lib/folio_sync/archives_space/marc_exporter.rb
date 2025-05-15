@@ -4,6 +4,7 @@ module FolioSync
   module ArchivesSpace
     class MarcExporter
       attr_reader :exporting_errors
+
       PAGE_SIZE = 200
 
       def initialize
@@ -28,24 +29,20 @@ module FolioSync
 
         @client.retrieve_paginated_resources(repo_id, query_params) do |resources|
           resources.each do |resource|
-            begin
-              log_resource_processing(resource)
-              export_marc_for_resource(repo_id, extract_id(resource['uri']), resource['identifier'])
-            rescue => e
-              @logger.error("Error exporting MARC for resource #{resource['identifier']} (repo_id: #{repo_id}): #{e.message}")
-              @exporting_errors << {
-                resource_uri: resource['uri'],
-                error: e.message
-              }
-            end
+            log_resource_processing(resource)
+            export_marc_for_resource(repo_id, extract_id(resource['uri']), resource['identifier'])
+          rescue StandardError => e
+            @logger.error("Error exporting MARC for resource #{resource['identifier']} (repo_id: #{repo_id}): #{e.message}")
+            @exporting_errors << {
+              resource_uri: resource['uri'],
+              error: e.message
+            }
           end
         end
       end
 
       def export_marc_for_resource(repo_id, resource_id, bib_id)
-        if bib_id.nil?
-          raise "No bib_id found"
-        end
+        raise 'No bib_id found' if bib_id.nil?
 
         marc_data = @client.fetch_marc_xml_resource(repo_id, resource_id)
         return @logger.error("No MARC found for repo #{repo_id} and resource_id #{resource_id}") unless marc_data

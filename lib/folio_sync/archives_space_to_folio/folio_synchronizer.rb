@@ -26,10 +26,10 @@ module FolioSync
         exporter = FolioSync::ArchivesSpace::MarcExporter.new
         exporter.export_recent_resources(modified_since)
 
-        if exporter.exporting_errors.present?
-          @logger.error("Errors encountered during MARC XML download: #{exporter.exporting_errors}")
-          @downloading_errors = exporter.exporting_errors
-        end
+        return unless exporter.exporting_errors.present?
+
+        @logger.error("Errors encountered during MARC XML download: #{exporter.exporting_errors}")
+        @downloading_errors = exporter.exporting_errors
       end
 
       def sync_resources_to_folio
@@ -40,6 +40,7 @@ module FolioSync
 
         Dir.foreach(marc_dir) do |file|
           next if ['.', '..'].include?(file)
+
           bib_id = File.basename(file, '.xml')
 
           begin
@@ -50,7 +51,7 @@ module FolioSync
             marc_record = enhancer.marc_record
 
             folio_writer.create_or_update_folio_record(marc_record)
-          rescue => e
+          rescue StandardError => e
             @logger.error("Error syncing resources to FOLIO: #{e.message}")
             @syncing_errors << {
               bib_id: bib_id,
