@@ -5,16 +5,24 @@ class ApplicationMailer < ActionMailer::Base
   def folio_sync_error_email
     body_content = "One or more errors were encountered during FOLIO sync:\n\n"
 
+    # Downloading errors contain resource_uri and error message
     if params[:downloading_errors].present?
-      body_content += "Downloading Errors:\n"
-      body_content += params[:downloading_errors].join("\n")
-      body_content += "\n\n"
+      body_content += "======== Downloading Errors ======== \n"
+      params[:downloading_errors].each do |error|
+        body_content += "Resource URI: #{error[:resource_uri]}\n"
+        body_content += "Error: #{error[:error]}\n"
+        body_content += "--------\n\n"
+      end
     end
 
+    # Syncing errors contain bib_id and error message
     if params[:syncing_errors].present?
-      body_content += "Syncing Errors:\n"
-      body_content += params[:syncing_errors].join("\n")
-      body_content += "\n"
+      body_content += "======== Syncing Errors ======== \n"
+      params[:syncing_errors].each do |error|
+        body_content += "Bib ID: #{error[:bib_id]}\n"
+        body_content += "Error: #{error[:error]}\n"
+        body_content += "--------\n\n"
+      end
     end
 
     mail(

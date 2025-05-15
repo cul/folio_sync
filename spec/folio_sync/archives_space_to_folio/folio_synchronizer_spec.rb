@@ -47,16 +47,41 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   describe '#download_archivesspace_marc_xml' do
     let(:modified_since) { Time.utc(2023, 1, 1) }
     let(:exporter) { instance_double(FolioSync::ArchivesSpace::MarcExporter) }
+    let(:exporting_errors) do
+      [
+        { resource_uri: 'repositories/1/resources/123', error: 'Error message 1' },
+        { resource_uri: 'repositories/2/resources/456', error: 'Error message 2' }
+      ]
+    end
 
     before do
       allow(FolioSync::ArchivesSpace::MarcExporter).to receive(:new).and_return(exporter)
       allow(exporter).to receive(:export_recent_resources)
+      allow(exporter).to receive(:exporting_errors).and_return(exporting_errors)
+      allow(logger).to receive(:error)
     end
 
     it 'initializes a MarcExporter and calls export_recent_resources with the correct modified_since' do
       instance.download_archivesspace_marc_xml(modified_since)
       expect(FolioSync::ArchivesSpace::MarcExporter).to have_received(:new)
       expect(exporter).to have_received(:export_recent_resources).with(modified_since)
+    end
+
+    it 'logs errors if exporting_errors are present' do
+      instance.download_archivesspace_marc_xml(modified_since)
+      expect(logger).to have_received(:error).with("Errors encountered during MARC export: #{exporting_errors}")
+    end
+
+    it 'updates @downloading_errors with exporting_errors if present' do
+      instance.download_archivesspace_marc_xml(modified_since)
+      expect(instance.downloading_errors).to eq(exporting_errors)
+    end
+
+    it 'does not log errors or update @downloading_errors if exporting_errors is empty' do
+      allow(exporter).to receive(:exporting_errors).and_return([])
+      instance.download_archivesspace_marc_xml(modified_since)
+      expect(logger).not_to have_received(:error)
+      expect(instance.downloading_errors).to be_empty
     end
 
     it 'handles nil modified_since to fetch all resources' do
