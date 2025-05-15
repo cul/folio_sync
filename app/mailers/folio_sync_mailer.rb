@@ -1,2 +1,0 @@
-class FolioSyncMailer < ApplicationMailer
-end
