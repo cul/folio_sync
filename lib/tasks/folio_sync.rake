@@ -12,12 +12,17 @@ namespace :folio_sync do
       if processor.syncing_errors.any? || processor.downloading_errors.any?
         puts 'Errors occurred during processing:'
 
-        # puts 'Downloading errors:'
-        # puts processor.downloading_errors unless processor.downloading_errors.empty?
+        unless processor.downloading_errors.empty?
+          puts 'Downloading errors:'
+          puts processor.downloading_errors
+          puts "=========================="
+        end
 
-        # puts "=========================="
-        # puts 'Syncing errors:'
-        # puts processor.syncing_errors unless processor.syncing_errors.empty?
+        unless processor.syncing_errors.empty?
+          puts 'Syncing errors:'
+          puts processor.syncing_errors
+          puts "=========================="
+        end
 
         ApplicationMailer.with(
           to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
@@ -27,6 +32,25 @@ namespace :folio_sync do
         ).folio_sync_error_email.deliver
       else
         puts 'Script completed successfully.'
+      end
+    end
+
+    desc 'Sync already downloaded resources to FOLIO'
+    task :sync_exported_resources => :environment do
+      puts 'Syncing exported resources...'
+      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new
+      processor.sync_resources_to_folio
+
+      if processor.syncing_errors.any?
+        puts 'Errors occurred during syncing:'
+        puts processor.syncing_errors
+        ApplicationMailer.with(
+          to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
+          subject: 'FOLIO Sync - Error syncing exported resources',
+          syncing_errors: processor.syncing_errors
+        ).folio_sync_error_email.deliver
+      else
+        puts 'Syncing completed successfully.'
       end
     end
 
@@ -48,12 +72,6 @@ namespace :folio_sync do
 
       enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id)
       marc_record = enhancer.enhance_marc_record!
-
-      if enhancer.enhancing_errors.any?
-        puts 'Errors occurred during MARC enhancement:'
-        puts enhancer.enhancing_errors
-        exit 1
-      end
 
       puts "Processed MARC record: #{marc_record}"
     end
