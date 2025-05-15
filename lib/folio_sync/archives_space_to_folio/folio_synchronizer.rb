@@ -3,44 +3,32 @@
 module FolioSync
   module ArchivesSpaceToFolio
     class FolioSynchronizer
-      # temporary error classes for testing
-      class DownloadError < StandardError; end
-      class SyncError < StandardError; end
-
       attr_reader :syncing_errors, :downloading_errors
+
       ONE_DAY_IN_SECONDS = 24 * 60 * 60
 
       def initialize
         @logger = Logger.new($stdout)
-        @downloading_errors = ["Error downloading MARC XML for resource id: 4", "Error downloading MARC XML for resource id: 7"]
-        @syncing_errors = ["Error syncing MARC XML for resource id: 4", "Error syncing MARC XML for resource id: 7"]
+        @downloading_errors = []
+        @syncing_errors = []
       end
 
       def fetch_and_sync_resources_to_folio
-        # return
         @downloading_errors = []
         @syncing_errors = []
-        last_24_hours = Time.now.utc - (ONE_DAY_IN_SECONDS * 28)
+        last_24_hours = Time.now.utc - (ONE_DAY_IN_SECONDS * 20)
 
-        begin
-          download_archivesspace_marc_xml(last_24_hours)
-        rescue => e
-          handle_error('download', e.message)
-        end
-
-        begin
-          sync_resources_to_folio
-        rescue SyncError => e
-          handle_error('sync', e.message)
-        end
+        download_archivesspace_marc_xml(last_24_hours)
+        sync_resources_to_folio
       end
 
       def download_archivesspace_marc_xml(modified_since)
-        begin
-          exporter = FolioSync::ArchivesSpace::MarcExporter.new
-          exporter.export_recent_resources(modified_since)
-        rescue => e
-          raise DownloadError, "Failed to download MARC XML: #{e.message}"
+        exporter = FolioSync::ArchivesSpace::MarcExporter.new
+        exporter.export_recent_resources(modified_since)
+
+        if exporter.exporting_errors.present?
+          Rails.logger.debug 'Errors during MARC XML download'
+          @downloading_errors = exporter.exporting_errors
         end
       end
 
@@ -50,10 +38,10 @@ module FolioSync
 
         Dir.foreach(marc_dir) do |file|
           next if ['.', '..'].include?(file)
+          bibid = File.basename(file, '.xml')
 
           begin
             Rails.logger.debug "Processing file: #{file}"
-            bibid = File.basename(file, '.xml')
 
             enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bibid)
             enhancer.enhance_marc_record!
@@ -61,17 +49,13 @@ module FolioSync
 
             folio_writer.create_or_update_folio_record(marc_record)
           rescue => e
-            raise SyncError, "Error processing file #{file}: #{e.message}"
+            @logger.error(e.message)
+            syncing_errors << {
+              bib_id: bibid,
+              error: e.message
+            }
           end
         end
-      end
-
-      private
-
-      def handle_error(type, message)
-        @logger.error(message)
-        @syncing_errors << message if type == 'sync'
-        @downloading_errors << message if type == 'download'
       end
     end
   end

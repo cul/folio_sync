@@ -8,15 +8,16 @@ namespace :folio_sync do
       processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new
       processor.fetch_and_sync_resources_to_folio
 
+      # Send email if there are any errors
       if processor.syncing_errors.any? || processor.downloading_errors.any?
         puts 'Errors occurred during processing:'
 
-        puts 'Downloading errors:'
-        puts processor.downloading_errors unless processor.downloading_errors.empty?
+        # puts 'Downloading errors:'
+        # puts processor.downloading_errors unless processor.downloading_errors.empty?
 
-        puts "=========================="
-        puts 'Syncing errors:'
-        puts processor.syncing_errors unless processor.syncing_errors.empty?
+        # puts "=========================="
+        # puts 'Syncing errors:'
+        # puts processor.syncing_errors unless processor.syncing_errors.empty?
 
         ApplicationMailer.with(
           to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
@@ -45,11 +46,14 @@ namespace :folio_sync do
 
       puts "Testing MARC processing for bib_id: #{bib_id}"
 
-      folio_reader = FolioSync::Folio::Reader.new
-      folio_reader.get_marc_record(bib_id)
-
       enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id)
       marc_record = enhancer.enhance_marc_record!
+
+      if enhancer.enhancing_errors.any?
+        puts 'Errors occurred during MARC enhancement:'
+        puts enhancer.enhancing_errors
+        exit 1
+      end
 
       puts "Processed MARC record: #{marc_record}"
     end

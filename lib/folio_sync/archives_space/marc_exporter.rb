@@ -3,11 +3,13 @@
 module FolioSync
   module ArchivesSpace
     class MarcExporter
+      attr_reader :exporting_errors
       PAGE_SIZE = 200
 
       def initialize
         @logger = Logger.new($stdout) # Ensure logger is initialized first
         @client = FolioSync::ArchivesSpace::Client.instance
+        @exporting_errors = []
       end
 
       def export_recent_resources(modified_since = nil)
@@ -31,14 +33,20 @@ module FolioSync
               export_marc_for_resource(repo_id, extract_id(resource['uri']), resource['identifier'])
             rescue => e
               @logger.error("Error exporting MARC for resource #{resource['identifier']} (repo_id: #{repo_id}): #{e.message}")
-              next
+              @exporting_errors << {
+                resource_uri: resource['uri'],
+                error: e.message
+              }
             end
           end
         end
       end
 
       def export_marc_for_resource(repo_id, resource_id, bib_id)
-        # marc_data = @client.fetch_marc_xml_resource(repo_id, 2)
+        if bib_id.nil?
+          raise "No bib_id found"
+        end
+
         marc_data = @client.fetch_marc_xml_resource(repo_id, resource_id)
         return @logger.error("No MARC found for repo #{repo_id} and resource_id #{resource_id}") unless marc_data
 
