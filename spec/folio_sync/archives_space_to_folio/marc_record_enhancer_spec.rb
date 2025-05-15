@@ -37,7 +37,6 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
   let(:mock_folio_record) { double('MARC::Record') }
 
   before do
-    FileUtils.mkdir_p(Rails.configuration.folio_sync['marc_download_directory'])
     File.write(marc_file_path, mock_marc_xml)
 
     # Mock FOLIO::Reader

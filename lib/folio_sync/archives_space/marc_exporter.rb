@@ -10,10 +10,6 @@ module FolioSync
       def initialize
         @logger = Logger.new($stdout) # Ensure logger is initialized first
         @client = FolioSync::ArchivesSpace::Client.instance
-
-        # If directory doesn't exist, create it
-        download_directory = Rails.configuration.folio_sync['marc_download_directory']
-        FileUtils.mkdir_p(download_directory)
       end
 
       def export_recent_resources(modified_since = nil)
