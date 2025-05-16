@@ -20,12 +20,17 @@ module FolioSync
 
       def enhance_marc_record!
         Rails.logger.debug 'Processing...'
-        add_controlfield_001
-        add_controlfield_003
-        update_datafield_100
-        update_datafield_856
-        add_965noexportAUTH
-        remove_corpname_punctuation
+
+        begin
+          add_controlfield_001
+          add_controlfield_003
+          update_datafield_100
+          update_datafield_856
+          add_965noexportAUTH
+          remove_corpname_punctuation
+        rescue StandardError => e
+          raise "Error enhacing ArchivesSpace MARC record: #{e.message}"
+        end
 
         @marc_record
       end

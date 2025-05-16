@@ -27,6 +27,8 @@ gem 'nokogiri', '~> 1.17.2'
 
 gem 'archivesspace-client'
 
+gem 'actionmailer', '~> 8.0.2'
+
 gem 'marc'
 
 group :development, :test do
