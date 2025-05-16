@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ApplicationMailer < ActionMailer::Base
   default from: Rails.configuration.folio_sync['default_sender_email_address']
   layout 'mailer'
@@ -36,7 +38,7 @@ class ApplicationMailer < ActionMailer::Base
   end
 
   def format_error_section(errors, title, display_limit)
-    return '' unless errors.present?
+    return '' if errors.blank?
 
     content = "======== #{title} ========\n"
     errors.first(display_limit).each do |error|
@@ -45,9 +47,7 @@ class ApplicationMailer < ActionMailer::Base
       content += "Error: #{error.message}\n"
       content += "--------\n\n"
     end
-    if errors.size > display_limit
-      content += "+#{errors.size - display_limit} additional error(s)\n\n"
-    end
+    content += "+#{errors.size - display_limit} additional error(s)\n\n" if errors.size > display_limit
     content
   end
 end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe ApplicationMailer, type: :mailer do
@@ -30,7 +32,7 @@ RSpec.describe ApplicationMailer, type: :mailer do
 
   describe '#folio_sync_error_email' do
     before do
-      allow(ApplicationMailer).to receive(:default).and_return(from: 'test-email@example.com')
+      allow(described_class).to receive(:default).and_return(from: 'test-email@example.com')
     end
 
     let(:mail) do
