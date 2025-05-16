@@ -49,8 +49,14 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     let(:exporter) { instance_double(FolioSync::ArchivesSpace::MarcExporter) }
     let(:exporting_errors) do
       [
-        { resource_uri: 'repositories/1/resources/123', error: 'Error message 1' },
-        { resource_uri: 'repositories/2/resources/456', error: 'Error message 2' }
+        FolioSync::Errors::DownloadingError.new(
+          resource_uri: 'repositories/1/resources/123',
+          message: 'Error message 1'
+        ),
+        FolioSync::Errors::DownloadingError.new(
+          resource_uri: 'repositories/2/resources/456',
+          message: 'Error message 2'
+        )
       ]
     end
 
@@ -72,7 +78,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       expect(logger).to have_received(:error).with("Errors encountered during MARC XML download: #{exporting_errors}")
     end
 
-    it 'updates @downloading_errors with exporting_errors if present' do
+    it 'updates @downloading_errors with DownloadingError instances if present' do
       instance.download_archivesspace_marc_xml(modified_since)
       expect(instance.downloading_errors).to eq(exporting_errors)
     end
@@ -128,6 +134,15 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       instance.sync_resources_to_folio
       expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('.')
       expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('..')
+    end
+
+    it 'appends SyncingError instances to @syncing_errors when errors occur' do
+      allow(enhancers[0]).to receive(:enhance_marc_record!).and_raise(StandardError, 'Enhancer error')
+      expect(logger).to receive(:error).with('Error syncing resources to FOLIO: Enhancer error')
+      instance.sync_resources_to_folio
+      expect(instance.syncing_errors).to contain_exactly(
+        an_instance_of(FolioSync::Errors::SyncingError).and(have_attributes(bib_id: 'file1', message: 'Enhancer error'))
+      )
     end
   end
 end

@@ -14,13 +14,19 @@ namespace :folio_sync do
 
         unless processor.downloading_errors.empty?
           puts 'Downloading errors:'
-          puts processor.downloading_errors
+          processor.downloading_errors.each do |error|
+            puts "Resource URI: #{error.resource_uri}"
+            puts "Error: #{error.message}"
+          end
           puts '=========================='
         end
 
         unless processor.syncing_errors.empty?
           puts 'Syncing errors:'
-          puts processor.syncing_errors
+          processor.syncing_errors.each do |error|
+            puts "Bib ID: #{error.bib_id}"
+            puts "Error: #{error.message}"
+          end
           puts '=========================='
         end
 
@@ -43,7 +49,10 @@ namespace :folio_sync do
 
       if processor.syncing_errors.any?
         puts 'Errors occurred during syncing:'
-        puts processor.syncing_errors
+        processor.syncing_errors.each do |error|
+          puts "Bib ID: #{error.bib_id}"
+          puts "Error: #{error.message}"
+        end
         ApplicationMailer.with(
           to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
           subject: 'FOLIO Sync - Error syncing exported resources',

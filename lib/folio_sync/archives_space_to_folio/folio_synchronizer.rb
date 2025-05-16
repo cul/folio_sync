@@ -53,10 +53,10 @@ module FolioSync
             folio_writer.create_or_update_folio_record(marc_record)
           rescue StandardError => e
             @logger.error("Error syncing resources to FOLIO: #{e.message}")
-            @syncing_errors << {
+            @syncing_errors << FolioSync::Errors::SyncingError.new(
               bib_id: bib_id,
-              error: e.message
-            }
+              message: e.message
+            )
           end
         end
       end

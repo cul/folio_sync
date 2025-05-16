@@ -5,14 +5,26 @@ RSpec.describe ApplicationMailer, type: :mailer do
   let(:subject) { 'FOLIO Sync Errors' }
   let(:downloading_errors) do
     [
-      { resource_uri: '/repositories/2/resources/121332', error: 'Error downloading MARC XML' },
-      { resource_uri: '/repositories/3/resources/421332', error: 'Timeout while fetching MARC data' }
+      FolioSync::Errors::DownloadingError.new(
+        resource_uri: '/repositories/2/resources/121332',
+        message: 'Error downloading MARC XML'
+      ),
+      FolioSync::Errors::DownloadingError.new(
+        resource_uri: '/repositories/3/resources/421332',
+        message: 'Timeout while fetching MARC data'
+      )
     ]
   end
   let(:syncing_errors) do
     [
-      { bib_id: '123', error: 'Failed to sync resource to FOLIO' },
-      { bib_id: '456', error: 'Invalid MARC record' }
+      FolioSync::Errors::SyncingError.new(
+        bib_id: '123',
+        message: 'Failed to sync resource to FOLIO'
+      ),
+      FolioSync::Errors::SyncingError.new(
+        bib_id: '456',
+        message: 'Invalid MARC record'
+      )
     ]
   end
 
@@ -44,15 +56,15 @@ RSpec.describe ApplicationMailer, type: :mailer do
 
     it 'includes downloading errors in the email body' do
       downloading_errors.each do |error|
-        expect(mail.body.encoded).to include("Resource URI: #{error[:resource_uri]}")
-        expect(mail.body.encoded).to include("Error: #{error[:error]}")
+        expect(mail.body.encoded).to include("Resource URI: #{error.resource_uri}")
+        expect(mail.body.encoded).to include("Error: #{error.message}")
       end
     end
 
     it 'includes syncing errors in the email body' do
       syncing_errors.each do |error|
-        expect(mail.body.encoded).to include("Bib ID: #{error[:bib_id]}")
-        expect(mail.body.encoded).to include("Error: #{error[:error]}")
+        expect(mail.body.encoded).to include("Bib ID: #{error.bib_id}")
+        expect(mail.body.encoded).to include("Error: #{error.message}")
       end
     end
   end
