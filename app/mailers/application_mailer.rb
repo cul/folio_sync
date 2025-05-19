@@ -7,8 +7,8 @@ class ApplicationMailer < ActionMailer::Base
   DISPLAY_LIMIT = 50
 
   def folio_sync_error_email
-    downloading_errors = params[:downloading_errors]
-    syncing_errors = params[:syncing_errors]
+    downloading_errors = params[:downloading_errors] || []
+    syncing_errors = params[:syncing_errors] || []
 
     body_content = format_folio_sync_errors(
       downloading_errors: downloading_errors,
