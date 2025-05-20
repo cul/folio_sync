@@ -41,11 +41,10 @@ module FolioSync
         Dir.foreach(marc_dir) do |file|
           next if ['.', '..'].include?(file)
 
-          bib_id = File.basename(file, '.xml')
-
           begin
             Rails.logger.debug "Processing file: #{file}"
 
+            bib_id = File.basename(file, '.xml')
             enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id)
             enhancer.enhance_marc_record!
             marc_record = enhancer.marc_record
