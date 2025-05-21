@@ -24,6 +24,7 @@ append  :linked_files,
         # 'config/database.yml',
         'config/folio.yml',
         'config/archivesspace.yml',
+        'config/folio_sync.yml',
         'config/master.key' # we don't use this often, when we do it is for API keys
 
 # Default value for linked_dirs is []

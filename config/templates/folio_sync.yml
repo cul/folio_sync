@@ -1,5 +1,16 @@
+shared: &shared
+  default_sender_email_address: test@example.com
+
 development:
+  <<: *shared
   marc_download_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
+  marc_sync_email_addresses:
+    - test1@example.com
+    - test2@example.com
 
 test:
+  <<: *shared
   marc_download_directory: <%= Rails.root.join('tmp/test/downloaded_files') %>
+  marc_sync_email_addresses:
+    - test1@example.com
+    - test2@example.com
