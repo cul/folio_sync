@@ -19,12 +19,59 @@ The purpose of this application is to sync ArchivesSpace records to FOLIO.  It a
      password: "your-password"
    ```
 
-## Running the script
+3. Create a configuration file for FOLIO API credentials:
+   ```bash
+   cp config/templates/folio.yml config/folio.yml
+   ```
+   Edit `config/folio.yml` to include your FOLIO API credentials:
+   ```yaml
+   development:
+     base_url: "https://your-folio-instance"
+     username: "your-username"
+     password: "your-password"
+     tenant: "your-tenant"
+     timeout: 30
+   ```
+
+4. Create a configuration file for script-specific settings:
+   ```bash
+   cp config/templates/folio_sync.yml config/folio_sync.yml
+   ```
+   Edit `config/folio_sync.yml` to include settings specific to the script:
+   ```yaml
+   development:
+     marc_download_directory: <%= Rails.root.join('tmp/development/marc_files') %>
+     default_sender_email_address: "no-reply@example.com"
+     marc_sync_email_addresses:
+       - "admin@example.com"
+   ```
+
+## Running the Script
 ```bash
-rails folio_sync:aspace_to_folio:run
+bundle exec rake folio_sync:aspace_to_folio:run
 ```
 
 ## Tasks
+
+### `folio_sync:aspace_to_folio:run`
+Fetches ArchivesSpace MARC resources modified in the last 24 hours and syncs them to FOLIO. If any errors occur during downloading or syncing, an email is sent to the configured recipients.
+
+#### Usage:
+```bash
+bundle exec rake folio_sync:aspace_to_folio:run
+```
+
+---
+
+### `folio_sync:aspace_to_folio:sync_exported_resources`
+Syncs already downloaded MARC XML files from the directory specified in `folio_sync.yml` to FOLIO. If any errors occur during syncing, an email is sent to the configured recipients.
+
+#### Usage:
+```bash
+bundle exec rake folio_sync:aspace_to_folio:sync_exported_resources
+```
+
+---
 
 ### `folio_sync:aspace_to_folio:process_marc_xml`
 This task allows you to test the processing of a MARC XML file for a specific `bib_id`. It reads the MARC XML file from the `marc_download_base_directory` specified in `folio_sync.yml` file, processes it, and applies the necessary transformations.
@@ -39,18 +86,27 @@ bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=<bib_id>
 bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789
 ```
 
+---
+
 ### `folio_sync:aspace_to_folio:folio_health_check`
-This task performs a health check on the FOLIO API to ensure it is reachable and functioning correctly.
+Performs a health check on the FOLIO API to ensure it is reachable and functioning correctly.
 
 #### Usage:
 ```bash
-rake folio_sync:aspace_to_folio:folio_health_check
+bundle exec rake folio_sync:aspace_to_folio:folio_health_check
 ```
 
-#### Example:
+---
+
+### `folio_sync:aspace_to_folio:email_test`
+Sends a test email to the configured recipients to verify the email functionality.
+
+#### Usage:
 ```bash
-rake folio_sync:aspace_to_folio:folio_health_check
+bundle exec rake folio_sync:aspace_to_folio:email_test
 ```
+
+---
 
 ## Structure
 This application was created using `rails new`. However, since we're using it as a script for now, we're not using Rails' MVC (Model-View-Controller) structure. For clarity, the app folder was kept but it's empty as we don't need its content.
@@ -61,6 +117,7 @@ rails new folio_sync --skip-action-mailer --skip-action-mailbox --skip-action-te
 ```
 
 ## Testing
+Run the test suite using RSpec:
 ```bash
 bundle exec rspec
 ```

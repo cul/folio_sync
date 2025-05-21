@@ -47,16 +47,47 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   describe '#download_archivesspace_marc_xml' do
     let(:modified_since) { Time.utc(2023, 1, 1) }
     let(:exporter) { instance_double(FolioSync::ArchivesSpace::MarcExporter) }
+    let(:exporting_errors) do
+      [
+        FolioSync::Errors::DownloadingError.new(
+          resource_uri: 'repositories/1/resources/123',
+          message: 'Error message 1'
+        ),
+        FolioSync::Errors::DownloadingError.new(
+          resource_uri: 'repositories/2/resources/456',
+          message: 'Error message 2'
+        )
+      ]
+    end
 
     before do
       allow(FolioSync::ArchivesSpace::MarcExporter).to receive(:new).and_return(exporter)
       allow(exporter).to receive(:export_recent_resources)
+      allow(exporter).to receive(:exporting_errors).and_return(exporting_errors)
+      allow(logger).to receive(:error)
     end
 
     it 'initializes a MarcExporter and calls export_recent_resources with the correct modified_since' do
       instance.download_archivesspace_marc_xml(modified_since)
       expect(FolioSync::ArchivesSpace::MarcExporter).to have_received(:new)
       expect(exporter).to have_received(:export_recent_resources).with(modified_since)
+    end
+
+    it 'logs errors if exporting_errors are present' do
+      instance.download_archivesspace_marc_xml(modified_since)
+      expect(logger).to have_received(:error).with("Errors encountered during MARC XML download: #{exporting_errors}")
+    end
+
+    it 'updates @downloading_errors with DownloadingError instances if present' do
+      instance.download_archivesspace_marc_xml(modified_since)
+      expect(instance.downloading_errors).to eq(exporting_errors)
+    end
+
+    it 'does not log errors or update @downloading_errors if exporting_errors is empty' do
+      allow(exporter).to receive(:exporting_errors).and_return([])
+      instance.download_archivesspace_marc_xml(modified_since)
+      expect(logger).not_to have_received(:error)
+      expect(instance.downloading_errors).to be_empty
     end
 
     it 'handles nil modified_since to fetch all resources' do
@@ -103,6 +134,15 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       instance.sync_resources_to_folio
       expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('.')
       expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('..')
+    end
+
+    it 'appends SyncingError instances to @syncing_errors when errors occur' do
+      allow(enhancers[0]).to receive(:enhance_marc_record!).and_raise(StandardError, 'Enhancer error')
+      expect(logger).to receive(:error).with('Error syncing resources to FOLIO: Enhancer error')
+      instance.sync_resources_to_folio
+      expect(instance.syncing_errors).to contain_exactly(
+        an_instance_of(FolioSync::Errors::SyncingError).and(have_attributes(bib_id: 'file1', message: 'Enhancer error'))
+      )
     end
   end
 end
