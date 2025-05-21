@@ -4,8 +4,16 @@ namespace :folio_sync do
   namespace :aspace_to_folio do
     desc 'Fetch ArchivesSpace MARC resources and sync to FOLIO'
     task run: :environment do
+      instance_key = ENV['instance_key']
+
+      unless instance_key
+        puts 'Error: Please provide an instance_key.'
+        puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:run instance_key=cul'
+        exit 1
+      end
+
       puts 'Fetching MARC resources...'
-      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new
+      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
       processor.fetch_and_sync_resources_to_folio
 
       puts 'Script completed successfully.'

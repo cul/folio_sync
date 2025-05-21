@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
   let(:bibid) { '123456' }
   let(:marc_file_path) do
-    File.join(Rails.configuration.folio_sync['marc_download_directory'], "#{bibid}.xml")
+    File.join(Rails.configuration.folio_sync['marc_download_base_directory'], "#{bibid}.xml")
   end
   let(:field_856_xml) do
     <<-XML

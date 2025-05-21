@@ -66,7 +66,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   end
 
   describe '#sync_resources_to_folio' do
-    let(:marc_dir) { Rails.configuration.folio_sync['marc_download_directory'] }
+    let(:marc_dir) { Rails.configuration.folio_sync['marc_download_base_directory'] }
     let(:files) { ['file1.xml', 'file2.xml'] }
     let(:enhancers) { files.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
     let(:marc_records) { enhancers.map { double('MARC::Record') } }

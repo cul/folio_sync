@@ -7,9 +7,10 @@ module FolioSync
     class MarcExporter
       PAGE_SIZE = 200
 
-      def initialize
+      def initialize(instance_key)
         @logger = Logger.new($stdout) # Ensure logger is initialized first
-        @client = FolioSync::ArchivesSpace::Client.instance
+        @client = FolioSync::ArchivesSpace::Client.new(instance_key)
+        @instance_dir = instance_key
       end
 
       def export_recent_resources(modified_since = nil)
@@ -39,7 +40,9 @@ module FolioSync
         return @logger.error("No MARC found for repo #{repo_id} and resource_id #{resource_id}") unless marc_data
 
         # ! To check: other instances might use the same bib_id
-        file_path = File.join(Rails.configuration.folio_sync['marc_download_directory'], "#{bib_id}.xml")
+        base_dir = Rails.configuration.folio_sync['marc_download_base_directory']
+        file_path = File.join(base_dir, @instance_dir, "#{bib_id}.xml")
+
         File.binwrite(file_path, marc_data)
       end
 

@@ -5,10 +5,10 @@ module FolioSync
     class MarcRecordEnhancer
       attr_reader :marc_record, :bibid
 
-      def initialize(bibid)
+      def initialize(bibid, download_dir)
         @bibid = bibid
 
-        aspace_marc_path = File.join(Rails.configuration.folio_sync['marc_download_directory'], "#{bibid}.xml")
+        aspace_marc_path = File.join(download_dir, "#{bibid}.xml")
         aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
 
         # TODO: If folio_record exists, update the 035 field

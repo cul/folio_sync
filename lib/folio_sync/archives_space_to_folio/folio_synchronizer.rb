@@ -5,8 +5,14 @@ module FolioSync
     class FolioSynchronizer
       ONE_DAY_IN_SECONDS = 24 * 60 * 60
 
-      def initialize
+      def initialize(instance_key)
         @logger = Logger.new($stdout)
+        @instance_key = instance_key
+
+        # Ensure the directory for the instance exists
+        base_dir = Rails.configuration.folio_sync['marc_download_base_directory']
+        download_dir = FileUtils.mkdir_p(File.join(base_dir, @instance_key))
+        @target_dir = download_dir[0]
       end
 
       def fetch_and_sync_resources_to_folio
@@ -16,23 +22,22 @@ module FolioSync
       end
 
       def download_archivesspace_marc_xml(modified_since)
-        exporter = FolioSync::ArchivesSpace::MarcExporter.new
+        exporter = FolioSync::ArchivesSpace::MarcExporter.new(@instance_key)
         exporter.export_recent_resources(modified_since)
       end
 
       def sync_resources_to_folio
         # Iterate over all files in the directory specified in the folio_sync.yml
         # Use foreach for better performance with large directories
-        marc_dir = Rails.configuration.folio_sync['marc_download_directory']
         folio_writer = FolioSync::Folio::Writer.new
 
-        Dir.foreach(marc_dir) do |file|
+        Dir.foreach(@target_dir) do |file|
           next if ['.', '..'].include?(file)
 
           Rails.logger.debug "Processing file: #{file}"
           bibid = File.basename(file, '.xml')
 
-          enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bibid)
+          enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bibid, @target_dir)
           enhancer.enhance_marc_record!
           marc_record = enhancer.marc_record
 

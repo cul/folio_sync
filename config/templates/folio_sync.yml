@@ -1,5 +1,15 @@
 development:
-  marc_download_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
+  default_sender_email_address: folio-sync@abc.com
 
-test:
-  marc_download_directory: <%= Rails.root.join('tmp/test/downloaded_files') %>
+  # NOTE: MARC files will actually be downloaded to "#{marc_download_base_directory}/#{instance_key}"
+  marc_download_base_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
+
+  instances:
+    instance1:
+      marc_sync_email_addresses:
+        - user1@example.com
+
+    instance2:
+      marc_sync_email_addresses:
+        - user2@example.com
+        - user3@example.com
