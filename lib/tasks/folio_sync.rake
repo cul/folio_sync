@@ -38,8 +38,10 @@ namespace :folio_sync do
           puts '=========================='
         end
 
+        recipients = Rails.configuration.folio_sync['instances'][instance_key.to_sym][:marc_sync_email_addresses]
+
         ApplicationMailer.with(
-          to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
+          to: recipients,
           subject: 'FOLIO Sync Errors',
           downloading_errors: processor.downloading_errors,
           syncing_errors: processor.syncing_errors
@@ -61,8 +63,11 @@ namespace :folio_sync do
           puts "Bib ID: #{error.bib_id}"
           puts "Error: #{error.message}"
         end
+
+        recipients = Rails.configuration.folio_sync['instances'][instance_key.to_sym][:marc_sync_email_addresses]
+
         ApplicationMailer.with(
-          to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
+          to: recipients,
           subject: 'FOLIO Sync - Error syncing exported resources',
           syncing_errors: processor.syncing_errors
         ).folio_sync_error_email.deliver
@@ -102,10 +107,25 @@ namespace :folio_sync do
 
     desc 'Test the email functionality'
     task email_test: :environment do
+      instance_key = ENV['instance_key']
+
+      unless instance_key
+        puts 'Error: Please provide an instance_key.'
+        puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:email_test instance_key=cul'
+        exit 1
+      end
+
+      recipients = Rails.configuration.folio_sync['instances'][instance_key.to_sym][:marc_sync_email_addresses]
+
       ApplicationMailer.with(
-        to: Rails.configuration.folio_sync['marc_sync_email_addresses'],
-        subject: 'FOLIO Test - Marc Sync Errors',
-        errors: ['Test error 1', 'Test error 2']
+        to: recipients,
+        subject: 'FOLIO Sync Errors',
+        downloading_errors: [
+          FolioSync::Errors::DownloadingError.new(resource_uri: '/uri-test', message: 'Error test 1')
+        ],
+        syncing_errors: [
+          FolioSync::Errors::SyncingError.new(bib_id: '1234567', message: 'Error test 2')
+        ]
       ).folio_sync_error_email.deliver
     end
   end

@@ -10,12 +10,6 @@ module FolioSync
       def initialize(instance_key)
         @logger = Logger.new($stdout)
         @instance_key = instance_key
-
-        # Ensure the directory for the instance exists
-        base_dir = Rails.configuration.folio_sync['marc_download_base_directory']
-        download_dir = FileUtils.mkdir_p(File.join(base_dir, @instance_key))
-        @target_dir = download_dir[0]
-
         @downloading_errors = []
         @syncing_errors = []
       end
@@ -44,14 +38,17 @@ module FolioSync
         # Use foreach for better performance with large directories
         folio_writer = FolioSync::Folio::Writer.new
 
-        Dir.foreach(@target_dir) do |file|
+        base_dir = Rails.configuration.folio_sync['marc_download_base_directory']
+        downloads_dir = File.join(base_dir, @instance_key)
+
+        Dir.foreach(downloads_dir) do |file|
           next if ['.', '..'].include?(file)
 
           begin
             Rails.logger.debug "Processing file: #{file}"
 
             bib_id = File.basename(file, '.xml')
-            enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id, @target_dir)
+            enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id, @instance_key)
             enhancer.enhance_marc_record!
             marc_record = enhancer.marc_record
 
