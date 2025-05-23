@@ -3,14 +3,42 @@
 require 'rails_helper'
 
 RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
-  let(:instance) { described_class.new }
+  let(:instance_key) { 'instance1' }
+  let(:instance) { described_class.new(instance_key) }
   let(:aspace_client) { instance_double(FolioSync::ArchivesSpace::Client) }
   let(:folio_writer) { instance_double(FolioSync::Folio::Writer) }
-  let(:logger) { instance_double(Logger, info: nil) }
+  let(:logger) { instance_double(Logger, info: nil, error: nil, debug: nil) }
+  let(:folio_sync_config) do
+    {
+      'marc_download_base_directory' => '/tmp/development/downloaded_files',
+      'instances' => {
+        'instance1' => {
+          'marc_sync_email_addresses' => ['user1@example.com']
+        },
+        'instance2' => {
+          'marc_sync_email_addresses' => ['user2@example.com', 'user3@example.com']
+        }
+      }
+    }
+  end
+  let(:archivesspace_config) do
+    {
+      'instance1' => {
+        base_url: 'https://example1-test.library.edu/api',
+        username: 'test-user',
+        password: 'test-password',
+        timeout: 60
+      }
+    }
+  end
 
   before do
-    allow(FolioSync::ArchivesSpace::Client).to receive(:instance).and_return(aspace_client)
+    allow(Rails.configuration).to receive_messages(folio_sync: folio_sync_config, archivesspace: archivesspace_config)
     allow(Logger).to receive(:new).and_return(logger)
+
+    # Mock ArchivesSpace client dependencies
+    allow(ArchivesSpace::Configuration).to receive(:new).and_return(double('config'))
+    allow_any_instance_of(FolioSync::ArchivesSpace::Client).to receive(:login)
   end
 
   describe '#initialize' do
@@ -20,6 +48,15 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
 
     it 'initializes with a logger' do
       expect(instance.instance_variable_get(:@logger)).to eq(logger)
+    end
+
+    it 'stores the instance key' do
+      expect(instance.instance_variable_get(:@instance_key)).to eq(instance_key)
+    end
+
+    it 'initializes downloading_errors and syncing_errors as empty arrays' do
+      expect(instance.downloading_errors).to eq([])
+      expect(instance.syncing_errors).to eq([])
     end
   end
 
@@ -61,15 +98,14 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     end
 
     before do
-      allow(FolioSync::ArchivesSpace::MarcExporter).to receive(:new).and_return(exporter)
+      allow(FolioSync::ArchivesSpace::MarcExporter).to receive(:new).with(instance_key).and_return(exporter)
       allow(exporter).to receive(:export_recent_resources)
       allow(exporter).to receive(:exporting_errors).and_return(exporting_errors)
-      allow(logger).to receive(:error)
     end
 
     it 'initializes a MarcExporter and calls export_recent_resources with the correct modified_since' do
       instance.download_archivesspace_marc_xml(modified_since)
-      expect(FolioSync::ArchivesSpace::MarcExporter).to have_received(:new)
+      expect(FolioSync::ArchivesSpace::MarcExporter).to have_received(:new).with(instance_key)
       expect(exporter).to have_received(:export_recent_resources).with(modified_since)
     end
 
@@ -97,21 +133,24 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   end
 
   describe '#sync_resources_to_folio' do
-    let(:marc_dir) { Rails.configuration.folio_sync['marc_download_base_directory'] }
+    let(:base_dir) { Rails.configuration.folio_sync['marc_download_base_directory'] }
+    let(:downloads_dir) { File.join(base_dir, instance_key) }
     let(:files) { ['file1.xml', 'file2.xml'] }
     let(:enhancers) { files.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
     let(:marc_records) { enhancers.map { double('MARC::Record') } }
 
     before do
       allow(FolioSync::Folio::Writer).to receive(:new).and_return(folio_writer)
+      allow(Rails.logger).to receive(:debug)
 
       # Mock directory iteration
-      allow(Dir).to receive(:foreach).with(marc_dir).and_yield('.').and_yield('..').and_yield(files[0]).and_yield(files[1])
+      allow(Dir).to receive(:foreach).with(downloads_dir).and_yield('.').and_yield('..').and_yield(files[0]).and_yield(files[1])
 
       # Mock MarcRecordEnhancer behavior for each file
       files.each_with_index do |file, index|
-        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(File.basename(file,
-                                                                                                       '.xml')).and_return(enhancers[index])
+        bib_id = File.basename(file, '.xml')
+        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(bib_id,
+                                                                                         instance_key).and_return(enhancers[index])
         allow(enhancers[index]).to receive(:enhance_marc_record!)
         allow(enhancers[index]).to receive(:marc_record).and_return(marc_records[index])
       end
@@ -124,7 +163,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       instance.sync_resources_to_folio
       files.each_with_index do |file, index|
         bib_id = File.basename(file, '.xml')
-        expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to have_received(:new).with(bib_id)
+        expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to have_received(:new).with(bib_id, instance_key)
         expect(enhancers[index]).to have_received(:enhance_marc_record!)
         expect(folio_writer).to have_received(:create_or_update_folio_record).with(marc_records[index])
       end
@@ -132,14 +171,15 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
 
     it 'skips "." and ".." entries' do
       instance.sync_resources_to_folio
-      expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('.')
-      expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('..')
+      expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('.', instance_key)
+      expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('..', instance_key)
     end
 
     it 'appends SyncingError instances to @syncing_errors when errors occur' do
       allow(enhancers[0]).to receive(:enhance_marc_record!).and_raise(StandardError, 'Enhancer error')
-      expect(logger).to receive(:error).with('Error syncing resources to FOLIO: Enhancer error')
       instance.sync_resources_to_folio
+      expect(logger).to have_received(:error).with('Error syncing resources to FOLIO: Enhancer error')
+
       expect(instance.syncing_errors).to contain_exactly(
         an_instance_of(FolioSync::Errors::SyncingError).and(have_attributes(bib_id: 'file1', message: 'Enhancer error'))
       )

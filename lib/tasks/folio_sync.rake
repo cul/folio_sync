@@ -53,8 +53,16 @@ namespace :folio_sync do
 
     desc 'Sync already downloaded resources to FOLIO'
     task sync_exported_resources: :environment do
+      instance_key = ENV['instance_key']
+
+      unless instance_key
+        puts 'Error: Please provide an instance_key.'
+        puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:sync_exported_resources instance_key=cul'
+        exit 1
+      end
+
       puts 'Syncing exported resources...'
-      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new
+      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
       processor.sync_resources_to_folio
 
       if processor.syncing_errors.any?
