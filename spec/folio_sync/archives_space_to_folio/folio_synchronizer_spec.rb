@@ -3,24 +3,13 @@
 require 'rails_helper'
 
 RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
+  include_context 'FolioSync directory setup'
+
   let(:instance_key) { 'instance1' }
   let(:instance) { described_class.new(instance_key) }
   let(:aspace_client) { instance_double(FolioSync::ArchivesSpace::Client) }
   let(:folio_writer) { instance_double(FolioSync::Folio::Writer) }
   let(:logger) { instance_double(Logger, info: nil, error: nil, debug: nil) }
-  let(:folio_sync_config) do
-    {
-      'marc_download_base_directory' => '/tmp/development/downloaded_files',
-      'instances' => {
-        'instance1' => {
-          'marc_sync_email_addresses' => ['user1@example.com']
-        },
-        'instance2' => {
-          'marc_sync_email_addresses' => ['user2@example.com', 'user3@example.com']
-        }
-      }
-    }
-  end
   let(:archivesspace_config) do
     {
       'instance1' => {
@@ -33,7 +22,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   end
 
   before do
-    allow(Rails.configuration).to receive_messages(folio_sync: folio_sync_config, archivesspace: archivesspace_config)
+    allow(Rails.configuration).to receive_messages(archivesspace: archivesspace_config)
     allow(Logger).to receive(:new).and_return(logger)
 
     # Mock ArchivesSpace client dependencies
@@ -181,7 +170,8 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       expect(logger).to have_received(:error).with('Error syncing resources to FOLIO: Enhancer error')
 
       expect(instance.syncing_errors).to contain_exactly(
-        an_instance_of(FolioSync::Errors::SyncingError).and(have_attributes(bib_id: 'file1', message: 'Enhancer error'))
+        an_instance_of(FolioSync::Errors::SyncingError).and(have_attributes(bib_id: 'file1',
+                                                                            message: 'Enhancer error'))
       )
     end
   end

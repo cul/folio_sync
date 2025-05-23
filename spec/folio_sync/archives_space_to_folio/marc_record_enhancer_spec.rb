@@ -3,9 +3,10 @@
 require 'rails_helper'
 
 RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
+  include_context 'FolioSync directory setup'
+
   let(:bibid) { '123456' }
   let(:instance_key) { 'test' }
-  let(:base_dir) { 'tmp/downloaded_files' }
   let(:marc_file_path) { File.join(base_dir, instance_key, "#{bibid}.xml") }
   let(:field_856_xml) do
     <<-XML
@@ -35,38 +36,14 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
     XML
   end
   let(:mock_folio_record) { double('MARC::Record') }
-  let(:folio_sync_config) do
-    {
-      'marc_download_base_directory' => base_dir
-    }
-  end
-  let(:archivesspace_config) do
-    {
-      'test' => {
-        base_url: 'https://example-test.library.edu/api',
-        username: 'test-user',
-        password: 'test-password',
-        timeout: 60
-      }
-    }
-  end
 
   before do
-    allow(Rails.configuration).to receive_messages(folio_sync: folio_sync_config, archivesspace: archivesspace_config)
-
-    # Create the directory structure if it doesn't exist
-    FileUtils.mkdir_p(File.dirname(marc_file_path))
     File.write(marc_file_path, mock_marc_xml)
 
     # Mock FOLIO::Reader
     folio_reader = instance_double(FolioSync::Folio::Reader)
     allow(FolioSync::Folio::Reader).to receive(:new).and_return(folio_reader)
     allow(folio_reader).to receive(:get_marc_record).with(bibid).and_return(mock_folio_record)
-  end
-
-  # Clean up the mock MARC file and directory
-  after do
-    FileUtils.rm_rf(File.join(base_dir, instance_key)) if File.exist?(File.join(base_dir, instance_key))
   end
 
   describe '#initialize' do

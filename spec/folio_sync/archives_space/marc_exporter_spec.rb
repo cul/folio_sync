@@ -3,25 +3,13 @@
 require 'rails_helper'
 
 RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
+  include_context 'FolioSync directory setup'
+
   let(:instance_key) { 'instance1' }
   let(:client) { instance_double(FolioSync::ArchivesSpace::Client) }
   let(:logger) { instance_double(Logger, info: nil, error: nil) }
-  let(:folio_sync_config) do
-    {
-      'marc_download_base_directory' => '/tmp/development/downloaded_files',
-      'instances' => {
-        'instance1' => {
-          'marc_sync_email_addresses' => ['user1@example.com']
-        },
-        'instance2' => {
-          'marc_sync_email_addresses' => ['user2@example.com', 'user3@example.com']
-        }
-      }
-    }
-  end
 
   before do
-    allow(Rails.configuration).to receive(:folio_sync).and_return(folio_sync_config)
     allow(Logger).to receive(:new).and_return(logger)
     allow(FolioSync::ArchivesSpace::Client).to receive(:new).with(instance_key).and_return(client)
   end
@@ -184,7 +172,7 @@ RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
     let(:resource_id) { '123' }
     let(:bib_id) { '456' }
     let(:marc_data) { '<record><controlfield tag="001">123456</controlfield></record>' }
-    let(:expected_file_path) { '/tmp/development/downloaded_files/instance1/456.xml' }
+    let(:expected_file_path) { 'tmp/test/downloaded_files/instance1/456.xml' }
 
     before do
       allow(FolioSync::ArchivesSpace::Client).to receive(:new).with(instance_key).and_return(client)
