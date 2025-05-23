@@ -3,31 +3,36 @@
 require 'rails_helper'
 
 RSpec.describe FolioSync::ArchivesSpace::Client do
-  let(:base_url) { 'https://example-test.example.com/api' }
-  let(:archives_space_configuration) do
-    ArchivesSpace::Configuration.new({
-      base_uri: base_url,
-      username: username,
-      password: password,
-      timeout: timeout
-    })
+  let(:instance_key) { 'instance1' }
+  let(:base_url) { 'https://example1-test.library.edu/api' }
+  let(:username) { 'example-user' }
+  let(:password) { 'example-password' }
+  let(:timeout) { 60 }
+  let(:archivesspace_config) do
+    {
+      'instance1' => {
+        base_url: base_url,
+        username: username,
+        password: password,
+        timeout: timeout
+      },
+      'instance2' => {
+        base_url: 'https://example2-test.library.edu/api',
+        username: username,
+        password: password,
+        timeout: timeout
+      }
+    }
   end
-  let(:instance) { described_class.new(archives_space_configuration) }
+
   let(:repository_id) { 2 }
   let(:resource_id) { 4656 }
-  let(:valid_resource_record_uri) { "/repositories/#{repository_id}/resources/#{resource_id}" }
-  let(:invalid_resource_record_uri) { "Oh no! This can't be valid!" }
-  let(:username) { 'username' }
-  let(:password) { 'password' }
-  let(:timeout)  { 10 }
 
   before do
-    allow(Rails.configuration).to receive(:archivesspace).and_return({
-      'ASPACE_BASE_API' => base_url,
-      'ASPACE_API_USERNAME' => username,
-      'ASPACE_API_PASSWORD' => password,
-      'ASPACE_TIMEOUT' => timeout
-    })
+    allow(Rails.configuration).to receive(:archivesspace) do
+      { instance_key => archivesspace_config[instance_key] }
+    end
+    allow_any_instance_of(described_class).to receive(:login)
   end
 
   it 'is a subclass of ArchivesSpace::Client' do
@@ -35,27 +40,36 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
   end
 
   describe '#initialize' do
-    it 'can be instantiated' do
-      expect(instance).to be_a(described_class)
-    end
-  end
-
-  describe '.instance' do
-    let(:client_instance) { instance_double(described_class) }
-
-    before do
-      allow(described_class).to receive(:new).and_return(client_instance)
-      allow(client_instance).to receive(:login)
+    it 'can be instantiated with a valid instance key' do
+      expect { described_class.new(instance_key) }.not_to raise_error
     end
 
-    it 'returns the same instance every time it is called' do
-      inst = described_class.instance
-      expect(inst).to be(client_instance) # Compare with the mocked instance
-      expect(described_class.instance).to be(client_instance)
+    it 'raises an error when instance key is not found' do
+      expect {
+        described_class.new('nonexistent_instance')
+      }.to raise_error(ArgumentError, "No ArchivesSpace config for instance 'nonexistent_instance'")
+    end
+
+    it 'calls login automatically during initialization' do
+      expect_any_instance_of(described_class).to receive(:login)
+      described_class.new(instance_key)
+    end
+
+    it 'creates ArchivesSpace::Configuration with correct parameters' do
+      expected_config = {
+        base_uri: base_url,
+        username: username,
+        password: password,
+        timeout: timeout
+      }
+      allow(ArchivesSpace::Configuration).to receive(:new).and_call_original
+      described_class.new(instance_key)
+      expect(ArchivesSpace::Configuration).to have_received(:new).with(expected_config)
     end
   end
 
   describe '#get_all_repositories' do
+    let(:instance) { described_class.new(instance_key) }
     let(:response) { instance_double('Response') }
     let(:repositories) do
       [
@@ -85,6 +99,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
   end
 
   describe '#fetch_marc_xml_resource' do
+    let(:instance) { described_class.new(instance_key) }
     let(:repo_id) { '1' }
     let(:resource_id) { '123' }
     let(:response) { instance_double('Response') }
@@ -121,6 +136,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
 
   describe '#retrieve_paginated_resources' do
     let(:query_params) { { q: 'primary_type:resource', page: 1, page_size: 2 } }
+    let(:instance) { described_class.new(instance_key) }
     let(:response_page_1) { instance_double('Response') }
     let(:response_page_2) { instance_double('Response') }
     let(:resources_page_1) do
@@ -153,6 +169,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     end
 
     before do
+      allow(Rails.logger).to receive(:debug)
       allow(instance).to receive(:get).with(
         "repositories/#{repository_id}/search",
         { query: { q: 'primary_type:resource', page: 1, page_size: 2 } }
@@ -174,6 +191,40 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
         results.concat(resources)
       end
       expect(results).to eq(resources_page_1 + resources_page_2)
+    end
+
+    it 'raises an error if the response status code is not 200' do
+      error_response = instance_double('Response')
+      allow(instance).to receive(:get).and_return(error_response)
+      allow(error_response).to receive_messages(status_code: 500, body: 'Internal Server Error')
+
+      expect {
+        instance.retrieve_paginated_resources(repository_id, query_params) do |resources|
+          # This block should not be called due to the error
+        end
+      }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
+                       'Error fetching resources: Internal Server Error')
+    end
+  end
+
+  describe '#handle_response' do
+    let(:instance) { described_class.new(instance_key) }
+    let(:response) { instance_double('Response') }
+
+    it 'returns the response when status code is 200' do
+      allow(response).to receive(:status_code).and_return(200)
+
+      result = instance.send(:handle_response, response, 'Test error message')
+      expect(result).to eq(response)
+    end
+
+    it 'raises an error when status code is not 200' do
+      allow(response).to receive_messages(status_code: 404, body: 'Not Found')
+
+      expect {
+        instance.send(:handle_response, response, 'Test error message')
+      }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
+                       'Test error message: Not Found')
     end
   end
 end
