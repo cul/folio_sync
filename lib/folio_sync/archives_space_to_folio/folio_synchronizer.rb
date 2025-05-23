@@ -27,7 +27,7 @@ module FolioSync
         exporter = FolioSync::ArchivesSpace::MarcExporter.new(@instance_key)
         exporter.export_recent_resources(modified_since)
 
-        return unless exporter.exporting_errors.present?
+        return if exporter.exporting_errors.blank?
 
         @logger.error("Errors encountered during MARC XML download: #{exporter.exporting_errors}")
         @downloading_errors = exporter.exporting_errors

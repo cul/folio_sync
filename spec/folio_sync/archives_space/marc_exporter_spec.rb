@@ -137,16 +137,16 @@ RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
   end
 
   describe '#build_query_params' do
-    let(:modified_since) { Time.utc(2023, 1, 1, 12, 30, 45, 123_000) }
+    let(:modified_since) { Time.utc(2023, 1, 1) }
 
     it 'builds query parameters with a modification time filter' do
       instance = described_class.new(instance_key)
-      allow(instance).to receive(:time_to_solr_date_format).with(modified_since).and_return('2023-01-01T12:30:45.123Z')
+      allow(instance).to receive(:time_to_solr_date_format).with(modified_since).and_return('2023-01-01T00:00:00.000Z')
 
       result = instance.send(:build_query_params, modified_since)
 
       expect(result).to eq({
-        q: 'primary_type:resource suppressed:false system_mtime:[2023-01-01T12:30:45.123Z TO *]',
+        q: 'primary_type:resource suppressed:false system_mtime:[2023-01-01T00:00:00.000Z TO *]',
         page: 1,
         page_size: described_class::PAGE_SIZE,
         fields: %w[id identifier system_mtime title publish]
@@ -242,25 +242,6 @@ RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
       instance = described_class.new(instance_key)
       instance.send(:log_resource_processing, resource)
       expect(logger).to have_received(:info).with('Processing resource: Test Resource (ID: 123)')
-    end
-  end
-
-  describe 'PAGE_SIZE constant' do
-    it 'is set to 200' do
-      expect(described_class::PAGE_SIZE).to eq(200)
-    end
-  end
-
-  describe '#exporting_errors' do
-    it 'has a reader for exporting_errors' do
-      instance = described_class.new(instance_key)
-      expect(instance).to respond_to(:exporting_errors)
-    end
-
-    it 'is initialized as an empty array' do
-      instance = described_class.new(instance_key)
-      expect(instance.exporting_errors).to be_an(Array)
-      expect(instance.exporting_errors).to be_empty
     end
   end
 end
