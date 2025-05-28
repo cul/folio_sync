@@ -39,8 +39,7 @@ module FolioSync
         folio_writer = FolioSync::Folio::Writer.new
 
         config = Rails.configuration.folio_sync[:aspace_to_folio]
-        base_dir = config[:marc_download_base_directory]
-        downloads_dir = File.join(base_dir, @instance_key)
+        downloads_dir = File.join(config[:marc_download_base_directory], @instance_key)
 
         Dir.foreach(downloads_dir) do |file|
           next if ['.', '..'].include?(file)

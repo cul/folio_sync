@@ -2,6 +2,10 @@
 
 namespace :folio_sync do
   namespace :aspace_to_folio do
+    def recipients_for(instance_key)
+      Rails.configuration.folio_sync[:aspace_to_folio][:aspace_instances][instance_key.to_sym][:marc_sync_email_addresses]
+    end
+
     desc 'Fetch ArchivesSpace MARC resources and sync to FOLIO'
     task run: :environment do
       instance_key = ENV['instance_key']
@@ -38,9 +42,8 @@ namespace :folio_sync do
           puts '=========================='
         end
 
-        recipients = Rails.configuration.folio_sync['aspace_to_folio'][:aspace_instances][instance_key.to_sym][:marc_sync_email_addresses]
         ApplicationMailer.with(
-          to: recipients,
+          to: rrecipients_for(instance_key),
           subject: 'FOLIO Sync Errors',
           downloading_errors: processor.downloading_errors,
           syncing_errors: processor.syncing_errors
@@ -71,10 +74,8 @@ namespace :folio_sync do
           puts "Error: #{error.message}"
         end
 
-        recipients = Rails.configuration.folio_sync['aspace_to_folio'][:aspace_instances][instance_key.to_sym][:marc_sync_email_addresses]
-
         ApplicationMailer.with(
-          to: recipients,
+          to: recipients_for(instance_key),
           subject: 'FOLIO Sync - Error syncing exported resources',
           syncing_errors: processor.syncing_errors
         ).folio_sync_error_email.deliver
@@ -122,10 +123,8 @@ namespace :folio_sync do
         exit 1
       end
 
-      recipients = Rails.configuration.folio_sync['aspace_to_folio'][:aspace_instances][instance_key.to_sym][:marc_sync_email_addresses]
-
       ApplicationMailer.with(
-        to: recipients,
+        to: recipients_for(instance_key),
         subject: 'FOLIO Sync Errors',
         downloading_errors: [
           FolioSync::Errors::DownloadingError.new(resource_uri: '/uri-test', message: 'Error test 1')

@@ -4,7 +4,7 @@
 begin
   logger = Logger.new($stdout)
   folio_config = Rails.configuration.folio_sync
-  aspace_to_folio_config = folio_config['aspace_to_folio']
+  aspace_to_folio_config = folio_config[:aspace_to_folio]
 
   if folio_config.blank?
     logger.error('FOLIO sync configuration is missing or empty')
@@ -20,12 +20,12 @@ begin
 
   base_dir = aspace_to_folio_config[:marc_download_base_directory]
 
-  # If the base directory is not present, set a default base direcotry
+  # If the base directory is not present, set a default base directory
   if base_dir.blank?
     current_env = Rails.env
     base_dir = Rails.root.join("tmp/#{current_env}/downloaded_files")
     logger.warn("MARC download directory is not configured, defaulting to #{base_dir}")
-    Rails.configuration.folio_sync['aspace_to_folio']['marc_download_base_directory'] = base_dir
+    aspace_to_folio_config[:marc_download_base_directory] = base_dir
   end
 
   aspace_instances.each_key do |instance_name|
