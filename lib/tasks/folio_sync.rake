@@ -38,8 +38,7 @@ namespace :folio_sync do
           puts '=========================='
         end
 
-        recipients = Rails.configuration.folio_sync['instances'][instance_key.to_sym][:marc_sync_email_addresses]
-
+        recipients = Rails.configuration.folio_sync['aspace_to_folio'][:aspace_instances][instance_key.to_sym][:marc_sync_email_addresses]
         ApplicationMailer.with(
           to: recipients,
           subject: 'FOLIO Sync Errors',
@@ -72,7 +71,7 @@ namespace :folio_sync do
           puts "Error: #{error.message}"
         end
 
-        recipients = Rails.configuration.folio_sync['instances'][instance_key.to_sym][:marc_sync_email_addresses]
+        recipients = Rails.configuration.folio_sync['aspace_to_folio'][:aspace_instances][instance_key.to_sym][:marc_sync_email_addresses]
 
         ApplicationMailer.with(
           to: recipients,
@@ -123,7 +122,7 @@ namespace :folio_sync do
         exit 1
       end
 
-      recipients = Rails.configuration.folio_sync['instances'][instance_key.to_sym][:marc_sync_email_addresses]
+      recipients = Rails.configuration.folio_sync['aspace_to_folio'][:aspace_instances][instance_key.to_sym][:marc_sync_email_addresses]
 
       ApplicationMailer.with(
         to: recipients,

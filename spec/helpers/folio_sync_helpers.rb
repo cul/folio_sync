@@ -6,10 +6,11 @@ module FolioSyncTestHelpers
     folio_config ||= Rails.configuration.folio_sync
     return if folio_config.blank?
 
-    base_dir = folio_config['marc_download_base_directory']
-    instances = folio_config['instances'] || {}
+    aspace_to_folio_config = folio_config['aspace_to_folio']
+    base_dir = aspace_to_folio_config['marc_download_base_directory']
+    aspace_instances = aspace_to_folio_config['aspace_instances']
 
-    instances.each_key do |instance_name|
+    aspace_instances.each_key do |instance_name|
       instance_dir = File.join(base_dir, instance_name.to_s)
       FileUtils.mkdir_p(instance_dir)
     end
@@ -21,11 +22,13 @@ module FolioSyncTestHelpers
   end
 
   # Helper to create a standard folio_sync test configuration
-  def build_folio_sync_config(base_dir:, instances: {})
+  def build_folio_sync_config(base_dir:, aspace_instances: {})
     {
-      'marc_download_base_directory' => base_dir,
       'default_sender_email_address' => 'test@example.com',
-      'instances' => instances
+      'aspace_to_folio' => {
+        'marc_download_base_directory' => base_dir,
+        'aspace_instances' => aspace_instances
+      }
     }
   end
 end
@@ -39,7 +42,7 @@ RSpec.shared_context 'FolioSync directory setup' do
   let(:folio_sync_config) do
     build_folio_sync_config(
       base_dir: base_dir,
-      instances: {
+      aspace_instances: {
         instance_key => {
           'marc_sync_email_addresses' => ['test@example.com']
         }

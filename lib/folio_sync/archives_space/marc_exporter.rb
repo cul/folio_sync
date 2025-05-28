@@ -50,9 +50,8 @@ module FolioSync
         marc_data = @client.fetch_marc_xml_resource(repo_id, resource_id)
         return @logger.error("No MARC found for repo #{repo_id} and resource_id #{resource_id}") unless marc_data
 
-        # ! To check: other instances might use the same bib_id
-        base_dir = Rails.configuration.folio_sync['marc_download_base_directory']
-        file_path = File.join(base_dir, @instance_dir, "#{bib_id}.xml")
+        config = Rails.configuration.folio_sync[:aspace_to_folio]
+        file_path = File.join(config[:marc_download_base_directory], @instance_dir, "#{bib_id}.xml")
 
         File.binwrite(file_path, marc_data)
       end

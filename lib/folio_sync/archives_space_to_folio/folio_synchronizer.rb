@@ -38,7 +38,8 @@ module FolioSync
         # Use foreach for better performance with large directories
         folio_writer = FolioSync::Folio::Writer.new
 
-        base_dir = Rails.configuration.folio_sync['marc_download_base_directory']
+        config = Rails.configuration.folio_sync[:aspace_to_folio]
+        base_dir = config[:marc_download_base_directory]
         downloads_dir = File.join(base_dir, @instance_key)
 
         Dir.foreach(downloads_dir) do |file|

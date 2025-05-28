@@ -48,15 +48,17 @@ The purpose of this application is to sync ArchivesSpace records to FOLIO.  It a
    ```yaml
    development:
      default_sender_email_address: "folio-sync@abc.com"
-     marc_download_base_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
-     instances:
-       instance1:
-         marc_sync_email_addresses:
-           - "user1@example.com"
-       instance2:
-         marc_sync_email_addresses:
-           - "user2@example.com"
-           - "user3@example.com"
+
+    aspace_to_folio:
+      marc_download_base_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
+      aspace_instances:
+        instance1:
+          marc_sync_email_addresses:
+            - "user1@example.com"
+        instance2:
+          marc_sync_email_addresses:
+            - "user2@example.com"
+            - "user3@example.com"
 
 ## Running the Script
 Most tasks require you to specify the `instance_key` (e.g., `instance1` or `instance2`) as an environment variable:

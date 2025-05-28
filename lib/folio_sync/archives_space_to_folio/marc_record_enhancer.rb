@@ -8,8 +8,8 @@ module FolioSync
       def initialize(bibid, instance_key)
         @bibid = bibid
 
-        base_dir = Rails.configuration.folio_sync['marc_download_base_directory']
-        aspace_marc_path = File.join(base_dir, instance_key, "#{bibid}.xml")
+        config = Rails.configuration.folio_sync['aspace_to_folio']
+        aspace_marc_path = File.join(config[:marc_download_base_directory], instance_key, "#{bibid}.xml")
         aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
 
         # TODO: If folio_record exists, update the 035 field
