@@ -1,18 +1,19 @@
 # frozen_string_literal: true
 
 class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
-  def self.instance
-    unless @instance
-      @instance = self.new(ArchivesSpace::Configuration.new({
-        base_uri: Rails.configuration.archivesspace['base_url'],
-        username: Rails.configuration.archivesspace['username'],
-        password: Rails.configuration.archivesspace['password'],
-        timeout: Rails.configuration.archivesspace['timeout']
-      }))
+  def initialize(instance_key)
+    instance_config = Rails.configuration.archivesspace[instance_key]
+    raise ArgumentError, "No ArchivesSpace config for instance '#{instance_key}'" unless instance_config
 
-      @instance.login # logs in automatically when it is initialized
-    end
-    @instance
+    config = ArchivesSpace::Configuration.new({
+      base_uri: instance_config[:base_url],
+      username: instance_config[:username],
+      password: instance_config[:password],
+      timeout: instance_config[:timeout]
+    })
+
+    super(config)
+    login
   end
 
   def get_all_repositories

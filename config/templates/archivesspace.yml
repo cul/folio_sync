@@ -1,11 +1,25 @@
 development:
-  base_url: 'https://example-dev.library.columbia.edu/api'
-  username: 'example-user'
-  password: 'example-password'
-  timeout: 60
+  instance1:
+    base_url: 'https://example1-dev.library.edu/api'
+    username: 'example-user'
+    password: 'example-password'
+    timeout: 60
+
+  instance2:
+    base_url: 'https://example2-dev.library.edu/api'
+    username: 'example-user'
+    password: 'example-password'
+    timeout: 60
 
 test:
-  base_url: 'https://example-test.library.columbia.edu/api'
-  username: 'example-user'
-  password: 'example-password'
-  timeout: 20
+  instance1:
+    base_url: 'https://example1-test.library.edu/api'
+    username: 'example-user'
+    password: 'example-password'
+    timeout: 60
+
+  instance2:
+    base_url: 'https://example2-test.library.edu/api'
+    username: 'example-user'
+    password: 'example-password'
+    timeout: 60
