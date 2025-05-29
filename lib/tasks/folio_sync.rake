@@ -9,6 +9,7 @@ namespace :folio_sync do
     desc 'Fetch ArchivesSpace MARC resources and sync to FOLIO'
     task run: :environment do
       instance_key = ENV['instance_key']
+      modified_since = ENV['modified_since']
 
       unless instance_key
         puts 'Error: Please provide an instance_key.'
@@ -16,9 +17,19 @@ namespace :folio_sync do
         exit 1
       end
 
+      modified_since_time =
+        if modified_since && !modified_since.strip.empty?
+          begin
+            Integer(modified_since)
+          rescue ArgumentError
+            puts 'Error: modified_since must be an integer (number of hours).'
+            exit 1
+          end
+        end
+
       puts 'Fetching MARC resources...'
       processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
-      processor.fetch_and_sync_resources_to_folio
+      processor.fetch_and_sync_resources_to_folio(modified_since_time)
 
       # Send email if there are any errors
       if processor.syncing_errors.any? || processor.downloading_errors.any?

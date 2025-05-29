@@ -5,7 +5,7 @@ module FolioSync
     class FolioSynchronizer
       attr_reader :syncing_errors, :downloading_errors
 
-      ONE_DAY_IN_SECONDS = 24 * 60 * 60
+      ONE_HOUR_IN_SECONDS = 3600
 
       def initialize(instance_key)
         @logger = Logger.new($stdout)
@@ -14,12 +14,12 @@ module FolioSync
         @syncing_errors = []
       end
 
-      def fetch_and_sync_resources_to_folio
+      def fetch_and_sync_resources_to_folio(last_x_hours)
         @downloading_errors = []
         @syncing_errors = []
-        last_24_hours = Time.now.utc - ONE_DAY_IN_SECONDS
+        modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        download_archivesspace_marc_xml(last_24_hours)
+        download_archivesspace_marc_xml(modified_since)
         sync_resources_to_folio
       end
 
