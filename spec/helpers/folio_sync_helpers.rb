@@ -14,7 +14,12 @@ module FolioSyncTestHelpers
 
     aspace_instances.each_key do |instance_name|
       instance_dir = File.join(base_dir, instance_name.to_s)
-      FileUtils.mkdir_p(instance_dir)
+      daily_sync_dir = File.join(instance_dir, 'daily_sync')
+      manual_sync_dir = File.join(instance_dir, 'manual_sync')
+
+      # Create the directories
+      FileUtils.mkdir_p(daily_sync_dir)
+      FileUtils.mkdir_p(manual_sync_dir)
     end
   end
 

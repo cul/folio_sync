@@ -15,6 +15,7 @@ module FolioSync
         @downloads_location = downloads_location
       end
 
+      # last_x_hours is an optional parameter to limit the sync to resources modified in the last x hours
       def fetch_and_sync_resources_to_folio(last_x_hours)
         @downloading_errors = []
         @syncing_errors = []
@@ -67,16 +68,9 @@ module FolioSync
 
       # Location can be 'daily_sync' or 'manual_sync'
       def clear_downloads(location)
-        # puts "Clearing downloads directory for location: #{location}"
         config = Rails.configuration.folio_sync[:aspace_to_folio]
         downloads_dir = File.join(config[:marc_download_base_directory], @instance_key, location)
-
-        if Dir.exist?(downloads_dir)
-          FileUtils.rm_rf(Dir["#{downloads_dir}/*"])
-          puts "Cleared downloads directory: #{downloads_dir}"
-        else
-          puts "Downloads directory does not exist: #{downloads_dir}"
-        end
+        FileUtils.rm_rf(Dir["#{downloads_dir}/*"])
       end
     end
   end
