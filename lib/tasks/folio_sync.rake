@@ -43,7 +43,7 @@ namespace :folio_sync do
         end
 
         ApplicationMailer.with(
-          to: rrecipients_for(instance_key),
+          to: recipients_for(instance_key),
           subject: 'FOLIO Sync Errors',
           downloading_errors: processor.downloading_errors,
           syncing_errors: processor.syncing_errors
