@@ -62,6 +62,12 @@ module FolioSync
           end
         end
       end
+
+      def clear_downloads!
+        config = Rails.configuration.folio_sync[:aspace_to_folio]
+        downloads_dir = File.join(config[:marc_download_base_directory], @instance_key)
+        FileUtils.rm_rf(Dir["#{downloads_dir}/*"])
+      end
     end
   end
 end

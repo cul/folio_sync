@@ -10,12 +10,16 @@ namespace :folio_sync do
     task run: :environment do
       instance_key = ENV['instance_key']
       modified_since = ENV['modified_since']
+      clear_downloads = ENV['clear_downloads'].nil? || ENV['clear_downloads'] == 'true'
 
       unless instance_key
         puts 'Error: Please provide an instance_key.'
         puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:run instance_key=cul'
         exit 1
       end
+
+      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
+      processor.clear_downloads! if clear_downloads
 
       modified_since_time =
         if modified_since && !modified_since.strip.empty?
@@ -28,7 +32,6 @@ namespace :folio_sync do
         end
 
       puts 'Fetching MARC resources...'
-      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
       processor.fetch_and_sync_resources_to_folio(modified_since_time)
 
       # Send email if there are any errors
@@ -54,7 +57,7 @@ namespace :folio_sync do
         end
 
         ApplicationMailer.with(
-          to: rrecipients_for(instance_key),
+          to: recipients_for(instance_key),
           subject: 'FOLIO Sync Errors',
           downloading_errors: processor.downloading_errors,
           syncing_errors: processor.syncing_errors
