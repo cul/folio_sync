@@ -30,11 +30,7 @@ begin
 
   aspace_instances.each_key do |instance_name|
     instance_dir = File.join(base_dir, instance_name.to_s)
-    daily_sync_dir = File.join(instance_dir, 'daily_sync')
-    manual_sync_dir = File.join(instance_dir, 'manual_sync')
-
-    FileUtils.mkdir_p(daily_sync_dir)
-    FileUtils.mkdir_p(manual_sync_dir)
+    FileUtils.mkdir_p(instance_dir)
   end
 rescue StandardError => e
   logger.error("Failed to initialize FOLIO Sync directories: #{e.message}")

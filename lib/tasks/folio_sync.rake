@@ -10,21 +10,12 @@ namespace :folio_sync do
     task run: :environment do
       instance_key = ENV['instance_key']
       modified_since = ENV['modified_since']
-      # Default clear_downloads to true if not explicitly passed
-      clear_downloads = ENV['clear_downloads'].nil? || ENV['clear_downloads'] == 'true'
 
       unless instance_key
         puts 'Error: Please provide an instance_key.'
         puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:run instance_key=cul'
         exit 1
       end
-
-      triggered_by_cron = ENV['TRIGGERED_BY_CRON'] == 'true'
-      downloads_location = triggered_by_cron ? 'daily_sync' : 'manual_sync'
-      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key, downloads_location)
-
-      # ? Is this the best place to clear downloads?
-      processor.clear_downloads(downloads_location) if clear_downloads
 
       modified_since_time =
         if modified_since && !modified_since.strip.empty?
@@ -37,6 +28,7 @@ namespace :folio_sync do
         end
 
       puts 'Fetching MARC resources...'
+      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
       processor.fetch_and_sync_resources_to_folio(modified_since_time)
 
       # Send email if there are any errors
@@ -62,7 +54,7 @@ namespace :folio_sync do
         end
 
         ApplicationMailer.with(
-          to: recipients_for(instance_key),
+          to: rrecipients_for(instance_key),
           subject: 'FOLIO Sync Errors',
           downloading_errors: processor.downloading_errors,
           syncing_errors: processor.syncing_errors
