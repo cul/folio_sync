@@ -1,5 +1,5 @@
 # FOLIO Sync
-The purpose of this application is to sync ArchivesSpace records to FOLIO.  It automates retrieving unsuppressed resources from ArchivesSpace that were modified in the last 24 hours and syncing them to FOLIO. This ensures that FOLIO always has up-to-date records from ArchivesSpace.
+The purpose of this application is to sync ArchivesSpace records to FOLIO.  It automates retrieving unsuppressed resources from ArchivesSpace that were modified in the last 25 hours and syncing them to FOLIO. This ensures that FOLIO always has up-to-date records from ArchivesSpace.
 
 ## Setup
 1. Install the required gems:
@@ -70,7 +70,7 @@ bundle exec rake folio_sync:aspace_to_folio:run instance_key=instance1
 ## Tasks
 
 ### `folio_sync:aspace_to_folio:run`
-Fetches ArchivesSpace MARC resources modified in the last 24 hours and syncs them to FOLIO. If any errors occur during downloading or syncing, an email is sent to the configured recipients.
+Fetches ArchivesSpace MARC resources modified in the last 25 hours and syncs them to FOLIO. If any errors occur during downloading or syncing, an email is sent to the configured recipients.
 
 #### Usage:
 ```bash
