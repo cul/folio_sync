@@ -7,7 +7,6 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
 
   let(:bibid) { '123456' }
   let(:instance_key) { 'test' }
-  let(:downloads_location) { 'daily_sync' } # or 'manual_sync'
   let(:marc_file_path) { File.join(base_dir, instance_key, "#{bibid}.xml") }
   let(:field_856_xml) do
     <<-XML
