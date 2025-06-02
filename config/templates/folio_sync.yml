@@ -4,6 +4,7 @@ development:
   aspace_to_folio:
     # NOTE: MARC files will actually be downloaded to "#{marc_download_base_directory}/#{instance_key}"
     marc_download_base_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
+    developer_email_address: developer_email@example.com
 
     aspace_instances:
       instance1:
