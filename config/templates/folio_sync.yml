@@ -1,16 +1,16 @@
-shared: &shared
-  default_sender_email_address: test@example.com
-
 development:
-  <<: *shared
-  marc_download_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
-  marc_sync_email_addresses:
-    - test1@example.com
-    - test2@example.com
+  default_sender_email_address: folio-sync@abc.com
 
-test:
-  <<: *shared
-  marc_download_directory: <%= Rails.root.join('tmp/test/downloaded_files') %>
-  marc_sync_email_addresses:
-    - test1@example.com
-    - test2@example.com
+  aspace_to_folio:
+    # NOTE: MARC files will actually be downloaded to "#{marc_download_base_directory}/#{instance_key}"
+    marc_download_base_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
+
+    aspace_instances:
+      instance1:
+        marc_sync_email_addresses:
+          - user1@example.com
+
+      instance2:
+        marc_sync_email_addresses:
+          - user2@example.com
+          - user3@example.com

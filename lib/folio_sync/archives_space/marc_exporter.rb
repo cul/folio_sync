@@ -9,9 +9,10 @@ module FolioSync
 
       PAGE_SIZE = 200
 
-      def initialize
+      def initialize(instance_key)
         @logger = Logger.new($stdout) # Ensure logger is initialized first
-        @client = FolioSync::ArchivesSpace::Client.instance
+        @client = FolioSync::ArchivesSpace::Client.new(instance_key)
+        @instance_dir = instance_key
         @exporting_errors = []
       end
 
@@ -49,8 +50,9 @@ module FolioSync
         marc_data = @client.fetch_marc_xml_resource(repo_id, resource_id)
         return @logger.error("No MARC found for repo #{repo_id} and resource_id #{resource_id}") unless marc_data
 
-        # ! To check: other instances might use the same bib_id
-        file_path = File.join(Rails.configuration.folio_sync['marc_download_directory'], "#{bib_id}.xml")
+        config = Rails.configuration.folio_sync[:aspace_to_folio]
+        file_path = File.join(config[:marc_download_base_directory], @instance_dir, "#{bib_id}.xml")
+
         File.binwrite(file_path, marc_data)
       end
 
