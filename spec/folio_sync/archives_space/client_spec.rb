@@ -254,6 +254,33 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     end
   end
 
+  describe '#update_resource' do
+    let(:instance) { described_class.new(instance_key) }
+    let(:updated_data) { { 'id_0' => '456', 'title' => 'Updated Resource' } }
+    let(:response) { instance_double('Response') }
+
+    before do
+      allow(instance).to receive(:post).with("repositories/#{repository_id}/resources/#{resource_id}",
+                                             updated_data).and_return(response)
+      allow(response).to receive(:status_code).and_return(200)
+    end
+
+    it 'updates the resource with the given data' do
+      instance.update_resource(repository_id, resource_id, updated_data)
+      expect(instance).to have_received(:post).with("repositories/#{repository_id}/resources/#{resource_id}",
+                                                    updated_data)
+    end
+
+    it 'raises an error if the response status code is not 200' do
+      allow(response).to receive_messages(status_code: 500, body: 'Internal Server Error')
+
+      expect {
+        instance.update_resource(repository_id, resource_id, updated_data)
+      }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
+                       'Failed to update resource 4656: Internal Server Error')
+    end
+  end
+
   describe '#update_id_0_field' do
     let(:instance) { described_class.new(instance_key) }
     let(:old_resource) { { 'id_0' => '123', 'title' => 'Test Resource' } }
@@ -280,7 +307,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
       expect {
         instance.update_id_0_field(repository_id, resource_id, new_id)
       }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
-                       'Failed to update id_0 field for resource 4656: Internal Server Error')
+                       'Failed to update resource 4656: Internal Server Error')
     end
   end
 
@@ -311,7 +338,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
       expect {
         instance.update_string_1_field(repository_id, resource_id, new_string)
       }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
-                       'Failed to update string_1 field for resource 4656: Internal Server Error')
+                       'Failed to update resource 4656: Internal Server Error')
     end
   end
 end

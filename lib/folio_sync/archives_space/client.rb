@@ -68,12 +68,16 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
     response.parsed
   end
 
+  def update_resource(repo_id, resource_id, updated_data)
+    response = self.post("repositories/#{repo_id}/resources/#{resource_id}", updated_data)
+    handle_response(response, "Failed to update resource #{resource_id}")
+  end
+
   def update_id_0_field(repo_id, resource_id, new_id)
     old_resource = fetch_resource(repo_id, resource_id)
     updated_resource_data = old_resource.merge('id_0' => new_id)
 
-    response = self.post("repositories/#{repo_id}/resources/#{resource_id}", updated_resource_data)
-    handle_response(response, "Failed to update id_0 field for resource #{resource_id}")
+    update_resource(repo_id, resource_id, updated_resource_data)
   end
 
   def update_string_1_field(repo_id, resource_id, new_string)
@@ -82,8 +86,7 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
     user_defined['string_1'] = new_string
     updated_resource_data = old_resource.merge('user_defined' => user_defined)
 
-    response = self.post("repositories/#{repo_id}/resources/#{resource_id}", updated_resource_data)
-    handle_response(response, "Failed to update string_1 field for resource #{resource_id}")
+    update_resource(repo_id, resource_id, updated_resource_data)
   end
 
   private
