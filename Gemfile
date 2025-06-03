@@ -25,6 +25,9 @@ gem 'thruster', require: false
 # Nokogiri 1.17 runs successfully
 gem 'nokogiri', '~> 1.17.2'
 
+# For cron tasks
+gem 'whenever', require: false
+
 gem 'archivesspace-client'
 
 gem 'actionmailer', '~> 8.0.2'
