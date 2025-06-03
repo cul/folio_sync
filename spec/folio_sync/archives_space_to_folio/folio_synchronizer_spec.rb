@@ -7,6 +7,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
 
   let(:instance_key) { 'instance1' }
   let(:instance) { described_class.new(instance_key) }
+  let(:last_x_hours) { 4 }
   let(:aspace_client) { instance_double(FolioSync::ArchivesSpace::Client) }
   let(:folio_writer) { instance_double(FolioSync::Folio::Writer) }
   let(:logger) { instance_double(Logger, info: nil, error: nil, debug: nil) }
@@ -51,22 +52,27 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
 
   describe '#fetch_and_sync_resources_to_folio' do
     let(:current_time) { Time.utc(2025, 5, 11, 15, 25, 23, 516_125) }
-    let(:modified_since) { current_time - described_class::ONE_DAY_IN_SECONDS }
+    let(:modified_since) { current_time - (last_x_hours * described_class::ONE_HOUR_IN_SECONDS) }
 
     before do
       allow(Time).to receive(:now).and_return(current_time)
-      allow(instance).to receive(:download_archivesspace_marc_xml).with(modified_since)
+      allow(instance).to receive(:download_archivesspace_marc_xml)
       allow(instance).to receive(:sync_resources_to_folio)
     end
 
     it 'fetches and saves recent MARC resources' do
-      instance.fetch_and_sync_resources_to_folio
+      instance.fetch_and_sync_resources_to_folio(last_x_hours)
       expect(instance).to have_received(:download_archivesspace_marc_xml).with(modified_since)
     end
 
     it 'syncs resources to FOLIO' do
-      instance.fetch_and_sync_resources_to_folio
+      instance.fetch_and_sync_resources_to_folio(last_x_hours)
       expect(instance).to have_received(:sync_resources_to_folio)
+    end
+
+    it 'handles nil last_x_hours to fetch all resources' do
+      instance.fetch_and_sync_resources_to_folio(nil)
+      expect(instance).to have_received(:download_archivesspace_marc_xml).with(nil)
     end
   end
 

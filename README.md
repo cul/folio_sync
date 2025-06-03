@@ -1,5 +1,5 @@
 # FOLIO Sync
-The purpose of this application is to sync ArchivesSpace records to FOLIO.  It automates retrieving unsuppressed resources from ArchivesSpace that were modified in the last 24 hours and syncing them to FOLIO. This ensures that FOLIO always has up-to-date records from ArchivesSpace.
+The purpose of this application is to sync ArchivesSpace records to FOLIO. It automates retrieving unsuppressed resources from ArchivesSpace that were modified in the last 25 hours and syncing them to FOLIO. This ensures that FOLIO always has up-to-date records from ArchivesSpace.
 
 ## Setup
 1. Install the required gems:
@@ -51,6 +51,8 @@ The purpose of this application is to sync ArchivesSpace records to FOLIO.  It a
 
     aspace_to_folio:
       marc_download_base_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
+      developer_email_address: developer_email@example.com
+
       aspace_instances:
         instance1:
           marc_sync_email_addresses:
@@ -70,11 +72,15 @@ bundle exec rake folio_sync:aspace_to_folio:run instance_key=instance1
 ## Tasks
 
 ### `folio_sync:aspace_to_folio:run`
-Fetches ArchivesSpace MARC resources modified in the last 24 hours and syncs them to FOLIO. If any errors occur during downloading or syncing, an email is sent to the configured recipients.
+Fetches ArchivesSpace MARC resources and syncs them to FOLIO. If any errors occur during downloading or syncing, an email is sent to the configured recipients.
+
+#### Optional Environment Variables:
+- **`modified_since`**: Accepts an integer representing the last `x` hours. Resources modified within the last `x` hours will be retrieved. If not supplied, all resources are retrieved regardless of their modification date.
+- **`clear_downloads`**: If set to `true`, the downloads folder is cleared before processing. If set to `false`, the folder is not cleared. By default, `clear_downloads` is `true`.
 
 #### Usage:
 ```bash
-bundle exec rake folio_sync:aspace_to_folio:run instance_key=instance1
+bundle exec rake folio_sync:aspace_to_folio:run instance_key=instance1 modified_since=25 clear_downloads=false
 ```
 
 ---

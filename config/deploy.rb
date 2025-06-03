@@ -62,6 +62,9 @@ set :rvm_ruby_version, fetch(:deploy_name) # This RVM alias must exist on the se
   )
 end
 
+# Whenever gem
+set :whenever_identifier, -> { "#{fetch(:application)}_#{fetch(:stage)}" }
+
 # Default branch is :master
 # ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
 

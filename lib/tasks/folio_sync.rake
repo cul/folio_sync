@@ -8,17 +8,31 @@ namespace :folio_sync do
 
     desc 'Fetch ArchivesSpace MARC resources and sync to FOLIO'
     task run: :environment do
+      FolioSync::Rake::EnvValidator.validate!(
+        ['instance_key'],
+        'bundle exec rake folio_sync:aspace_to_folio:run instance_key=cul'
+      )
       instance_key = ENV['instance_key']
 
-      unless instance_key
-        puts 'Error: Please provide an instance_key.'
-        puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:run instance_key=cul'
-        exit 1
-      end
+      # Optional environment variables
+      modified_since = ENV['modified_since']
+      clear_downloads = ENV['clear_downloads'].nil? || ENV['clear_downloads'] == 'true'
+
+      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
+      processor.clear_downloads! if clear_downloads
+
+      modified_since_time =
+        if modified_since && !modified_since.strip.empty?
+          begin
+            Integer(modified_since)
+          rescue ArgumentError
+            puts 'Error: modified_since must be an integer (number of hours).'
+            exit 1
+          end
+        end
 
       puts 'Fetching MARC resources...'
-      processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
-      processor.fetch_and_sync_resources_to_folio
+      processor.fetch_and_sync_resources_to_folio(modified_since_time)
 
       # Send email if there are any errors
       if processor.syncing_errors.any? || processor.downloading_errors.any?
@@ -55,14 +69,12 @@ namespace :folio_sync do
 
     desc 'Sync already downloaded resources to FOLIO'
     task sync_exported_resources: :environment do
+      FolioSync::Rake::EnvValidator.validate!(
+        ['instance_key'],
+        'bundle exec rake folio_sync:aspace_to_folio:sync_exported_resources instance_key=cul'
+      )
+
       instance_key = ENV['instance_key']
-
-      unless instance_key
-        puts 'Error: Please provide an instance_key.'
-        puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:sync_exported_resources instance_key=cul'
-        exit 1
-      end
-
       puts 'Syncing exported resources...'
       processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
       processor.sync_resources_to_folio
@@ -90,14 +102,12 @@ namespace :folio_sync do
     # ! Quotes are necessary to pass the argument correctly
     desc 'Process a MARC XML file for a given bib_id'
     task process_marc_xml: :environment do
+      FolioSync::Rake::EnvValidator.validate!(
+        ['bib_id'],
+        'bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789'
+      )
+
       bib_id = ENV['bib_id']
-
-      if bib_id.nil?
-        puts 'Error: Please provide a bib_id.'
-        puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789'
-        exit 1
-      end
-
       puts "Testing MARC processing for bib_id: #{bib_id}"
 
       enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id)
@@ -115,13 +125,11 @@ namespace :folio_sync do
 
     desc 'Test the email functionality'
     task email_test: :environment do
+      FolioSync::Rake::EnvValidator.validate!(
+        ['instance_key'],
+        'bundle exec rake folio_sync:aspace_to_folio:email_test instance_key=cul'
+      )
       instance_key = ENV['instance_key']
-
-      unless instance_key
-        puts 'Error: Please provide an instance_key.'
-        puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:email_test instance_key=cul'
-        exit 1
-      end
 
       ApplicationMailer.with(
         to: recipients_for(instance_key),

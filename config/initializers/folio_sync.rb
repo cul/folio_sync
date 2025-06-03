@@ -18,6 +18,13 @@ begin
     throw 'Please make sure the folio_sync.yml file contains aspace_instances'
   end
 
+  developer_email_address = aspace_to_folio_config[:developer_email_address]
+
+  if developer_email_address.blank?
+    logger.error('Developer email address is not configured')
+    throw 'Please make sure the folio_sync.yml file contains a developer_email_address'
+  end
+
   base_dir = aspace_to_folio_config[:marc_download_base_directory]
 
   # If the base directory is not present, set a default base directory
