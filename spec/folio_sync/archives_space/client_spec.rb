@@ -227,4 +227,91 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
                        'Test error message: Not Found')
     end
   end
+
+  describe '#fetch_resource' do
+    let(:instance) { described_class.new(instance_key) }
+    let(:response) { instance_double('Response') }
+    let(:resource_data) { { 'id_0' => '123', 'title' => 'Test Resource' } }
+    let(:repo_id) { '1' }
+
+    before do
+      allow(instance).to receive(:get).with("repositories/#{repository_id}/resources/#{resource_id}").and_return(response)
+      allow(response).to receive_messages(status_code: 200, parsed: resource_data)
+    end
+
+    it 'fetches the resource data for the given repository and resource ID' do
+      result = instance.fetch_resource(repository_id, resource_id)
+      expect(result).to eq(resource_data)
+    end
+
+    it 'raises an error if the response status code is not 200' do
+      allow(response).to receive_messages(status_code: 404, body: 'Not Found')
+
+      expect {
+        instance.fetch_resource(repository_id, resource_id)
+      }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
+                       'Failed to fetch resource 4656: Not Found')
+    end
+  end
+
+  describe '#update_id_0_field' do
+    let(:instance) { described_class.new(instance_key) }
+    let(:old_resource) { { 'id_0' => '123', 'title' => 'Test Resource' } }
+    let(:new_id) { '456' }
+    let(:updated_resource_data) { old_resource.merge('id_0' => new_id) }
+    let(:response) { instance_double('Response') }
+
+    before do
+      allow(instance).to receive(:fetch_resource).with(repository_id, resource_id).and_return(old_resource)
+      allow(instance).to receive(:post).with("repositories/#{repository_id}/resources/#{resource_id}",
+                                             updated_resource_data).and_return(response)
+      allow(response).to receive(:status_code).and_return(200)
+    end
+
+    it 'updates the id_0 field of the resource' do
+      instance.update_id_0_field(repository_id, resource_id, new_id)
+      expect(instance).to have_received(:post).with("repositories/#{repository_id}/resources/#{resource_id}",
+                                                    updated_resource_data)
+    end
+
+    it 'raises an error if the response status code is not 200' do
+      allow(response).to receive_messages(status_code: 500, body: 'Internal Server Error')
+
+      expect {
+        instance.update_id_0_field(repository_id, resource_id, new_id)
+      }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
+                       'Failed to update id_0 field for resource 4656: Internal Server Error')
+    end
+  end
+
+  describe '#update_string_1_field' do
+    let(:instance) { described_class.new(instance_key) }
+    let(:old_resource) { { 'user_defined' => { 'string_1' => 'Old String' } } }
+    let(:new_string) { 'New String' }
+    let(:updated_user_defined) { old_resource['user_defined'].merge('string_1' => new_string) }
+    let(:updated_resource_data) { old_resource.merge('user_defined' => updated_user_defined) }
+    let(:response) { instance_double('Response') }
+
+    before do
+      allow(instance).to receive(:fetch_resource).with(repository_id, resource_id).and_return(old_resource)
+      allow(instance).to receive(:post).with("repositories/#{repository_id}/resources/#{resource_id}",
+                                             updated_resource_data).and_return(response)
+      allow(response).to receive(:status_code).and_return(200)
+    end
+
+    it 'updates the string_1 field in the user_defined section of the resource' do
+      instance.update_string_1_field(repository_id, resource_id, new_string)
+      expect(instance).to have_received(:post).with("repositories/#{repository_id}/resources/#{resource_id}",
+                                                    updated_resource_data)
+    end
+
+    it 'raises an error if the response status code is not 200' do
+      allow(response).to receive_messages(status_code: 500, body: 'Internal Server Error')
+
+      expect {
+        instance.update_string_1_field(repository_id, resource_id, new_string)
+      }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
+                       'Failed to update string_1 field for resource 4656: Internal Server Error')
+    end
+  end
 end
