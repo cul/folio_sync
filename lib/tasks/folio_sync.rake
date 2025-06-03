@@ -134,5 +134,18 @@ namespace :folio_sync do
         ]
       ).folio_sync_error_email.deliver
     end
+
+    task update_id: :environment do
+      instance_key = ENV['instance_key']
+
+      unless instance_key
+        puts 'Error: Please provide an instance_key.'
+        puts 'Usage: bundle exec rake folio_sync:aspace_to_folio:run instance_key=cul'
+        exit 1
+      end
+
+      aspace_client = FolioSync::ArchivesSpace::Client.new(instance_key)
+      aspace_client.update_id_0_field_for_resource(2, 6330, '111111111111')
+    end
   end
 end

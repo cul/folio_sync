@@ -62,6 +62,17 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
     response.body
   end
 
+  def fetch_resource(repo_id, resource_id)
+    response = self.get("repositories/#{repo_id}/resources/#{resource_id}")
+    response.parsed
+  end
+
+  def update_id_0_field_for_resource(repo_id, resource_id, new_id)
+    old_resource = fetch_resource(repo_id, resource_id)
+    updated_resource_data = old_resource.merge('id_0' => new_id)
+    self.post("repositories/#{repo_id}/resources/#{resource_id}", updated_resource_data)
+  end
+
   private
 
   def handle_response(response, error_message)
