@@ -3,7 +3,8 @@
 namespace :folio_sync do
   namespace :aspace_to_folio do
     def recipients_for(instance_key)
-      Rails.configuration.folio_sync[:aspace_to_folio][:aspace_instances][instance_key.to_sym][:marc_sync_email_addresses]
+      aspace_instances = Rails.configuration.folio_sync[:aspace_to_folio][:aspace_instances]
+      aspace_instances[instance_key.to_sym][:marc_sync_email_addresses]
     end
 
     desc 'Fetch ArchivesSpace MARC resources and sync to FOLIO'

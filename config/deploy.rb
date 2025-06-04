@@ -13,8 +13,12 @@ set :application, 'folio_sync'
 set :repo_name, fetch(:application)
 set :repo_url, "git@github.com:cul/#{fetch(:repo_name)}.git"
 set :deploy_name, "#{fetch(:application)}_#{fetch(:stage)}" # e.g. folio_sync_dev
-# used to run rake db:migrate, etc
-set :rails_env, fetch(:deploy_name) # keep things in sync... Rails env is used by Rails at runtime. Determines, e.g., which db is used, which gems are included in the app (will match :development, :test, etc.)
+
+# Used to run rake db:migrate, etc.
+# Keeps things in sync...
+# Rails env is used by Rails at runtime. Determines, e.g., which db is used,
+# which gems are included in the app (will match :development, :test, etc.)
+set :rails_env, fetch(:deploy_name)
 
 # Default deploy_to directory is /var/www/my_app_name
 set :deploy_to, "/opt/passenger/#{fetch(:deploy_name)}"
@@ -50,15 +54,17 @@ set :log_level, :info
 # But this does not work:
 # NO js frontend in this api... comment out next four
 # set :nvm_node_version, fetch(:deploy_name) # This NVM alias must exist on the server
-# [:rake, :node, :npm, :yarn].each do |command_to_prefix| # rake is sometimes used to run tasks that execute other node commands, so it must also be synched to the correct node vsn
-#   SSHKit.config.command_map.prefix[command_to_prefix].push("nvm exec #{fetch(:nvm_node_version)}") # prefix all node-related commands with this string that specifies the node version to use
+# [:rake, :node, :npm, :yarn].each do |command_to_prefix| # rake is sometimes used to run tasks that execute other node commands
+#   # Prefix all node-related commands with this string that specifies the node version to use
+#   SSHKit.config.command_map.prefix[command_to_prefix].push("nvm exec #{fetch(:nvm_node_version)}")
 # end
 
 # RVM Setup, for selecting the correct ruby version (instead of capistrano-rvm gem)
 set :rvm_ruby_version, fetch(:deploy_name) # This RVM alias must exist on the server
 [:rake, :gem, :bundle, :ruby].each do |command_to_prefix|
   SSHKit.config.command_map.prefix[command_to_prefix].push(
-    "#{fetch(:rvm_custom_path, '~/.rvm')}/bin/rvm #{fetch(:rvm_ruby_version)} do" # prefix all ruby-related commands with this string that specifies rb version to use
+    # Prefix all ruby-related commands with this string that specifies Ruby version to use
+    "#{fetch(:rvm_custom_path, '~/.rvm')}/bin/rvm #{fetch(:rvm_ruby_version)} do"
   )
 end
 

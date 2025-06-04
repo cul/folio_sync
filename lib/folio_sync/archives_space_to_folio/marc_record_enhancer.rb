@@ -27,7 +27,7 @@ module FolioSync
           add_controlfield_003
           update_datafield_100
           update_datafield_856
-          add_965noexportAUTH
+          add_965_no_export_auth
           remove_corpname_punctuation
         rescue StandardError => e
           raise "Error enhacing ArchivesSpace MARC record: #{e.message}"
@@ -80,7 +80,7 @@ module FolioSync
       end
 
       # Add 965 field
-      def add_965noexportAUTH
+      def add_965_no_export_auth
         field_965 = MARC::DataField.new('965', ' ', ' ', ['a', '965noexportAUTH'])
         @marc_record.append(field_965)
       end

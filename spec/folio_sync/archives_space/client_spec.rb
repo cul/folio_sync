@@ -235,7 +235,8 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     let(:repo_id) { '1' }
 
     before do
-      allow(instance).to receive(:get).with("repositories/#{repository_id}/resources/#{resource_id}").and_return(response)
+      allow(instance).to receive(:get).with("repositories/#{repository_id}/resources/#{resource_id}")
+                                      .and_return(response)
       allow(response).to receive_messages(status_code: 200, parsed: resource_data)
     end
 

@@ -35,7 +35,10 @@ module FolioSync
             log_resource_processing(resource)
             export_marc_for_resource(repo_id, extract_id(resource['uri']), resource['identifier'])
           rescue StandardError => e
-            @logger.error("Error exporting MARC for resource #{resource['identifier']} (repo_id: #{repo_id}): #{e.message}")
+            @logger.error(
+              "Error exporting MARC for resource #{resource['identifier']} " \
+              "(repo_id: #{repo_id}): #{e.message}"
+            )
             @exporting_errors << FolioSync::Errors::DownloadingError.new(
               resource_uri: resource['uri'],
               message: e.message
