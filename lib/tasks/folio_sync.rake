@@ -142,5 +142,45 @@ namespace :folio_sync do
         ]
       ).folio_sync_error_email.deliver
     end
+
+    task update_id_0: :environment do
+      FolioSync::Rake::EnvValidator.validate!(
+        ['instance_key', 'repo_id', 'resource_id', 'new_id'],
+        'bundle exec rake folio_sync:aspace_to_folio:update_id_0 instance_key=cul repo_id=1 resource_id=123 new_id=123'
+      )
+      instance_key = ENV['instance_key']
+
+      if instance_key == 'barnard'
+        puts "Temporarily disabling writing to Barnard's ArchivesSpace instance"
+        exit(1)
+      end
+
+      repo_id = ENV['repo_id']
+      resource_id = ENV['resource_id']
+      new_id = ENV['new_id']
+
+      aspace_client = FolioSync::ArchivesSpace::Client.new(instance_key)
+      aspace_client.update_id_0_field(repo_id, resource_id, new_id)
+    end
+
+    task update_string_1: :environment do
+      FolioSync::Rake::EnvValidator.validate!(
+        ['instance_key', 'repo_id', 'resource_id', 'new_string'],
+        'bundle exec rake folio_sync:aspace_to_folio:update_string_1 instance_key=cul repo_id=1 resource_id=123 new_string=abc'
+      )
+      instance_key = ENV['instance_key']
+
+      if instance_key == 'barnard'
+        puts "Temporarily disabling writing to Barnard's ArchivesSpace instance"
+        exit(1)
+      end
+
+      repo_id = ENV['repo_id']
+      resource_id = ENV['resource_id']
+      new_string = ENV['new_string']
+
+      aspace_client = FolioSync::ArchivesSpace::Client.new(instance_key)
+      aspace_client.update_string_1_field(repo_id, resource_id, new_string)
+    end
   end
 end
