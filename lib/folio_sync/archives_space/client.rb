@@ -16,7 +16,7 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
     login
   end
 
-  def get_all_repositories
+  def fetch_all_repositories
     response = self.get('repositories')
     handle_response(response, 'Error fetching repositories')
     response.parsed

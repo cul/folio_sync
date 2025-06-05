@@ -139,13 +139,19 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       allow(Rails.logger).to receive(:debug)
 
       # Mock directory iteration
-      allow(Dir).to receive(:foreach).with(downloads_dir).and_yield('.').and_yield('..').and_yield(files[0]).and_yield(files[1])
+      allow(Dir).to receive(:foreach).with(downloads_dir)
+                                     .and_yield('.')
+                                     .and_yield('..')
+                                     .and_yield(files[0])
+                                     .and_yield(files[1])
 
       # Mock MarcRecordEnhancer behavior for each file
       files.each_with_index do |file, index|
         bib_id = File.basename(file, '.xml')
-        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(bib_id,
-                                                                                         instance_key).and_return(enhancers[index])
+        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer)
+          .to receive(:new)
+          .with(bib_id, instance_key)
+          .and_return(enhancers[index])
         allow(enhancers[index]).to receive(:enhance_marc_record!)
         allow(enhancers[index]).to receive(:marc_record).and_return(marc_records[index])
       end

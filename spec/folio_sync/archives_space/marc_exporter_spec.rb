@@ -53,7 +53,7 @@ RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
     let(:modified_since) { Time.utc(2023, 1, 1) }
 
     before do
-      allow(client).to receive(:get_all_repositories).and_return(repositories)
+      allow(client).to receive(:fetch_all_repositories).and_return(repositories)
       allow(instance).to receive(:log_repository_skip)
       allow(instance).to receive(:export_resources_from_repository)
       allow(instance).to receive(:extract_id).and_return('1', '2')
@@ -61,7 +61,7 @@ RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
 
     it 'fetches all repositories from the ArchivesSpace client' do
       instance.export_recent_resources(modified_since)
-      expect(client).to have_received(:get_all_repositories)
+      expect(client).to have_received(:fetch_all_repositories)
     end
 
     it 'processes published repositories' do
@@ -122,17 +122,25 @@ RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
       expect(instance).to have_received(:export_marc_for_resource).with(repo_id, '2', '456')
     end
 
-    it 'handles errors during resource processing' do
-      error = StandardError.new('Test error')
-      allow(instance).to receive(:export_marc_for_resource).and_raise(error)
+    describe 'error handling during resource processing' do
+      let(:error) { StandardError.new('Test error') }
 
-      instance.send(:export_resources_from_repository, repo_id, modified_since)
+      before do
+        allow(instance).to receive(:export_marc_for_resource).and_raise(error)
+        instance.send(:export_resources_from_repository, repo_id, modified_since)
+      end
 
-      expect(logger).to have_received(:error).with("Error exporting MARC for resource 123 (repo_id: #{repo_id}): Test error")
-      expect(instance.exporting_errors.length).to eq(2) # One for each resource
-      expect(instance.exporting_errors.first).to be_a(FolioSync::Errors::DownloadingError)
-      expect(instance.exporting_errors.first.resource_uri).to eq('/resources/1')
-      expect(instance.exporting_errors.first.message).to eq('Test error')
+      it 'logs the error' do
+        expect(logger).to have_received(:error).with(
+          "Error exporting MARC for resource 123 (repo_id: #{repo_id}): Test error"
+        )
+      end
+
+      it 'adds the correct error details to exporting_errorse' do
+        expect(instance.exporting_errors.first).to be_a(FolioSync::Errors::DownloadingError)
+        expect(instance.exporting_errors.first.resource_uri).to eq('/resources/1')
+        expect(instance.exporting_errors.first.message).to eq('Test error')
+      end
     end
   end
 
