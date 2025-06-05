@@ -7,8 +7,11 @@ AllCops:
   TargetRubyVersion: 3.3.5
   TargetRailsVersion: 8.0.2
   Exclude:
+    - 'Gemfile'
     - 'bin/**/*'
     - 'tmp/**/*'
+    - 'vendor/**/*'
+    - 'spec/**/*'
 
 # Overwrite or add rules to create your own house style
 #
