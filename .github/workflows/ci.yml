@@ -21,6 +21,18 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - name: Copy config files
+        run: |
+          mkdir -p config
+          for file in config/templates/*.yml; do
+            dest="config/$(basename "$file")"
+            if [ -f "$dest" ]; then
+              echo "File already exists (skipping): $dest"
+            else
+              cp "$file" "$dest"
+              echo "Created file at: $dest"
+            fi
+          done
       - name: Run rubocop
         run: bundle exec rubocop
       - name: Run rspec
