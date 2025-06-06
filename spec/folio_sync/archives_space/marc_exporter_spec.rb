@@ -136,7 +136,7 @@ RSpec.describe FolioSync::ArchivesSpace::MarcExporter do
         )
       end
 
-      it 'adds the correct error details to exporting_errorse' do
+      it 'adds the correct error details to exporting_errors' do
         expect(instance.exporting_errors.first).to be_a(FolioSync::Errors::DownloadingError)
         expect(instance.exporting_errors.first.resource_uri).to eq('/resources/1')
         expect(instance.exporting_errors.first.message).to eq('Test error')
