@@ -17,7 +17,7 @@ module FolioSync
       end
 
       def export_recent_resources(modified_since = nil)
-        @client.get_all_repositories.each do |repo|
+        @client.fetch_all_repositories.each do |repo|
           next log_repository_skip(repo) unless repo['publish']
 
           repo_id = extract_id(repo['uri'])
@@ -35,7 +35,10 @@ module FolioSync
             log_resource_processing(resource)
             export_marc_for_resource(repo_id, extract_id(resource['uri']), resource['identifier'])
           rescue StandardError => e
-            @logger.error("Error exporting MARC for resource #{resource['identifier']} (repo_id: #{repo_id}): #{e.message}")
+            @logger.error(
+              "Error exporting MARC for resource #{resource['identifier']} " \
+              "(repo_id: #{repo_id}): #{e.message}"
+            )
             @exporting_errors << FolioSync::Errors::DownloadingError.new(
               resource_uri: resource['uri'],
               message: e.message

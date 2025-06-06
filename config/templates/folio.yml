@@ -11,3 +11,10 @@ production:
   password: example-password
   tenant: example-tenant
   timeout: 60
+
+test:
+  base_url: https://example-test.folio.com/api
+  username: example-user
+  password: example-password
+  tenant: example-tenant
+  timeout: 60

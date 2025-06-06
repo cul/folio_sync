@@ -68,7 +68,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     end
   end
 
-  describe '#get_all_repositories' do
+  describe '#fetch_all_repositories' do
     let(:instance) { described_class.new(instance_key) }
     let(:response) { instance_double('Response') }
     let(:repositories) do
@@ -84,7 +84,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     end
 
     it 'fetches all repositories from ArchivesSpace' do
-      result = instance.get_all_repositories
+      result = instance.fetch_all_repositories
       expect(result).to eq(repositories)
     end
 
@@ -92,7 +92,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
       allow(response).to receive_messages(status_code: 500, body: 'Internal Server Error')
 
       expect {
-        instance.get_all_repositories
+        instance.fetch_all_repositories
       }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
                        'Error fetching repositories: Internal Server Error')
     end
@@ -235,7 +235,8 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     let(:repo_id) { '1' }
 
     before do
-      allow(instance).to receive(:get).with("repositories/#{repository_id}/resources/#{resource_id}").and_return(response)
+      allow(instance).to receive(:get).with("repositories/#{repository_id}/resources/#{resource_id}")
+                                      .and_return(response)
       allow(response).to receive_messages(status_code: 200, parsed: resource_data)
     end
 

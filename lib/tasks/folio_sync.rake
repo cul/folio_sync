@@ -3,7 +3,8 @@
 namespace :folio_sync do
   namespace :aspace_to_folio do
     def recipients_for(instance_key)
-      Rails.configuration.folio_sync[:aspace_to_folio][:aspace_instances][instance_key.to_sym][:marc_sync_email_addresses]
+      aspace_instances = Rails.configuration.folio_sync[:aspace_to_folio][:aspace_instances]
+      aspace_instances[instance_key.to_sym][:marc_sync_email_addresses]
     end
 
     desc 'Fetch ArchivesSpace MARC resources and sync to FOLIO'
@@ -166,7 +167,8 @@ namespace :folio_sync do
     task update_string_1: :environment do
       FolioSync::Rake::EnvValidator.validate!(
         ['instance_key', 'repo_id', 'resource_id', 'new_string'],
-        'bundle exec rake folio_sync:aspace_to_folio:update_string_1 instance_key=cul repo_id=1 resource_id=123 new_string=abc'
+        'bundle exec rake folio_sync:aspace_to_folio:update_string_1 instance_key=cul ' \
+        'repo_id=1 resource_id=123 new_string=abc'
       )
       instance_key = ENV['instance_key']
 

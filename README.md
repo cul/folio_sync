@@ -143,3 +143,9 @@ Run the test suite using RSpec:
 ```bash
 bundle exec rspec
 ```
+
+## Linting
+Run Rubocop:
+```bash
+bundle exec rubocop
+```

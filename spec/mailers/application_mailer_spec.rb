@@ -3,8 +3,10 @@
 require 'rails_helper'
 
 RSpec.describe ApplicationMailer, type: :mailer do
+  subject(:mail_subject) { 'FOLIO Sync Errors' }
+
   let(:to_email) { 'test@example.com' }
-  let(:subject) { 'FOLIO Sync Errors' }
+
   let(:downloading_errors) do
     [
       FolioSync::Errors::DownloadingError.new(
@@ -38,14 +40,14 @@ RSpec.describe ApplicationMailer, type: :mailer do
     let(:mail) do
       described_class.with(
         to: to_email,
-        subject: subject,
+        subject: mail_subject,
         downloading_errors: downloading_errors,
         syncing_errors: syncing_errors
       ).folio_sync_error_email
     end
 
     it 'renders the correct subject' do
-      expect(mail.subject).to eq(subject)
+      expect(mail.subject).to eq(mail_subject)
     end
 
     it 'sends the email to the correct recipient' do
