@@ -53,3 +53,6 @@ coverage
 
 # Ignore all .xml files in the project
 *.xml
+
+# Ignore local rake tasks
+/lib/tasks/local.rake

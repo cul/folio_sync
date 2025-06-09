@@ -34,6 +34,9 @@ gem 'actionmailer', '~> 8.0.2'
 
 gem 'marc'
 
+gem 'folio_api_client', '~> 0.4.0'
+# gem 'folio_api_client', path: '../folio_api_client'
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem 'debug', platforms: %i[mri windows], require: 'debug/prelude'
@@ -58,5 +61,3 @@ group :development do
   gem 'capistrano-passenger', '~> 0.1', require: false # allows restart passenger workers
   gem 'capistrano-rails', '~> 1.4', require: false
 end
-
-gem 'folio_api_client', '~> 0.3.0'
