@@ -7,7 +7,8 @@ RSpec.describe AspaceToFolioRecord, type: :model do
         archivesspace_instance_key: 'instance_key',
         repository_id: 1,
         resource_id: 1,
-        folio_hrid: 'folio_hrid'
+        folio_hrid: 'folio_hrid',
+        is_folio_suppressed: false
       )
       expect(record).to be_valid
     end
@@ -16,7 +17,8 @@ RSpec.describe AspaceToFolioRecord, type: :model do
       record = AspaceToFolioRecord.new(
         repository_id: 1,
         resource_id: 1,
-        folio_hrid: 'folio_hrid'
+        folio_hrid: 'folio_hrid',
+        is_folio_suppressed: false
       )
       expect(record).not_to be_valid
       expect(record.errors[:archivesspace_instance_key]).to include("can't be blank")
@@ -26,7 +28,8 @@ RSpec.describe AspaceToFolioRecord, type: :model do
       record = AspaceToFolioRecord.new(
         archivesspace_instance_key: 'instance_key',
         resource_id: 1,
-        folio_hrid: 'folio_hrid'
+        folio_hrid: 'folio_hrid',
+        is_folio_suppressed: false
       )
       expect(record).not_to be_valid
       expect(record.errors[:repository_id]).to include("can't be blank")
@@ -36,7 +39,8 @@ RSpec.describe AspaceToFolioRecord, type: :model do
       record = AspaceToFolioRecord.new(
         archivesspace_instance_key: 'instance_key',
         repository_id: 1,
-        folio_hrid: 'folio_hrid'
+        folio_hrid: 'folio_hrid',
+        is_folio_suppressed: false
       )
       expect(record).not_to be_valid
       expect(record.errors[:resource_id]).to include("can't be blank")

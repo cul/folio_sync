@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 class CreateAspaceToFolioRecords < ActiveRecord::Migration[8.0]
   def change
     create_table :aspace_to_folio_records do |t|
