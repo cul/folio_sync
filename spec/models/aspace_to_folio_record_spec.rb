@@ -5,8 +5,8 @@ RSpec.describe AspaceToFolioRecord, type: :model do
     it 'is valid with valid attributes' do
       record = AspaceToFolioRecord.new(
         archivesspace_instance_key: 'instance_key',
-        repository_id: 1,
-        resource_id: 1,
+        repository_key: 1,
+        resource_key: 1,
         folio_hrid: 'folio_hrid',
         is_folio_suppressed: false
       )
@@ -15,8 +15,8 @@ RSpec.describe AspaceToFolioRecord, type: :model do
 
     it 'is invalid without archivesspace_instance_key' do
       record = AspaceToFolioRecord.new(
-        repository_id: 1,
-        resource_id: 1,
+        repository_key: 1,
+        resource_key: 1,
         folio_hrid: 'folio_hrid',
         is_folio_suppressed: false
       )
@@ -24,26 +24,26 @@ RSpec.describe AspaceToFolioRecord, type: :model do
       expect(record.errors[:archivesspace_instance_key]).to include("can't be blank")
     end
 
-    it 'is invalid without repository_id' do
+    it 'is invalid without repository_key' do
       record = AspaceToFolioRecord.new(
         archivesspace_instance_key: 'instance_key',
-        resource_id: 1,
+        resource_key: 1,
         folio_hrid: 'folio_hrid',
         is_folio_suppressed: false
       )
       expect(record).not_to be_valid
-      expect(record.errors[:repository_id]).to include("can't be blank")
+      expect(record.errors[:repository_key]).to include("can't be blank")
     end
 
-    it 'is invalid without resource_id' do
+    it 'is invalid without resource_key' do
       record = AspaceToFolioRecord.new(
         archivesspace_instance_key: 'instance_key',
-        repository_id: 1,
+        repository_key: 1,
         folio_hrid: 'folio_hrid',
         is_folio_suppressed: false
       )
       expect(record).not_to be_valid
-      expect(record.errors[:resource_id]).to include("can't be blank")
+      expect(record.errors[:resource_key]).to include("can't be blank")
     end
   end
 
