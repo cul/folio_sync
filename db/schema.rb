@@ -16,7 +16,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_09_201152) do
     t.integer "repository_id"
     t.integer "resource_id"
     t.string "folio_hrid"
-    t.integer "pending_update"
+    t.integer "pending_update", default: 1
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["archivesspace_instance_key", "repository_id", "resource_id"], name: "resource_uri", unique: true
