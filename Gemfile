@@ -25,8 +25,13 @@ gem 'thruster', require: false
 # Nokogiri 1.17 runs successfully
 gem 'nokogiri', '~> 1.17.2'
 
+# Use sqlite3 as the database for Active Record
+gem "sqlite3", ">= 2.1"
+
 # For cron tasks
 gem 'whenever', require: false
+
+gem 'activerecord', '~> 8.0.2'
 
 gem 'archivesspace-client'
 
