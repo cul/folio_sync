@@ -5,8 +5,8 @@ require 'pry'
 
 module FolioSync
   module ArchivesSpace
-    class MarcExporter
-      attr_reader :exporting_errors
+    class ResourceFetcher
+      attr_reader :fetching_errors
 
       PAGE_SIZE = 200
 
@@ -14,33 +14,33 @@ module FolioSync
         @logger = Logger.new($stdout) # Ensure logger is initialized first
         @client = FolioSync::ArchivesSpace::Client.new(instance_key)
         @instance_dir = instance_key
-        @exporting_errors = []
+        @fetching_errors = []
       end
 
-      def export_recent_resources(modified_since = nil)
+      # Fetches all resources modified since the given time and saves them to the database.
+      def fetch_and_save_recent_resources(modified_since = nil)
         @client.fetch_all_repositories.each do |repo|
           next log_repository_skip(repo) unless repo['publish']
 
           repo_id = extract_id(repo['uri'])
-          export_resources_from_repository(repo_id, modified_since)
+          fetch_and_save_resources_from_repository(repo_id, modified_since)
         end
       end
 
       private
 
-      def export_resources_from_repository(repo_id, modified_since)
+      def fetch_and_save_resources_from_repository(repo_id, modified_since)
         query_params = build_query_params(modified_since)
 
         @client.retrieve_paginated_resources(repo_id, query_params) do |resources|
           resources.each do |resource|
             log_resource_processing(resource)
-            export_marc_for_resource(repo_id, extract_id(resource['uri']), resource['identifier'])
+            save_resource_to_database(repo_id, resource)
           rescue StandardError => e
             @logger.error(
-              "Error exporting MARC for resource #{resource['identifier']} " \
-              "(repo_id: #{repo_id}): #{e.message}"
+              "Error fetching resource #{resource['id']} (repo_id: #{repo_id}): #{e.message}"
             )
-            @exporting_errors << FolioSync::Errors::DownloadingError.new(
+            @fetching_errors << FolioSync::Errors::FetchingError.new(
               resource_uri: resource['uri'],
               message: e.message
             )
@@ -48,28 +48,34 @@ module FolioSync
         end
       end
 
-      def export_marc_for_resource(repo_id, resource_id, bib_id)
-        raise 'No bib_id found' if bib_id.nil?
+      def save_resource_to_database(repo_id, resource)
+        json_parsed = resource['json'] ? JSON.parse(resource['json']) : {}
+        has_folio_hrid = json_parsed.dig('user_defined', 'boolean_1')
+        folio_hrid = nil
 
-        marc_data = @client.fetch_marc_xml_resource(repo_id, resource_id)
-        return @logger.error("No MARC found for repo #{repo_id} and resource_id #{resource_id}") unless marc_data
+        if has_folio_hrid
+          folio_hrid = resource['id_0'] if @instance_key == 'cul'
+          folio_hrid = resource['user_defined']['string_1'] if @instance_key == 'barnard'
+        end
 
-        config = Rails.configuration.folio_sync[:aspace_to_folio]
-        file_path = File.join(config[:marc_download_base_directory], @instance_dir, "#{bib_id}.xml")
+        data_to_save = {
+          archivesspace_instance_key: @instance_dir,
+          repository_key: repo_id,
+          resource_key: extract_id(resource['uri']),
+          folio_hrid: folio_hrid,
+          pending_update: 'to_folio',
+          is_folio_suppressed: !resource['publish']
+        }
 
-        File.binwrite(file_path, marc_data)
+        AspaceToFolioRecord.create_or_update_from_data(data_to_save)
       end
 
-      # Builds query parameters for fetching resources.
-      # If a modification time is provided, the query filters resources updated since that time.
-      # Otherwise, it retrieves all unsuppressed resources.
-      # Note: Other instances may have different requirements for the query.
       def build_query_params(modified_since = nil)
         query = {
           q: 'primary_type:resource suppressed:false',
           page: 1,
           page_size: PAGE_SIZE,
-          fields: %w[id identifier system_mtime title publish]
+          fields: %w[id identifier system_mtime title publish json]
         }
 
         query[:q] += " system_mtime:[#{time_to_solr_date_format(modified_since)} TO *]" if modified_since

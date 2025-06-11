@@ -27,7 +27,7 @@ module FolioSync
       def fetch_archivesspace_resources(modified_since)
         @logger.info("Fetching ArchivesSpace resources modified since: #{modified_since}")
 
-        exporter = FolioSync::ArchivesSpace::MarcExporter.new(@instance_key)
+        exporter = FolioSync::ArchivesSpace::ResourceFetcher.new(@instance_key)
         exporter.fetch_recent_resources(modified_since)
       end
 
