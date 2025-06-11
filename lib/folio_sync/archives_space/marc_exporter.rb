@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'fileutils'
+require 'pry'
 
 module FolioSync
   module ArchivesSpace
@@ -23,6 +24,50 @@ module FolioSync
           repo_id = extract_id(repo['uri'])
           export_resources_from_repository(repo_id, modified_since)
         end
+      end
+
+      def fetch_recent_resources(modified_since = nil)
+        @client.fetch_all_repositories.each do |repo|
+          next log_repository_skip(repo) unless repo['publish']
+
+          repo_id = extract_id(repo['uri'])
+          fetch_resources_from_repository(repo_id, modified_since)
+        end
+      end
+
+      def fetch_resources_from_repository(repo_id, modified_since)
+        query_params = build_query_params(modified_since)
+
+        @client.retrieve_paginated_resources(repo_id, query_params) do |resources|
+          resources.each do |resource|
+            log_resource_processing(resource)
+
+            # If boolean_1 is true, the resource has been previously synced to FOLIO
+            # and we want to save its HRID in the database.
+            folio_hrid = nil
+            json_parsed = resource['json'] ? JSON.parse(resource['json']) : {}
+            has_folio_hrid = json_parsed.dig('user_defined', 'boolean_1')
+
+            if has_folio_hrid
+              folio_hrid = resource['id_0'] if @instance_key == 'cul'
+              folio_hrid = resource['user_defined']['string_1'] if @instance_key == 'barnard'
+            end
+
+            create_or_update_entry_for_resource(repo_id, extract_id(resource['uri']), resource['publish'], folio_hrid)
+          end
+        end
+      end
+
+      def create_or_update_entry_for_resource(repo_id, resource_id, published, hrid = nil)
+        data_to_save = {
+          archivesspace_instance_key: @instance_dir,
+          repository_key: repo_id,
+          resource_key: resource_id,
+          folio_hrid: hrid,
+          pending_update: 'to_folio',
+          is_folio_suppressed: !published
+        }
+        puts "Creating entry for resource: #{data_to_save.inspect}"
       end
 
       private
@@ -68,7 +113,7 @@ module FolioSync
           q: 'primary_type:resource suppressed:false',
           page: 1,
           page_size: PAGE_SIZE,
-          fields: %w[id identifier system_mtime title publish]
+          fields: %w[id identifier system_mtime title publish json]
         }
 
         query[:q] += " system_mtime:[#{time_to_solr_date_format(modified_since)} TO *]" if modified_since

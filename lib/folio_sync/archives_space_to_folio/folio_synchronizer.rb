@@ -19,8 +19,16 @@ module FolioSync
         @syncing_errors = []
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        download_archivesspace_marc_xml(modified_since)
-        sync_resources_to_folio
+        fetch_archivesspace_resources(modified_since)
+        # download_archivesspace_marc_xml(modified_since)
+        # sync_resources_to_folio
+      end
+
+      def fetch_archivesspace_resources(modified_since)
+        @logger.info("Fetching ArchivesSpace resources modified since: #{modified_since}")
+
+        exporter = FolioSync::ArchivesSpace::MarcExporter.new(@instance_key)
+        exporter.fetch_recent_resources(modified_since)
       end
 
       def download_archivesspace_marc_xml(modified_since)
