@@ -19,9 +19,16 @@ module FolioSync
         @syncing_errors = []
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
+        download_archivesspace_marc_xml(modified_since)
+        sync_resources_to_folio
+      end
+
+      def fetch_and_sync_aspace_to_folio_records(last_x_hours)
+        @downloading_errors = []
+        @syncing_errors = []
+        modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
+
         fetch_archivesspace_resources(modified_since)
-        # download_archivesspace_marc_xml(modified_since)
-        # sync_resources_to_folio
       end
 
       def fetch_archivesspace_resources(modified_since)
