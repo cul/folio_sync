@@ -32,7 +32,8 @@ module FolioSync
         @syncing_errors = []
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        fetch_archivesspace_resources(modified_since)
+        # fetch_archivesspace_resources(modified_since)
+        download_marc_from_archivesspace_and_folio
       end
 
       def fetch_archivesspace_resources(modified_since)
@@ -45,6 +46,17 @@ module FolioSync
 
         @logger.error("Error fetching resources from ArchivesSpace: #{fetcher.fetching_errors}")
         @fetching_errors = fetcher.fetching_errors
+      end
+
+      # WIP
+      def download_marc_from_archivesspace_and_folio
+        downloader = FolioSync::ArchivesSpaceToFolio::MarcDownloader.new(@instance_key)
+        downloader.download_pending_marc_records
+
+        return if downloader.downloading_errors.blank?
+
+        @logger.error("Errors encountered during MARC download: #{downloader.downloading_errors}")
+        @downloading_errors = downloader.downloading_errors
       end
 
       def download_archivesspace_marc_xml(modified_since)
