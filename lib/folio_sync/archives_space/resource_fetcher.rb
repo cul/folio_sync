@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'fileutils'
-require 'pry'
 
 module FolioSync
   module ArchivesSpace
@@ -13,7 +12,7 @@ module FolioSync
       def initialize(instance_key)
         @logger = Logger.new($stdout) # Ensure logger is initialized first
         @client = FolioSync::ArchivesSpace::Client.new(instance_key)
-        @instance_dir = instance_key
+        @instance_key = instance_key
         @fetching_errors = []
       end
 
@@ -59,7 +58,7 @@ module FolioSync
         end
 
         data_to_save = {
-          archivesspace_instance_key: @instance_dir,
+          archivesspace_instance_key: @instance_key,
           repository_key: repo_id,
           resource_key: extract_id(resource['uri']),
           folio_hrid: folio_hrid,
@@ -70,6 +69,10 @@ module FolioSync
         AspaceToFolioRecord.create_or_update_from_data(data_to_save)
       end
 
+      # Builds query parameters for fetching resources.
+      # If a modification time is provided, the query filters resources updated since that time.
+      # Otherwise, it retrieves all unsuppressed resources.
+      # Note: Other instances may have different requirements for the query.
       def build_query_params(modified_since = nil)
         query = {
           q: 'primary_type:resource suppressed:false',

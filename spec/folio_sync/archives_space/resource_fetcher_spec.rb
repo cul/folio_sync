@@ -58,5 +58,83 @@ RSpec.describe FolioSync::ArchivesSpace::ResourceFetcher do
       instance.fetch_and_save_recent_resources(modified_since)
       expect(instance).to have_received(:fetch_and_save_resources_from_repository).with('1', modified_since)
     end
+
+    it 'skips unpublished repositories' do
+      instance.fetch_and_save_recent_resources(modified_since)
+      expect(instance).to have_received(:log_repository_skip).with(repositories[1])
+    end
+
+    it 'extracts repository IDs from URIs' do
+      instance.fetch_and_save_recent_resources(modified_since)
+      expect(instance).to have_received(:extract_id).with('/repositories/1')
+    end
+  end
+
+  describe '#build_query_params' do
+    let(:modified_since) { Time.utc(2023, 1, 1) }
+
+    it 'builds query parameters with a modification time filter' do
+      instance = described_class.new(instance_key)
+      allow(instance).to receive(:time_to_solr_date_format).with(modified_since).and_return('2023-01-01T00:00:00.000Z')
+
+      result = instance.send(:build_query_params, modified_since)
+
+      expect(result).to eq({
+        q: 'primary_type:resource suppressed:false system_mtime:[2023-01-01T00:00:00.000Z TO *]',
+        page: 1,
+        page_size: described_class::PAGE_SIZE,
+        fields: %w[id identifier system_mtime title publish json]
+      })
+    end
+
+    it 'builds query parameters without a modification time filter when modified_since is nil' do
+      instance = described_class.new(instance_key)
+      result = instance.send(:build_query_params, nil)
+
+      expect(result).to eq({
+        q: 'primary_type:resource suppressed:false',
+        page: 1,
+        page_size: described_class::PAGE_SIZE,
+        fields: %w[id identifier system_mtime title publish json]
+      })
+    end
+  end
+
+  describe '#time_to_solr_date_format' do
+    it 'formats time correctly for Solr' do
+      instance = described_class.new(instance_key)
+      time = Time.utc(2023, 1, 1, 12, 30, 45, 123_000)
+      result = instance.send(:time_to_solr_date_format, time)
+      expect(result).to eq('2023-01-01T12:30:45.123Z')
+    end
+  end
+
+  describe '#extract_id' do
+    it 'extracts ID from URI' do
+      instance = described_class.new(instance_key)
+      uri = '/repositories/1/resources/123'
+      result = instance.send(:extract_id, uri)
+      expect(result).to eq('123')
+    end
+  end
+
+  describe '#log_repository_skip' do
+    let(:repo) { { 'uri' => '/repositories/1' } }
+
+    it 'logs repository skip message' do
+      instance = described_class.new(instance_key)
+      instance.send(:log_repository_skip, repo)
+      expect(logger).to have_received(:info).with('Repository /repositories/1 is not published, skipping...')
+    end
+  end
+
+  describe '#log_resource_processing' do
+    let(:resource) { { 'title' => 'Test Resource', 'id' => '123' } }
+
+    it 'logs resource processing message' do
+      instance = described_class.new(instance_key)
+      instance.send(:log_resource_processing, resource)
+      expect(logger).to have_received(:info).with('Processing resource: Test Resource (ID: 123)')
+    end
   end
 end

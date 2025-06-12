@@ -13,13 +13,11 @@ class AspaceToFolioRecord < ApplicationRecord
       repository_key: data[:repository_key],
       resource_key: data[:resource_key]
     )
-    puts "Found or initialized record: #{record.inspect}"
 
     record.folio_hrid = data[:folio_hrid] if data.key?(:folio_hrid)
     record.pending_update = data[:pending_update] if data.key?(:pending_update)
     record.is_folio_suppressed = data[:is_folio_suppressed] if data.key?(:is_folio_suppressed)
 
-    puts "Creating or updating record for #{record}"
     record.save!
   end
 end
