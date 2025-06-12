@@ -28,7 +28,7 @@ RSpec.describe FolioSync::ArchivesSpace::ResourceFetcher do
 
     it 'stores the instance directory' do
       instance = described_class.new(instance_key)
-      expect(instance.instance_variable_get(:@instance_dir)).to eq(instance_key)
+      expect(instance.instance_variable_get(:@instance_key)).to eq(instance_key)
     end
   end
 
