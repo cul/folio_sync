@@ -48,7 +48,7 @@ module FolioSync
         @fetching_errors = fetcher.fetching_errors
       end
 
-      # WIP
+      # New download method
       def download_marc_from_archivesspace_and_folio
         downloader = FolioSync::ArchivesSpaceToFolio::MarcDownloader.new(@instance_key)
         downloader.download_pending_marc_records

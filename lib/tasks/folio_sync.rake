@@ -34,7 +34,6 @@ namespace :folio_sync do
 
       puts 'Fetching MARC resources...'
       processor.fetch_and_sync_resources_to_folio(modified_since_time)
-      puts 'Processing completed.'
 
       # Send email if there are any errors
       if processor.syncing_errors.any? || processor.downloading_errors.any?

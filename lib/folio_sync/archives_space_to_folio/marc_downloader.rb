@@ -24,8 +24,10 @@ module FolioSync
         pending_records.each do |record|
           download_marc_for_record(record)
         rescue StandardError => e
-          @downloading_errors << "Error downloading MARC record for #{record.archivesspace_instance_key}: #{e.message}"
-          Rails.logger.error(@downloading_errors.last)
+          @downloading_errors << FolioSync::Errors::DownloadingError.new(
+            resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
+            message: e.message
+          )
         end
       end
 

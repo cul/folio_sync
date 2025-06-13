@@ -48,7 +48,15 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcDownloader do
     it 'logs errors when downloading fails' do
       allow(downloader).to receive(:download_marc_for_record).and_raise(StandardError, 'Test error')
       downloader.download_pending_marc_records
-      expect(downloader.downloading_errors).to include('Error downloading MARC record for test_instance_key: Test error')
+
+      expect(downloader.downloading_errors).to include(
+        an_instance_of(FolioSync::Errors::DownloadingError).and(
+          have_attributes(
+            resource_uri: 'repositories/1/resources/1234',
+            message: 'Test error'
+          )
+        )
+      )
     end
   end
 
