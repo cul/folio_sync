@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'fileutils'
 
 module FolioSync
@@ -40,7 +42,6 @@ module FolioSync
       def save_marc_file(marc_data, file_path)
         config = Rails.configuration.folio_sync[:aspace_to_folio]
         instance_file_path = File.join(config[:marc_download_base_directory], file_path)
-        puts "Saving MARC data to: #{instance_file_path}"
         File.binwrite(instance_file_path, marc_data)
       end
     end

@@ -32,7 +32,7 @@ module FolioSync
         @syncing_errors = []
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        # fetch_archivesspace_resources(modified_since)
+        fetch_archivesspace_resources(modified_since)
         download_marc_from_archivesspace_and_folio
       end
 

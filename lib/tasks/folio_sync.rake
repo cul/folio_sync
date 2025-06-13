@@ -33,41 +33,40 @@ namespace :folio_sync do
         end
 
       puts 'Fetching MARC resources...'
-      # processor.fetch_and_sync_resources_to_folio(modified_since_time)
-      processor.fetch_and_sync_aspace_to_folio_records(modified_since_time)
+      processor.fetch_and_sync_resources_to_folio(modified_since_time)
       puts 'Processing completed.'
 
       # Send email if there are any errors
-      # if processor.syncing_errors.any? || processor.downloading_errors.any?
-      #   puts 'Errors occurred during processing:'
+      if processor.syncing_errors.any? || processor.downloading_errors.any?
+        puts 'Errors occurred during processing:'
 
-      #   unless processor.downloading_errors.empty?
-      #     puts 'Downloading errors:'
-      #     processor.downloading_errors.each do |error|
-      #       puts "Resource URI: #{error.resource_uri}"
-      #       puts "Error: #{error.message}"
-      #     end
-      #     puts '=========================='
-      #   end
+        unless processor.downloading_errors.empty?
+          puts 'Downloading errors:'
+          processor.downloading_errors.each do |error|
+            puts "Resource URI: #{error.resource_uri}"
+            puts "Error: #{error.message}"
+          end
+          puts '=========================='
+        end
 
-      #   unless processor.syncing_errors.empty?
-      #     puts 'Syncing errors:'
-      #     processor.syncing_errors.each do |error|
-      #       puts "Bib ID: #{error.bib_id}"
-      #       puts "Error: #{error.message}"
-      #     end
-      #     puts '=========================='
-      #   end
+        unless processor.syncing_errors.empty?
+          puts 'Syncing errors:'
+          processor.syncing_errors.each do |error|
+            puts "Bib ID: #{error.bib_id}"
+            puts "Error: #{error.message}"
+          end
+          puts '=========================='
+        end
 
-      #   ApplicationMailer.with(
-      #     to: recipients_for(instance_key),
-      #     subject: 'FOLIO Sync Errors',
-      #     downloading_errors: processor.downloading_errors,
-      #     syncing_errors: processor.syncing_errors
-      #   ).folio_sync_error_email.deliver
-      # else
-      #   puts 'Script completed successfully.'
-      # end
+        ApplicationMailer.with(
+          to: recipients_for(instance_key),
+          subject: 'FOLIO Sync Errors',
+          downloading_errors: processor.downloading_errors,
+          syncing_errors: processor.syncing_errors
+        ).folio_sync_error_email.deliver
+      else
+        puts 'Script completed successfully.'
+      end
     end
 
     desc 'Sync already downloaded resources to FOLIO'
