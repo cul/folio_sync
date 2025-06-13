@@ -17,4 +17,8 @@ class FolioSync::Folio::Client < FolioApiClient
   def check_health
     self.get('/admin/health')
   end
+
+  def create_job_execution(job_type_uuid, data_type, number_of_expected_records, batch_size)
+    Folio::Client::JobExecution.new(self, job_type_uuid, data_type, number_of_expected_records, batch_size)
+  end
 end
