@@ -9,7 +9,7 @@ module FolioSync
         @logger = Logger.new($stdout) # Ensure logger is initialized first
         @instance_key = instance_key
         @aspace_client = FolioSync::ArchivesSpace::Client.new(instance_key)
-        @folio_client = FolioSync::Folio::Client.instance
+        @folio_reader = FolioSync::Folio::Reader.new
         @downloading_errors = []
       end
 
@@ -29,22 +29,19 @@ module FolioSync
 
       def download_marc_for_record(record)
         aspace_marc = @aspace_client.fetch_marc_xml_resource(record.repository_key, record.resource_key)
-        puts "Downloaded aspace marc: #{aspace_marc}"
-        save_marc(aspace_marc, 'aspace')
+        save_marc_file(aspace_marc, record.archivesspace_marc_xml_path)
 
-        return
         return if record.folio_hrid.blank?
 
-        folio_marc = get_marc_record(record.folio)
-        save_marc(folio_marc, 'folio')
+        folio_marc = @folio_reader.get_marc_record(record.folio_hrid)
+        save_marc_file(folio_marc, record.folio_marc21_path)
       end
 
-      def save_marc(marc, from_api)
-        # Save ArchivesSpace MARC as
-        # instance_key + '/' + repository_id + '-' + resource_id + '-aspace.xml'
-        #
-        # Save FOLIO MARC as
-        # instance_key + '/' + repository_id + '-' + resource_id + '-folio.xml'
+      def save_marc_file(marc_data, file_path)
+        config = Rails.configuration.folio_sync[:aspace_to_folio]
+        instance_file_path = File.join(config[:marc_download_base_directory], file_path)
+        puts "Saving MARC data to: #{instance_file_path}"
+        File.binwrite(instance_file_path, marc_data)
       end
     end
   end
