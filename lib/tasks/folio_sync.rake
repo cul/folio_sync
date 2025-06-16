@@ -144,10 +144,10 @@ namespace :folio_sync do
       ).folio_sync_error_email.deliver
     end
 
-    task update_id_0: :environment do
+    task update_ids: :environment do
       FolioSync::Rake::EnvValidator.validate!(
         ['instance_key', 'repo_id', 'resource_id', 'new_id'],
-        'bundle exec rake folio_sync:aspace_to_folio:update_id_0 instance_key=cul repo_id=1 resource_id=123 new_id=123'
+        'bundle exec rake folio_sync:aspace_to_folio:update_ids instance_key=cul repo_id=1 resource_id=123 new_id=123'
       )
       instance_key = ENV['instance_key']
 
@@ -161,7 +161,7 @@ namespace :folio_sync do
       new_id = ENV['new_id']
 
       aspace_client = FolioSync::ArchivesSpace::Client.new(instance_key)
-      aspace_client.update_id_0_field(repo_id, resource_id, new_id)
+      aspace_client.update_id_fields(repo_id, resource_id, new_id)
     end
 
     task update_string_1: :environment do
