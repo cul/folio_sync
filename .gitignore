@@ -36,6 +36,7 @@
 # Ignore secrets file
 /config/secrets.yml
 /config/archivesspace.yml
+/config/database.yml
 /config/folio.yml
 /config/folio_sync.yml
 
