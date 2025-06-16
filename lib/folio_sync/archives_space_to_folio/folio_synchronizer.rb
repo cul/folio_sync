@@ -32,8 +32,9 @@ module FolioSync
         @syncing_errors = []
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        fetch_archivesspace_resources(modified_since)
-        download_marc_from_archivesspace_and_folio
+        # fetch_archivesspace_resources(modified_since)
+        # download_marc_from_archivesspace_and_folio
+        refactored_sync_resources_to_folio
       end
 
       def fetch_archivesspace_resources(modified_since)
@@ -67,6 +68,58 @@ module FolioSync
 
         @logger.error("Errors encountered during MARC XML download: #{exporter.exporting_errors}")
         @downloading_errors = exporter.exporting_errors
+      end
+
+      def refactored_sync_resources_to_folio
+        pending_records = AspaceToFolioRecord.where(
+          archivesspace_instance_key: @instance_key,
+          pending_update: 'to_folio'
+        )
+
+        pending_records.each do |record|
+          config = Rails.configuration.folio_sync[:aspace_to_folio]
+
+          aspace_marc_path = File.join(config[:marc_download_base_directory], record.archivesspace_marc_xml_path)
+          # puts aspace_marc_path
+          folio_marc_path = nil
+          if record.folio_hrid.present?
+            folio_marc_path = File.join(config[:marc_download_base_directory], record.folio_marc21_path)
+          end
+          puts "About to enhance record with id #{record.resource_key}"
+          puts "Folio path is #{folio_marc_path}" if folio_marc_path
+          enhanced_record = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
+            aspace_marc_path,
+            folio_marc_path,
+            record.folio_hrid,
+            @instance_key
+          )
+          enhanced_record.test
+        end
+
+        # pending_records.each do |record|
+        #   config = Rails.configuration.folio_sync[:aspace_to_folio]
+
+        #   aspace_marc_path = File.join(config[:marc_download_base_directory], record.archivesspace_marc_xml_path)
+        #   # puts aspace_marc_path
+        #   folio_marc_path = nil
+        #   if record.folio_hrid.present?
+        #     folio_marc_path = File.join(config[:marc_download_base_directory], record.folio_marc21_path)
+        #   end
+        #   puts "About to enhance record with id #{record.resource_key}"
+        #   puts "Folio path is #{folio_marc_path}" if folio_marc_path
+        #   enhanced_record = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
+        #     aspace_marc_path,
+        #     folio_marc_path,
+        #     record.folio_hrid,
+        #     @instance_key
+        #   )
+        #   enhanced_record.test
+        # rescue StandardError => e
+        #   @downloading_errors << FolioSync::Errors::DownloadingError.new(
+        #     resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
+        #     message: e.message
+        #   )
+        # end
       end
 
       def sync_resources_to_folio

@@ -1,23 +1,64 @@
 # frozen_string_literal: true
 
+require 'marc'
+
 module FolioSync
   module ArchivesSpaceToFolio
     class MarcRecordEnhancer
       attr_reader :marc_record, :bibid
 
-      def initialize(bibid, instance_key)
+      def initialize(aspace_marc_path, folio_marc_path, bibid, instance_key)
         @bibid = bibid
 
-        config = Rails.configuration.folio_sync[:aspace_to_folio]
-        aspace_marc_path = File.join(config[:marc_download_base_directory], instance_key, "#{bibid}.xml")
-        aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
+        begin
+          # Read the MARC-XML file
+          aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
+
+          # Read the MARC binary file with MARC-8 encoding
+          folio_record = MARC::Reader.new(folio_marc_path, external_encoding: 'MARC-8')
+
+          # Iterate through the records in the MARC file
+          folio_record.each do |record|
+            puts 'Got folio record'
+
+            # Log the 110 field if it exists
+            field_110 = record['110']
+            if field_110
+              puts "110 Field: #{field_110}"
+              puts "110 Field Value: #{field_110.value}" # Logs the full value of the field
+            else
+              puts '110 Field not found in this record.'
+            end
+          end
+        rescue StandardError => e
+          puts "Error reading MARC file: #{e.message}"
+          puts e.backtrace
+        end
 
         # TODO: If folio_record exists, update the 035 field
-        folio_reader = FolioSync::Folio::Reader.new
-        @folio_record = folio_reader.get_marc_record(bibid)
+        # folio_reader = FolioSync::Folio::Reader.new
+        # @folio_record = folio_reader.get_marc_record(bibid)
 
         @marc_record = aspace_record.first
       end
+
+      def test
+        puts 'hello'
+      end
+
+      # def initialize(bibid, instance_key)
+      #   @bibid = bibid
+
+      #   config = Rails.configuration.folio_sync[:aspace_to_folio]
+      #   aspace_marc_path = File.join(config[:marc_download_base_directory], instance_key, "#{bibid}.xml")
+      #   aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
+
+      #   # TODO: If folio_record exists, update the 035 field
+      #   folio_reader = FolioSync::Folio::Reader.new
+      #   @folio_record = folio_reader.get_marc_record(bibid)
+
+      #   @marc_record = aspace_record.first
+      # end
 
       def enhance_marc_record!
         Rails.logger.debug 'Processing...'
