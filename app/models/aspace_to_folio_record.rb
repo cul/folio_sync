@@ -25,7 +25,7 @@ class AspaceToFolioRecord < ApplicationRecord
     "#{self.archivesspace_instance_key}/#{self.repository_key}-#{resource_key}-aspace.xml"
   end
 
-  def folio_marc21_path
-    "#{self.archivesspace_instance_key}/#{self.repository_key}-#{resource_key}-folio.marc"
+  def folio_marc_xml_path
+    "#{self.archivesspace_instance_key}/#{self.repository_key}-#{resource_key}-folio.xml"
   end
 end

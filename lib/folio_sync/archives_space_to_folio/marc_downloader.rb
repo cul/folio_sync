@@ -37,8 +37,8 @@ module FolioSync
 
         return if record.folio_hrid.blank?
 
-        folio_marc = @folio_reader.get_marc_record(record.folio_hrid)
-        save_marc_file(folio_marc, record.folio_marc21_path)
+        folio_marc = @folio_reader.get_marc_record_as_xml(record.folio_hrid)
+        save_marc_file(folio_marc, record.folio_marc_xml_path) if folio_marc
       end
 
       def save_marc_file(marc_data, file_path)

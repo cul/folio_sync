@@ -11,7 +11,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcDownloader do
       archivesspace_instance_key: 'test_instance_key',
       folio_hrid: 'folio123',
       archivesspace_marc_xml_path: 'path/to/aspace_marc.xml',
-      folio_marc21_path: 'path/to/folio_marc.marc'
+      folio_marc_xml_path: 'path/to/folio_marc.xml'
     )
   end
   let(:marc_data) { '<record>MARC data</record>' }

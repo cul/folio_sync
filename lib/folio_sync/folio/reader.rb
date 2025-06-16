@@ -14,6 +14,13 @@ module FolioSync
 
         MARC::Record.new_from_hash(source_record['parsedRecord']['content'])
       end
+
+      def get_marc_record_as_xml(hrid)
+        record = get_marc_record(hrid)
+        return nil if record.nil?
+
+        record&.to_xml_string
+      end
     end
   end
 end

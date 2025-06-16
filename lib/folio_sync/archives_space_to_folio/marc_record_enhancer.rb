@@ -7,58 +7,15 @@ module FolioSync
     class MarcRecordEnhancer
       attr_reader :marc_record, :bibid
 
-      def initialize(aspace_marc_path, folio_marc_path, bibid, instance_key)
+      def initialize(aspace_marc_path, folio_marc_path, bibid, _instance_key)
         @bibid = bibid
 
-        begin
-          # Read the MARC-XML file
-          aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
-
-          # Read the MARC binary file with MARC-8 encoding
-          folio_record = MARC::Reader.new(folio_marc_path, external_encoding: 'MARC-8')
-
-          # Iterate through the records in the MARC file
-          folio_record.each do |record|
-            puts 'Got folio record'
-
-            # Log the 110 field if it exists
-            field_110 = record['110']
-            if field_110
-              puts "110 Field: #{field_110}"
-              puts "110 Field Value: #{field_110.value}" # Logs the full value of the field
-            else
-              puts '110 Field not found in this record.'
-            end
-          end
-        rescue StandardError => e
-          puts "Error reading MARC file: #{e.message}"
-          puts e.backtrace
-        end
-
-        # TODO: If folio_record exists, update the 035 field
-        # folio_reader = FolioSync::Folio::Reader.new
-        # @folio_record = folio_reader.get_marc_record(bibid)
+        aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
+        folio_record = MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri')
 
         @marc_record = aspace_record.first
+        @folio_marc = folio_record.first
       end
-
-      def test
-        puts 'hello'
-      end
-
-      # def initialize(bibid, instance_key)
-      #   @bibid = bibid
-
-      #   config = Rails.configuration.folio_sync[:aspace_to_folio]
-      #   aspace_marc_path = File.join(config[:marc_download_base_directory], instance_key, "#{bibid}.xml")
-      #   aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
-
-      #   # TODO: If folio_record exists, update the 035 field
-      #   folio_reader = FolioSync::Folio::Reader.new
-      #   @folio_record = folio_reader.get_marc_record(bibid)
-
-      #   @marc_record = aspace_record.first
-      # end
 
       def enhance_marc_record!
         Rails.logger.debug 'Processing...'
@@ -66,6 +23,7 @@ module FolioSync
         begin
           add_controlfield_001
           add_controlfield_003
+          merge_035_fields
           update_datafield_100
           update_datafield_856
           add_965_no_export_auth
@@ -91,6 +49,23 @@ module FolioSync
 
         ctrl_field = MARC::ControlField.new('003', 'NNC')
         @marc_record.append(ctrl_field)
+      end
+
+      # Merge 035 fields from ASpace and FOLIO MARC records
+      # And remove any duplicate 035 fields (fields with the same indicator and subfield values)
+      def merge_035_fields
+        aspace_035_fields = @marc_record.fields('035')
+        folio_035_fields = @folio_marc.fields('035') if @folio_marc
+
+        # Combine all 035 fields into a single array and ensure uniqueness
+        combined_035_fields = (aspace_035_fields + (folio_035_fields || [])).uniq do |field|
+          # Uniqueness is determined by the tag, indicators, and subfield values
+          [field.tag, field.indicator1, field.indicator2, field.subfields.map { |sf| [sf.code, sf.value] }]
+        end
+
+        @marc_record.fields.delete_if { |field| field.tag == '035' }
+        combined_035_fields.each { |field| @marc_record.append(field) }
+        puts @marc_record
       end
 
       # Update datafield 100 - remove trailing punctuation from subfield d and remove subfield e

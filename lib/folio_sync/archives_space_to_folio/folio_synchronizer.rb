@@ -83,17 +83,16 @@ module FolioSync
           # puts aspace_marc_path
           folio_marc_path = nil
           if record.folio_hrid.present?
-            folio_marc_path = File.join(config[:marc_download_base_directory], record.folio_marc21_path)
+            folio_marc_path = File.join(config[:marc_download_base_directory], record.folio_marc_xml_path)
           end
-          puts "About to enhance record with id #{record.resource_key}"
-          puts "Folio path is #{folio_marc_path}" if folio_marc_path
-          enhanced_record = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
+          enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
             aspace_marc_path,
             folio_marc_path,
             record.folio_hrid,
             @instance_key
           )
-          enhanced_record.test
+          enhancer.enhance_marc_record!
+          enhanced_record = enhancer.marc_record
         end
 
         # pending_records.each do |record|
@@ -103,7 +102,7 @@ module FolioSync
         #   # puts aspace_marc_path
         #   folio_marc_path = nil
         #   if record.folio_hrid.present?
-        #     folio_marc_path = File.join(config[:marc_download_base_directory], record.folio_marc21_path)
+        #     folio_marc_path = File.join(config[:marc_download_base_directory], record.folio_marc_xml_path)
         #   end
         #   puts "About to enhance record with id #{record.resource_key}"
         #   puts "Folio path is #{folio_marc_path}" if folio_marc_path
