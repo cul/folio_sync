@@ -282,22 +282,22 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
     end
   end
 
-  describe '#update_id_0_field' do
+  describe '#update_id_fields' do
     let(:instance) { described_class.new(instance_key) }
-    let(:old_resource) { { 'id_0' => '123', 'title' => 'Test Resource' } }
+    let(:old_resource) { { 'id_0' => '123', 'ead_id' => '123', 'title' => 'Test Resource' } }
     let(:new_id) { '456' }
-    let(:updated_resource_data) { old_resource.merge('id_0' => new_id) }
+    let(:updated_resource_data) { old_resource.merge('id_0' => new_id, 'ead_id' => new_id) }
     let(:response) { instance_double('Response') }
 
     before do
       allow(instance).to receive(:fetch_resource).with(repository_id, resource_id).and_return(old_resource)
       allow(instance).to receive(:post).with("repositories/#{repository_id}/resources/#{resource_id}",
-                                             updated_resource_data).and_return(response)
+                                           updated_resource_data).and_return(response)
       allow(response).to receive(:status_code).and_return(200)
     end
 
-    it 'updates the id_0 field of the resource' do
-      instance.update_id_0_field(repository_id, resource_id, new_id)
+    it 'updates both id_0 and ead_id fields of the resource' do
+      instance.update_id_fields(repository_id, resource_id, new_id)
       expect(instance).to have_received(:post).with("repositories/#{repository_id}/resources/#{resource_id}",
                                                     updated_resource_data)
     end
@@ -306,7 +306,7 @@ RSpec.describe FolioSync::ArchivesSpace::Client do
       allow(response).to receive_messages(status_code: 500, body: 'Internal Server Error')
 
       expect {
-        instance.update_id_0_field(repository_id, resource_id, new_id)
+        instance.update_id_fields(repository_id, resource_id, new_id)
       }.to raise_error(FolioSync::Exceptions::ArchivesSpaceRequestError,
                        'Failed to update resource 4656: Internal Server Error')
     end

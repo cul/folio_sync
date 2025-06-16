@@ -73,9 +73,9 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
     handle_response(response, "Failed to update resource #{resource_id}")
   end
 
-  def update_id_0_field(repo_id, resource_id, new_id)
+  def update_id_fields(repo_id, resource_id, new_id)
     old_resource = fetch_resource(repo_id, resource_id)
-    updated_resource_data = old_resource.merge('id_0' => new_id)
+    updated_resource_data = old_resource.merge('id_0' => new_id, 'ead_id' => new_id)
 
     update_resource(repo_id, resource_id, updated_resource_data)
   end
