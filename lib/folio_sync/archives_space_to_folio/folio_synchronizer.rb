@@ -3,13 +3,16 @@
 module FolioSync
   module ArchivesSpaceToFolio
     class FolioSynchronizer
-      attr_reader :syncing_errors, :downloading_errors
+      attr_reader :syncing_errors, :downloading_errors, :saving_errors, :fetching_errors
 
       ONE_HOUR_IN_SECONDS = 3600
 
       def initialize(instance_key)
         @logger = Logger.new($stdout)
         @instance_key = instance_key
+
+        @saving_errors = []
+        @fetching_errors = []
         @downloading_errors = []
         @syncing_errors = []
       end
@@ -21,6 +24,34 @@ module FolioSync
 
         download_archivesspace_marc_xml(modified_since)
         sync_resources_to_folio
+      end
+
+      # WIP - new sync method
+      def fetch_and_sync_aspace_to_folio_records(last_x_hours)
+        @fetching_errors = []
+        @saving_errors = []
+        @downloading_errors = []
+        @syncing_errors = []
+        modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
+
+        fetch_archivesspace_resources(modified_since)
+      end
+
+      def fetch_archivesspace_resources(modified_since)
+        @logger.info("Fetching ArchivesSpace resources modified since: #{modified_since}")
+
+        fetcher = FolioSync::ArchivesSpace::ResourceFetcher.new(@instance_key)
+        fetcher.fetch_and_save_recent_resources(modified_since)
+
+        if fetcher.fetching_errors.present?
+          @logger.error("Error fetching resources from ArchivesSpace: #{fetcher.fetching_errors}")
+          @fetching_errors = fetcher.fetching_errors
+        end
+
+        return if fetcher.saving_errors.blank?
+
+        @logger.error("Error saving resources to database: #{fetcher.saving_errors}")
+        @saving_errors = fetcher.saving_errors
       end
 
       def download_archivesspace_marc_xml(modified_since)
