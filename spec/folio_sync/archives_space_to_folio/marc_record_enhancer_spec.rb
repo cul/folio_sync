@@ -128,6 +128,34 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
     end
   end
 
+  describe '#update_controlfield_001' do
+    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key) }
+
+    context 'when hrid is present' do
+      it 'updates the value of controlfield 001 if it exists' do
+        marc_record.marc_record.append(MARC::ControlField.new('001', 'old_value'))
+        marc_record.send(:update_controlfield_001)
+        expect(marc_record.marc_record['001'].value).to eq(hrid)
+      end
+
+      it 'adds a new controlfield 001 if it does not exist' do
+        marc_record.marc_record.fields.delete_if { |field| field.tag == '001' }
+        marc_record.send(:update_controlfield_001)
+        expect(marc_record.marc_record['001'].value).to eq(hrid)
+      end
+    end
+
+    context 'when hrid is nil' do
+      let(:hrid) { nil }
+
+      it 'removes controlfield 001 if it exists' do
+        marc_record.marc_record.append(MARC::ControlField.new('001', 'old_value'))
+        marc_record.send(:update_controlfield_001)
+        expect(marc_record.marc_record['001']).to be_nil
+      end
+    end
+  end
+
   describe 'helper methods' do
     let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key) }
 

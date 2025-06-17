@@ -9,19 +9,17 @@ module FolioSync
         @hrid = hrid
 
         aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
-        folio_record = nil
-
-        folio_record = MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri') if hrid
-
+        # The final MARC record is mostly constructed from the ArchivesSpace MARC
         @marc_record = aspace_record.first
-        @folio_marc = folio_record.first
+
+        @folio_marc = hrid ? MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri').first : nil
       end
 
       def enhance_marc_record!
         Rails.logger.debug 'Processing...'
 
         begin
-          add_controlfield_001 if @hrid
+          update_controlfield_001
           add_controlfield_003
           merge_035_fields if @hrid
           update_datafield_100
@@ -29,18 +27,25 @@ module FolioSync
           add_965_no_export_auth
           remove_corpname_punctuation
         rescue StandardError => e
-          raise "Error enhacing ArchivesSpace MARC record: #{e.message}"
+          raise "Error enhancing ArchivesSpace MARC record: #{e.message}"
         end
 
         @marc_record
       end
 
-      # Add hrid to controlfield 001 if it doesn't exist
-      def add_controlfield_001
-        return if @marc_record['001']
+      # Update or remove controlfield 001 based on hrid presence
+      def update_controlfield_001
+        unless @hrid
+          @marc_record.fields.delete_if { |field| field.tag == '001' }
+          return
+        end
 
-        ctrl_field = MARC::ControlField.new('001', @hrid)
-        @marc_record.append(ctrl_field)
+        ctrl_field = @marc_record['001']
+        if ctrl_field
+          ctrl_field.value = @hrid
+        else
+          @marc_record.append(MARC::ControlField.new('001', @hrid))
+        end
       end
 
       # Add NNC to controlfield 003 if it doesn't exist
