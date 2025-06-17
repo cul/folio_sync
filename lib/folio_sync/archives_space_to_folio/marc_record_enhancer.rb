@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
-require 'marc'
-
 module FolioSync
   module ArchivesSpaceToFolio
     class MarcRecordEnhancer
-      attr_reader :marc_record, :bibid
+      attr_reader :marc_record, :hrid
 
-      def initialize(aspace_marc_path, folio_marc_path, bibid, _instance_key)
-        @bibid = bibid
+      def initialize(aspace_marc_path, folio_marc_path, hrid, _instance_key)
+        @hrid = hrid
 
         aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
-        folio_record = MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri')
+        folio_record = nil
+
+        folio_record = MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri') if hrid
 
         @marc_record = aspace_record.first
         @folio_marc = folio_record.first
@@ -21,9 +21,9 @@ module FolioSync
         Rails.logger.debug 'Processing...'
 
         begin
-          add_controlfield_001
+          add_controlfield_001 if @hrid
           add_controlfield_003
-          merge_035_fields
+          merge_035_fields if @hrid
           update_datafield_100
           update_datafield_856
           add_965_no_export_auth
@@ -35,11 +35,11 @@ module FolioSync
         @marc_record
       end
 
-      # Add bibid to controlfield 001 if it doesn't exist
+      # Add hrid to controlfield 001 if it doesn't exist
       def add_controlfield_001
         return if @marc_record['001']
 
-        ctrl_field = MARC::ControlField.new('001', @bibid)
+        ctrl_field = MARC::ControlField.new('001', @hrid)
         @marc_record.append(ctrl_field)
       end
 
@@ -55,7 +55,7 @@ module FolioSync
       # And remove any duplicate 035 fields (fields with the same indicator and subfield values)
       def merge_035_fields
         aspace_035_fields = @marc_record.fields('035')
-        folio_035_fields = @folio_marc.fields('035') if @folio_marc
+        folio_035_fields = @folio_marc.fields('035')
 
         # Combine all 035 fields into a single array and ensure uniqueness
         combined_035_fields = (aspace_035_fields + (folio_035_fields || [])).uniq do |field|

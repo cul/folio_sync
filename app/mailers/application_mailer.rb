@@ -43,7 +43,6 @@ class ApplicationMailer < ActionMailer::Base
     content = "======== #{title} ========\n"
     errors.first(display_limit).each do |error|
       content += "Resource URI: #{error.resource_uri}\n" if error.respond_to?(:resource_uri)
-      content += "Bib ID: #{error.bib_id}\n" if error.respond_to?(:bib_id)
       content += "Error: #{error.message}\n"
       content += "--------\n\n"
     end

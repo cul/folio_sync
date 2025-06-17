@@ -34,7 +34,7 @@ module FolioSync
 
         fetch_archivesspace_resources(modified_since)
         download_marc_from_archivesspace_and_folio
-        refactored_sync_resources_to_folio
+        sync_resources_to_folio
       end
 
       def fetch_archivesspace_resources(modified_since)
@@ -93,12 +93,12 @@ module FolioSync
             @instance_key
           )
           enhancer.enhance_marc_record!
-          enhanced_record = enhancer.marc_record
+          enhancer.marc_record
           # TODO: Sync to FOLIO
+          # enhanced_record = enhancer.marc_record
         rescue StandardError => e
-          @logger.error("Error syncing resources to FOLIO: #{e.message}")
           @syncing_errors << FolioSync::Errors::SyncingError.new(
-            bib_id: record.folio_hrid,
+            resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
             message: e.message
           )
         end
