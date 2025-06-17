@@ -23,9 +23,9 @@ namespace :folio_sync do
       # These are existing FOLIO records that we want to update
       records_to_update = [
         { hrid: '2157842', aspace_uri: '/repositories/2/resources/5300',
-          aspace_marc_download_path: '/repositories/2/resources/marc21/5300.xml' },
+          aspace_marc_download_path: '/repositories/2/resources/marc21/5300.xml', repository_key: '2', resource_key: '5300' },
         { hrid: '4077533', aspace_uri: '/repositories/2/resources/1368',
-          aspace_marc_download_path: '/repositories/2/resources/marc21/1368.xml' }
+          aspace_marc_download_path: '/repositories/2/resources/marc21/1368.xml', repository_key: '2', resource_key: '1368' }
       ]
 
       # This is the number of new FOLIO records that we want to create.
@@ -38,8 +38,12 @@ namespace :folio_sync do
         hrid = record_to_update[:hrid]
         aspace_marc_download_path = record_to_update[:aspace_marc_download_path]
 
+        # download_path = File.join(
+        #   Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory], 'cul', "#{hrid}.xml"
+        # )
         download_path = File.join(
-          Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory], 'cul', "#{hrid}.xml"
+          Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory],
+          "cul/#{record_to_update[:repository_key]}-#{record_to_update[:resource_key]}-aspace.xml"
         )
 
         # For this example rake task, we'll only re-download the file when needed (to speed up testing)
@@ -80,11 +84,24 @@ namespace :folio_sync do
       records_to_update.each do |record_to_update|
         hrid = record_to_update[:hrid]
         aspace_uri = record_to_update[:aspace_uri]
+        file_path = File.join(
+          Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory],
+          "cul/#{record_to_update[:repository_key]}-#{record_to_update[:resource_key]}-aspace.xml"
+        )
+        puts "Enhancing MARC record for HRID: #{hrid} from file: #{file_path}"
 
         enhanced_marc_record = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
-          hrid, 'cul'
+          file_path,
+          nil, # We don't need to pass a FOLIO MARC record for this example
+          hrid,
+          'cul'
         ).enhance_marc_record!
-        job_execution.add_record(enhanced_marc_record, { hrid: hrid, aspace_uri: aspace_uri })
+
+        puts "Successfully enhanced MARC record for HRID: #{hrid}" if enhanced_marc_record
+
+        puts 'Returning'
+
+        job_execution.add_record(enhanced_marc_record, { hrid: hrid, aspace_uri: aspace_uri, suppressDiscovery: true })
       end
 
       # Now we'll create some new FOLIO records as part of this Job Execution

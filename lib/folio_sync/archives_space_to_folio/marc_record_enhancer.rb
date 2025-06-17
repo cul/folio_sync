@@ -5,14 +5,28 @@ module FolioSync
     class MarcRecordEnhancer
       attr_reader :marc_record, :hrid
 
+      # def initialize(aspace_marc_path, folio_marc_path, hrid, _instance_key)
+      #   @hrid = hrid
+
+      #   aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
+      #   # The final MARC record is mostly constructed from the ArchivesSpace MARC
+      #   @marc_record = aspace_record.first
+
+      #   @folio_marc = hrid ? MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri').first : nil
+      # end
       def initialize(aspace_marc_path, folio_marc_path, hrid, _instance_key)
         @hrid = hrid
 
         aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
         # The final MARC record is mostly constructed from the ArchivesSpace MARC
         @marc_record = aspace_record.first
+        @folio_marc = nil
 
-        @folio_marc = hrid ? MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri').first : nil
+        return unless folio_marc_path
+
+        @folio_marc = MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri').first
+
+        # @folio_marc = hrid ? MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri').first : nil
       end
 
       def enhance_marc_record!
@@ -21,7 +35,7 @@ module FolioSync
         begin
           update_controlfield_001
           add_controlfield_003
-          merge_035_fields if @hrid
+          # merge_035_fields if @hrid
           update_datafield_100
           update_datafield_856
           add_965_no_export_auth
