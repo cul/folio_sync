@@ -65,7 +65,6 @@ module FolioSync
 
         @marc_record.fields.delete_if { |field| field.tag == '035' }
         combined_035_fields.each { |field| @marc_record.append(field) }
-        puts @marc_record
       end
 
       # Update datafield 100 - remove trailing punctuation from subfield d and remove subfield e

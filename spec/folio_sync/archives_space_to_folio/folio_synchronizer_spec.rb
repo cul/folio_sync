@@ -25,13 +25,17 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     [
       instance_double(AspaceToFolioRecord, archivesspace_marc_xml_path: 'instance1/repo1-resource1-aspace.xml',
                                           folio_marc_xml_path: 'instance1/repo1-resource1-folio.xml',
-                                          folio_hrid: 'hrid1'),
+                                          folio_hrid: 'hrid1',
+                                          repository_key: 1,
+                                          resource_key: 123),
       instance_double(AspaceToFolioRecord, archivesspace_marc_xml_path: 'instance1/repo2-resource2-aspace.xml',
                                           folio_marc_xml_path: nil,
-                                          folio_hrid: nil)
+                                          folio_hrid: nil,
+                                          repository_key: 2,
+                                          resource_key: 456)
     ]
   end
-    let(:enhancers) { records.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
+  let(:enhancers) { records.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
   let(:marc_records) { enhancers.map { double('MARC::Record') } }
 
 
@@ -147,12 +151,11 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   describe '#sync_resources_to_folio' do
     let(:base_dir) { Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory] }
     let(:downloads_dir) { File.join(base_dir, instance_key) }
-    let(:files) { ['file1.xml', 'file2.xml'] }
-    let(:enhancers) { files.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
+    let(:enhancers) { records.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
     let(:marc_records) { enhancers.map { double('MARC::Record') } }
 
     before do
-      allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).and_return(enhancers[0], enhancers[1])
+      allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).and_return(*enhancers)
       enhancers.each_with_index do |enhancer, index|
         allow(enhancer).to receive(:enhance_marc_record!).and_return(marc_records[index])
         allow(enhancer).to receive(:marc_record).and_return(marc_records[index])
@@ -178,6 +181,14 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       allow(enhancers[0]).to receive(:enhance_marc_record!).and_raise(StandardError, 'Enhancer error')
       instance.sync_resources_to_folio
       expect(logger).to have_received(:error).with('Error syncing resources to FOLIO: Enhancer error').at_least(:once)
+      expect(instance.syncing_errors).to include(
+        an_instance_of(FolioSync::Errors::SyncingError).and(
+          have_attributes(
+            resource_uri: 'repositories/1/resources/123',
+            message: 'Enhancer error'
+          )
+        )
+      )
     end
   end
 end

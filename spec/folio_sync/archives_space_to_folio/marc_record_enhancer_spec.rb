@@ -5,12 +5,12 @@ require 'rails_helper'
 RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
   include_context 'FolioSync directory setup'
 
-  let(:bibid) { '123456' }
+  let(:hrid) { '123456' }
   let(:repo_key) { '123' }
   let(:resource_key) { '456' }
   let(:instance_key) { 'test' }
-  let(:aspace_marc_path) { File.join(base_dir, instance_key, "#{bibid}-aspace.xml") }
-  let(:folio_marc_path) { File.join(base_dir, instance_key, "#{bibid}-folio.xml") }
+  let(:aspace_marc_path) { File.join(base_dir, instance_key, "#{repo_key}-##{resource_key}-aspace.xml") }
+  let(:folio_marc_path) { File.join(base_dir, instance_key, "#{repo_key}-##{resource_key}-folio.xml") }
   let(:field_856_xml) do
     <<-XML
       <datafield tag="856" ind1="4" ind2="2">
@@ -65,24 +65,24 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
     # Mock FOLIO::Reader
     folio_reader = instance_double(FolioSync::Folio::Reader)
     allow(FolioSync::Folio::Reader).to receive(:new).and_return(folio_reader)
-    allow(folio_reader).to receive(:get_marc_record_as_xml).with(bibid).and_return(folio_mock)
+    allow(folio_reader).to receive(:get_marc_record_as_xml).with(hrid).and_return(folio_mock)
   end
 
   describe '#initialize' do
     it 'loads the MARC record from the file' do
-      marc_record = described_class.new(aspace_marc_path, folio_marc_path, bibid, instance_key)
+      marc_record = described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key)
       expect(marc_record.marc_record).to be_a(MARC::Record)
       expect(marc_record.marc_record['001'].value).to eq('123456')
     end
 
-    it 'stores the bibid' do
-      marc_record = described_class.new(aspace_marc_path, folio_marc_path, bibid, instance_key)
-      expect(marc_record.bibid).to eq(bibid)
+    it 'stores the hrid' do
+      marc_record = described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key)
+      expect(marc_record.hrid).to eq(hrid)
     end
   end
 
   describe '#enhance_marc_record!' do
-    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, bibid, instance_key) }
+    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key) }
     let(:processed_record) { marc_record.enhance_marc_record! }
 
     it 'processes the MARC record and applies all transformations' do
@@ -120,7 +120,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
         </datafield>
       XML
     end
-    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, bibid, instance_key) }
+    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key) }
     let(:processed_record) { marc_record.enhance_marc_record! }
 
     it 'updates an existing 856 $3 value to "Finding aid"' do
@@ -129,7 +129,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
   end
 
   describe 'helper methods' do
-    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, bibid, instance_key) }
+    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key) }
 
     describe '#remove_trailing_commas' do
       it 'removes trailing periods' do

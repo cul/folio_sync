@@ -97,6 +97,7 @@ module FolioSync
           # TODO: Sync to FOLIO
           # enhanced_record = enhancer.marc_record
         rescue StandardError => e
+          @logger.error("Error syncing resources to FOLIO: #{e.message}")
           @syncing_errors << FolioSync::Errors::SyncingError.new(
             resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
             message: e.message
