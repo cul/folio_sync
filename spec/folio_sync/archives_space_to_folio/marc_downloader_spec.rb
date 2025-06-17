@@ -20,7 +20,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcDownloader do
     allow(FolioSync::ArchivesSpace::Client).to receive(:new).with(instance_key).and_return(aspace_client)
     allow(FolioSync::Folio::Reader).to receive(:new).and_return(folio_reader)
     allow(aspace_client).to receive(:fetch_marc_xml_resource).and_return(marc_data)
-    allow(folio_reader).to receive(:get_marc_record).and_return(marc_data)
+    allow(folio_reader).to receive(:get_marc_record_as_xml).with('folio123').and_return(marc_data)
     allow(File).to receive(:binwrite)
   end
 
@@ -63,14 +63,14 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcDownloader do
   describe '#download_marc_for_record' do
     it 'fetches and saves MARC records from ArchivesSpace and FOLIO' do
       expect(aspace_client).to receive(:fetch_marc_xml_resource).with(1, 1234)
-      expect(folio_reader).to receive(:get_marc_record).with('folio123')
+      expect(folio_reader).to receive(:get_marc_record_as_xml).with('folio123')
       expect(downloader).to receive(:save_marc_file).twice
       downloader.download_marc_for_record(record)
     end
 
     it 'skips FOLIO MARC download if folio_hrid is blank' do
       allow(record).to receive(:folio_hrid).and_return(nil)
-      expect(folio_reader).not_to receive(:get_marc_record)
+      expect(folio_reader).not_to receive(:get_marc_record_as_xml)
       downloader.download_marc_for_record(record)
     end
   end
