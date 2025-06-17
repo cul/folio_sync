@@ -5,7 +5,7 @@ require 'fileutils'
 module FolioSync
   module ArchivesSpace
     class ResourceFetcher
-      attr_reader :fetching_errors
+      attr_reader :fetching_errors, :saving_errors
 
       PAGE_SIZE = 200
 
@@ -14,6 +14,7 @@ module FolioSync
         @client = FolioSync::ArchivesSpace::Client.new(instance_key)
         @instance_key = instance_key
         @fetching_errors = []
+        @saving_errors = []
       end
 
       # Fetches all resources modified since the given time and saves them to the database.
@@ -67,6 +68,12 @@ module FolioSync
         }
 
         AspaceToFolioRecord.create_or_update_from_data(data_to_save)
+      rescue StandardError => e
+        @logger.error("Error saving resource #{resource['id']} to database: #{e.message}")
+        @saving_errors << FolioSync::Errors::SavingError.new(
+          resource_uri: resource['uri'],
+          message: e.message
+        )
       end
 
       # Builds query parameters for fetching resources.
