@@ -7,8 +7,9 @@ module FolioSync
         @client = FolioSync::Folio::Client.instance
       end
 
-      # TODO: Call the FOLIO API to create/update a record
-      def create_or_update_folio_record(marc_record); end
+      def suppress_record_from_discovery(record_id, suppress_status)
+        @client.put("/source-storage/records/#{record_id}/suppress-from-discovery?suppressStatus=#{suppress_status}")
+      end
     end
   end
 end

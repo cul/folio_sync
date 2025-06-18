@@ -15,15 +15,16 @@ module FolioSync
       # Returns { marc_record: MARC::Record, metadata: Hash } or nil if processing failed
       def process_record(record)
         config = Rails.configuration.folio_sync[:aspace_to_folio]
-        
+
         aspace_marc_path = File.join(config[:marc_download_base_directory], record.archivesspace_marc_xml_path)
         folio_marc_path = nil
-        
+
         if record.folio_hrid.present?
           folio_marc_path = File.join(config[:marc_download_base_directory], record.folio_marc_xml_path)
         end
 
         # Enhance the MARC record
+        puts "Processing record #{record.id} with FOLIO HRID: #{record.folio_hrid}"
         enhancer = MarcRecordEnhancer.new(aspace_marc_path, folio_marc_path, record.folio_hrid, @instance_key)
         enhanced_marc = enhancer.enhance_marc_record!
 
@@ -31,7 +32,7 @@ module FolioSync
         metadata = {
           aspace_record_id: record.id,
           aspace_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
-          hrid: record.folio_hrid,
+          hrid: record.folio_hrid
           # is_update: record.folio_hrid.present?,
           # suppress_discovery: record.is_folio_suppressed
         }

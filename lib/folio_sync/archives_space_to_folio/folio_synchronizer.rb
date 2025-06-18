@@ -34,8 +34,8 @@ module FolioSync
         @syncing_errors = []
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        fetch_archivesspace_resources(modified_since)
-        download_marc_from_archivesspace_and_folio
+        # fetch_archivesspace_resources(modified_since)
+        # download_marc_from_archivesspace_and_folio
 
         # Working in progress - this will be the new sync method
         sync_resources_to_folio
@@ -114,14 +114,24 @@ module FolioSync
       #   end
       # end
       def sync_resources_to_folio
-        @logger.info("Starting sync to FOLIO for instance: #{@instance_key}")
+        puts "Starting sync to FOLIO for instance: #{@instance_key}"
 
-        pending_records = AspaceToFolioRecord.where(
+        pending_records_without_hrid = AspaceToFolioRecord.where(
+          archivesspace_instance_key: @instance_key,
+          pending_update: 'to_folio',
+          folio_hrid: nil
+        ).limit(6)
+
+        pending_records_with_hrid = AspaceToFolioRecord.where(
           archivesspace_instance_key: @instance_key,
           pending_update: 'to_folio'
-        )
-        puts "Pending records count: #{pending_records.count}"
-        return
+        ).where.not(folio_hrid: nil).limit(1)
+
+        # Combine the two queries into a single ActiveRecord::Relation
+        pending_records = AspaceToFolioRecord.where(id: pending_records_without_hrid.pluck(:id) + pending_records_with_hrid.pluck(:id))
+
+        # puts "Pending records count: #{pending_records.count}"
+        # return
 
         if pending_records.empty?
           @logger.info("No pending records to sync for instance: #{@instance_key}")
@@ -131,6 +141,8 @@ module FolioSync
         @logger.info("Found #{pending_records.count} pending records to sync")
 
         batch_processor = BatchProcessor.new(@instance_key)
+        # puts 'helloooo'
+        # return
         batch_processor.process_records(pending_records)
 
         # Collect errors from batch processor
@@ -140,7 +152,7 @@ module FolioSync
         if @syncing_errors.any?
           @logger.error("Errors encountered during sync: #{@syncing_errors.length} total errors")
         else
-          @logger.info("Sync completed successfully")
+          @logger.info('Sync completed successfully')
         end
       end
 

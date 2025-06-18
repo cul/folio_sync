@@ -33,7 +33,8 @@ module FolioSync
     class BatchProcessor
       attr_reader :batch_errors, :processing_errors
 
-      DEFAULT_BATCH_SIZE = 50
+      # DEFAULT_BATCH_SIZE = 50
+      DEFAULT_BATCH_SIZE = 5
       DEFAULT_JOB_PROFILE_UUID = '3fe97378-297c-40d9-9b42-232510afc58f' # ArchivesSpace to FOLIO job profile
 
       def initialize(instance_key)
@@ -58,7 +59,7 @@ module FolioSync
 
       def process_batch(records_batch)
         Rails.logger.info("Processing batch of #{records_batch.count} records")
-        
+
         # Process each record to get enhanced MARC + metadata
         processed_records = []
         records_batch.each do |record|
@@ -71,12 +72,13 @@ module FolioSync
         # Submit batch to FOLIO
         submit_batch_to_folio(processed_records)
       rescue StandardError => e
+        puts "Error processing batch: #{e.message}"
         error = FolioSync::Errors::BatchError.new(
           batch_size: records_batch.count,
           message: "Failed to process batch: #{e.message}"
         )
         @batch_errors << error
-        Rails.logger.error("Error processing batch: #{e.message}")
+        # Rails.logger.error("Error processing batch: #{e.message}")
       end
 
       def submit_batch_to_folio(processed_records)
@@ -90,6 +92,8 @@ module FolioSync
 
         # Add records to JobExecution
         processed_records.each do |processed_record|
+          puts "Processing record with metadata: #{processed_record[:metadata]}"
+
           job_execution.add_record(
             processed_record[:marc_record],
             processed_record[:metadata]
@@ -102,26 +106,32 @@ module FolioSync
 
         # Update database records based on results
         update_records_from_results(job_execution_summary)
-        
+
         Rails.logger.info("Batch completed: #{job_execution_summary.records_processed} records processed")
       end
 
       def update_records_from_results(job_execution_summary)
         job_execution_summary.each_result do |raw_result, custom_metadata, instance_action_status, hrid_list|
-          next unless custom_metadata[:aspace_record_id]
+          puts "We're in update_records_from_results"
+          puts "Raw result: #{raw_result}"
+          puts "Custom metadata: #{custom_metadata}"
+          puts "Instance action status: #{instance_action_status}"
+          puts "HRID list: #{hrid_list}"
 
-          record = AspaceToFolioRecord.find(custom_metadata[:aspace_record_id])
-          
-          if instance_action_status == 'CREATED' || instance_action_status == 'UPDATED'
-            # Update the record with new HRID if it was a create operation
-            if instance_action_status == 'CREATED' && hrid_list&.any?
-              record.update!(folio_hrid: hrid_list.first, pending_update: 'to_aspace')
-            else
-              record.update!(pending_update: 'no_update')
-            end
-          else
-            Rails.logger.warn("Record #{record.id} processing failed with status: #{instance_action_status}")
-          end
+          #   next unless custom_metadata[:aspace_record_id]
+
+          #   record = AspaceToFolioRecord.find(custom_metadata[:aspace_record_id])
+
+          #   if ['CREATED', 'UPDATED'].include?(instance_action_status)
+          #     # Update the record with new HRID if it was a create operation
+          #     if instance_action_status == 'CREATED' && hrid_list&.any?
+          #       record.update!(folio_hrid: hrid_list.first, pending_update: 'to_aspace')
+          #     else
+          #       record.update!(pending_update: 'no_update')
+          #     end
+          #   else
+          #     Rails.logger.warn("Record #{record.id} processing failed with status: #{instance_action_status}")
+          #   end
         end
       end
 

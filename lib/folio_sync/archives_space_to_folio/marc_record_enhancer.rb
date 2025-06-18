@@ -25,8 +25,6 @@ module FolioSync
         return unless folio_marc_path
 
         @folio_marc = MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri').first
-
-        # @folio_marc = hrid ? MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri').first : nil
       end
 
       def enhance_marc_record!
@@ -35,7 +33,7 @@ module FolioSync
         begin
           update_controlfield_001
           add_controlfield_003
-          # merge_035_fields if @hrid
+          merge_035_fields
           update_datafield_100
           update_datafield_856
           add_965_no_export_auth
@@ -71,13 +69,13 @@ module FolioSync
       end
 
       # Merge 035 fields from ASpace and FOLIO MARC records
-      # And remove any duplicate 035 fields (fields with the same indicator and subfield values)
+      # When folio record is present, combine fields from both records and ensure uniqueness
+      # When folio record is not present, ensure ASpace 035 fields are retained
       def merge_035_fields
-        aspace_035_fields = @marc_record.fields('035')
-        folio_035_fields = @folio_marc.fields('035')
+        aspace_035_fields = @marc_record.fields('035') || []
+        folio_035_fields = @folio_marc&.fields('035') || []
 
-        # Combine all 035 fields into a single array and ensure uniqueness
-        combined_035_fields = (aspace_035_fields + (folio_035_fields || [])).uniq do |field|
+        combined_035_fields = (aspace_035_fields + folio_035_fields).uniq do |field|
           # Uniqueness is determined by the tag, indicators, and subfield values
           [field.tag, field.indicator1, field.indicator2, field.subfields.map { |sf| [sf.code, sf.value] }]
         end
