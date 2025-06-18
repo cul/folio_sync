@@ -42,11 +42,12 @@ module FolioSync
         @batch_errors = []
         @processing_errors = []
         @folio_client = FolioSync::Folio::Client.instance
+        @folio_writer = FolioSync::Folio::Writer.new
         @record_processor = RecordProcessor.new(instance_key)
       end
 
       # Processes records in batches and sends them to FOLIO
-      # Accepts a collection of AspaceToFolioRecord objects
+      # @param records [ActiveRecord::Relation] Collection of AspaceToFolioRecord objects
       def process_records(records)
         records.in_batches(of: batch_size) do |batch|
           process_batch(batch)
@@ -72,13 +73,12 @@ module FolioSync
         # Submit batch to FOLIO
         submit_batch_to_folio(processed_records)
       rescue StandardError => e
-        puts "Error processing batch: #{e.message}"
         error = FolioSync::Errors::BatchError.new(
           batch_size: records_batch.count,
           message: "Failed to process batch: #{e.message}"
         )
         @batch_errors << error
-        # Rails.logger.error("Error processing batch: #{e.message}")
+        Rails.logger.error("Error processing batch: #{e.message}")
       end
 
       def submit_batch_to_folio(processed_records)
@@ -105,6 +105,7 @@ module FolioSync
         job_execution_summary = job_execution.wait_until_complete
 
         # Update database records based on results
+        update_suppression_status(job_execution_summary)
         update_records_from_results(job_execution_summary)
 
         Rails.logger.info("Batch completed: #{job_execution_summary.records_processed} records processed")
@@ -112,26 +113,46 @@ module FolioSync
 
       def update_records_from_results(job_execution_summary)
         job_execution_summary.each_result do |raw_result, custom_metadata, instance_action_status, hrid_list|
-          puts "We're in update_records_from_results"
-          puts "Raw result: #{raw_result}"
-          puts "Custom metadata: #{custom_metadata}"
-          puts "Instance action status: #{instance_action_status}"
-          puts "HRID list: #{hrid_list}"
+          record = AspaceToFolioRecord.find_by(
+            archivesspace_instance_key: @instance_key,
+            repository_key: custom_metadata[:repository_key],
+            resource_key: custom_metadata[:resource_key]
+          )
 
-          #   next unless custom_metadata[:aspace_record_id]
+          if ['CREATED', 'UPDATED'].include?(instance_action_status)
+            # Update the record with new HRID if it was a create operation
+            if instance_action_status == 'CREATED' && hrid_list&.any?
+              record.update!(folio_hrid: hrid_list.first, pending_update: 'to_aspace')
+            else
+              record.update!(pending_update: 'no_update')
+            end
+          else
+            Rails.logger.warn("Record #{record.id} processing failed with status: #{instance_action_status}")
+          end
+        end
+      end
 
-          #   record = AspaceToFolioRecord.find(custom_metadata[:aspace_record_id])
+      def update_suppression_status(job_execution_summary)
+        job_execution_summary.each_result do |raw_result, custom_metadata, instance_action_status, hrid_list|
+          # Only update suppression for successfully processed records
+          next unless ['CREATED', 'UPDATED'].include?(instance_action_status)
+          next unless raw_result['sourceRecordId']
 
-          #   if ['CREATED', 'UPDATED'].include?(instance_action_status)
-          #     # Update the record with new HRID if it was a create operation
-          #     if instance_action_status == 'CREATED' && hrid_list&.any?
-          #       record.update!(folio_hrid: hrid_list.first, pending_update: 'to_aspace')
-          #     else
-          #       record.update!(pending_update: 'no_update')
-          #     end
-          #   else
-          #     Rails.logger.warn("Record #{record.id} processing failed with status: #{instance_action_status}")
-          #   end
+          source_record_id = raw_result['sourceRecordId']
+          suppress_discovery = custom_metadata[:suppress_discovery]
+          puts "Updating suppression for sourceRecordId: #{source_record_id}, suppress_discovery: #{suppress_discovery}"
+
+          begin
+            @folio_writer.suppress_record_from_discovery(source_record_id, suppress_discovery)
+            Rails.logger.debug("Updated suppression status for sourceRecordId: #{source_record_id}")
+          rescue StandardError => e
+            error = FolioSync::Errors::ProcessingError.new(
+              resource_uri: custom_metadata[:aspace_uri],
+              message: "Failed to update suppression status: #{e.message}"
+            )
+            @processing_errors << error
+            Rails.logger.error("Error updating suppression for #{source_record_id}: #{e.message}")
+          end
         end
       end
 
