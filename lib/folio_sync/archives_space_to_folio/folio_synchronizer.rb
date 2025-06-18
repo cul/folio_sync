@@ -36,6 +36,8 @@ module FolioSync
 
         fetch_archivesspace_resources(modified_since)
         download_marc_from_archivesspace_and_folio
+
+        # Working in progress - this will be the new sync method
         sync_resources_to_folio
       end
 
@@ -77,38 +79,68 @@ module FolioSync
         @downloading_errors = exporter.exporting_errors
       end
 
+      # def sync_resources_to_folio
+      #   pending_records = AspaceToFolioRecord.where(
+      #     archivesspace_instance_key: @instance_key,
+      #     pending_update: 'to_folio'
+      #   )
+
+      #   pending_records.each do |record|
+      #     config = Rails.configuration.folio_sync[:aspace_to_folio]
+
+      #     aspace_marc_path = File.join(config[:marc_download_base_directory], record.archivesspace_marc_xml_path)
+      #     folio_marc_path = nil
+
+      #     if record.folio_hrid.present?
+      #       folio_marc_path = File.join(config[:marc_download_base_directory], record.folio_marc_xml_path)
+      #     end
+
+      #     enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
+      #       aspace_marc_path,
+      #       folio_marc_path,
+      #       record.folio_hrid,
+      #       @instance_key
+      #     )
+      #     enhancer.enhance_marc_record!
+      #     enhancer.marc_record
+      #     # TODO: Sync to FOLIO
+      #     # enhanced_record = enhancer.marc_record
+      #   rescue StandardError => e
+      #     @logger.error("Error syncing resources to FOLIO: #{e.message}")
+      #     @syncing_errors << FolioSync::Errors::SyncingError.new(
+      #       resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
+      #       message: e.message
+      #     )
+      #   end
+      # end
       def sync_resources_to_folio
+        @logger.info("Starting sync to FOLIO for instance: #{@instance_key}")
+
         pending_records = AspaceToFolioRecord.where(
           archivesspace_instance_key: @instance_key,
           pending_update: 'to_folio'
         )
+        puts "Pending records count: #{pending_records.count}"
+        return
 
-        pending_records.each do |record|
-          config = Rails.configuration.folio_sync[:aspace_to_folio]
+        if pending_records.empty?
+          @logger.info("No pending records to sync for instance: #{@instance_key}")
+          return
+        end
 
-          aspace_marc_path = File.join(config[:marc_download_base_directory], record.archivesspace_marc_xml_path)
-          folio_marc_path = nil
+        @logger.info("Found #{pending_records.count} pending records to sync")
 
-          if record.folio_hrid.present?
-            folio_marc_path = File.join(config[:marc_download_base_directory], record.folio_marc_xml_path)
-          end
+        batch_processor = BatchProcessor.new(@instance_key)
+        batch_processor.process_records(pending_records)
 
-          enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
-            aspace_marc_path,
-            folio_marc_path,
-            record.folio_hrid,
-            @instance_key
-          )
-          enhancer.enhance_marc_record!
-          enhancer.marc_record
-          # TODO: Sync to FOLIO
-          # enhanced_record = enhancer.marc_record
-        rescue StandardError => e
-          @logger.error("Error syncing resources to FOLIO: #{e.message}")
-          @syncing_errors << FolioSync::Errors::SyncingError.new(
-            resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
-            message: e.message
-          )
+        # Collect errors from batch processor
+        @syncing_errors.concat(batch_processor.batch_errors)
+        @syncing_errors.concat(batch_processor.processing_errors)
+
+        if @syncing_errors.any?
+          @logger.error("Errors encountered during sync: #{@syncing_errors.length} total errors")
+        else
+          @logger.info("Sync completed successfully")
         end
       end
 
