@@ -35,14 +35,19 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
                                           resource_key: 456)
     ]
   end
-  let(:enhancers) { records.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
-  let(:marc_records) { enhancers.map { double('MARC::Record') } }
 
+  let(:relation_double) { double('ActiveRecord::Relation') }
 
   before do
     allow(Rails.configuration).to receive_messages(archivesspace: archivesspace_config)
     allow(Logger).to receive(:new).and_return(logger)
-        allow(AspaceToFolioRecord).to receive(:where).with(archivesspace_instance_key: instance_key, pending_update: 'to_folio').and_return(records)
+    allow(AspaceToFolioRecord).to receive(:where)
+      .with(archivesspace_instance_key: instance_key, pending_update: 'to_folio')
+      .and_return(relation_double)
+
+    # Stub in_batches to yield the array as a single batch
+    allow(relation_double).to receive(:empty?).and_return(records.empty?)
+    allow(relation_double).to receive(:in_batches).and_yield(records)
 
     # Mock ArchivesSpace client dependencies
     allow(ArchivesSpace::Configuration).to receive(:new).and_return(double('config'))
@@ -149,46 +154,53 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   end
 
   describe '#sync_resources_to_folio' do
-    let(:base_dir) { Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory] }
-    let(:downloads_dir) { File.join(base_dir, instance_key) }
-    let(:enhancers) { records.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
-    let(:marc_records) { enhancers.map { double('MARC::Record') } }
+    let(:batch_processor) { instance_double(FolioSync::ArchivesSpaceToFolio::BatchProcessor, process_records: nil, batch_errors: [], processing_errors: []) }
+    let(:pending_records) { records }
+    let(:relation_double) { double('ActiveRecord::Relation') }
 
     before do
-      allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).and_return(*enhancers)
-      enhancers.each_with_index do |enhancer, index|
-        allow(enhancer).to receive(:enhance_marc_record!).and_return(marc_records[index])
-        allow(enhancer).to receive(:marc_record).and_return(marc_records[index])
-      end
-      allow(File).to receive(:join).and_return('/mocked/path/to/file.xml')
-      allow(File).to receive(:binwrite)
+      allow(AspaceToFolioRecord).to receive(:where)
+        .with(archivesspace_instance_key: instance_key, pending_update: 'to_folio')
+        .and_return(relation_double)
+      allow(relation_double).to receive(:empty?).and_return(pending_records.empty?)
+      allow(relation_double).to receive(:count).and_return(pending_records.count)
+      allow(FolioSync::ArchivesSpaceToFolio::BatchProcessor).to receive(:new).with(instance_key).and_return(batch_processor)
     end
 
-    it 'processes each database record and enhances MARC records' do
-      instance.sync_resources_to_folio
-      records.each_with_index do |record, index|
-        expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to have_received(:new).with(
-          File.join(base_dir, record.archivesspace_marc_xml_path),
-          record.folio_hrid ? File.join(base_dir, record.folio_marc_xml_path) : nil,
-          record.folio_hrid,
-          instance_key
-        )
-        expect(enhancers[index]).to have_received(:enhance_marc_record!)
+    context 'when there are no pending records' do
+      let(:pending_records) { [] }
+
+      before do
+        allow(relation_double).to receive(:empty?).and_return(true)
+        allow(relation_double).to receive(:count).and_return(0)
+      end
+
+      it 'logs that there are no pending records and returns' do
+        instance.sync_resources_to_folio
+        expect(logger).to have_received(:info).with("No pending records to sync for instance: #{instance_key}")
+        expect(FolioSync::ArchivesSpaceToFolio::BatchProcessor).not_to have_received(:new)
       end
     end
 
-    it 'appends SyncingError instances to @syncing_errors when errors occur' do
-      allow(enhancers[0]).to receive(:enhance_marc_record!).and_raise(StandardError, 'Enhancer error')
-      instance.sync_resources_to_folio
-      expect(logger).to have_received(:error).with('Error syncing resources to FOLIO: Enhancer error').at_least(:once)
-      expect(instance.syncing_errors).to include(
-        an_instance_of(FolioSync::Errors::SyncingError).and(
-          have_attributes(
-            resource_uri: 'repositories/1/resources/123',
-            message: 'Enhancer error'
-          )
-        )
-      )
+    context 'when there are pending records' do
+      let(:batch_errors) { [double('BatchError')] }
+      let(:processing_errors) { [double('ProcessingError')] }
+
+      before do
+        allow(relation_double).to receive(:empty?).and_return(false)
+        allow(batch_processor).to receive(:batch_errors).and_return(batch_errors)
+        allow(batch_processor).to receive(:processing_errors).and_return(processing_errors)
+      end
+
+      it 'collects errors from the batch processor' do
+        instance.sync_resources_to_folio
+        expect(instance.syncing_errors).to include(*batch_errors, *processing_errors)
+      end
+
+      it 'logs an error if there are syncing errors' do
+        instance.sync_resources_to_folio
+        expect(logger).to have_received(:error).with("Errors encountered during sync: #{instance.syncing_errors.length} total errors")
+      end
     end
   end
 end

@@ -48,7 +48,6 @@ class Folio::Client::JobExecution
       jobProfileInfo: @job_profile_info_dto
     }
     response = client.post('/change-manager/jobExecutions', init_job_executions_request_dto)
-    puts "Created job execution with id: #{response['jobExecutions'][0]['id']}"
     response['jobExecutions'][0]['id']
   end
 
@@ -118,7 +117,6 @@ class Folio::Client::JobExecution
   # Blocks until the job execution is complete, and then returns a Folio::Client::JobExecutionSummary.
   # @return A Folio::Client::JobExecutionSummary object containing information about the job once it is complete.
   def wait_until_complete
-    puts "Waiting for job execution #{@id} to complete..."
     start_time = Time.current
     processed_records = []
     loop do

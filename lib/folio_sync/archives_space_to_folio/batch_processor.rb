@@ -33,8 +33,7 @@ module FolioSync
     class BatchProcessor
       attr_reader :batch_errors, :processing_errors
 
-      # DEFAULT_BATCH_SIZE = 50
-      DEFAULT_BATCH_SIZE = 5
+      DEFAULT_BATCH_SIZE = 50
       DEFAULT_JOB_PROFILE_UUID = '3fe97378-297c-40d9-9b42-232510afc58f' # ArchivesSpace to FOLIO job profile
 
       def initialize(instance_key)
@@ -92,8 +91,6 @@ module FolioSync
 
         # Add records to JobExecution
         processed_records.each do |processed_record|
-          puts "Processing record with metadata: #{processed_record[:metadata]}"
-
           job_execution.add_record(
             processed_record[:marc_record],
             processed_record[:metadata]
@@ -112,7 +109,7 @@ module FolioSync
       end
 
       def update_records_from_results(job_execution_summary)
-        job_execution_summary.each_result do |raw_result, custom_metadata, instance_action_status, hrid_list|
+        job_execution_summary.each_result do |_raw_result, custom_metadata, instance_action_status, hrid_list|
           record = AspaceToFolioRecord.find_by(
             archivesspace_instance_key: @instance_key,
             repository_key: custom_metadata[:repository_key],
@@ -133,21 +130,21 @@ module FolioSync
       end
 
       def update_suppression_status(job_execution_summary)
-        job_execution_summary.each_result do |raw_result, custom_metadata, instance_action_status, hrid_list|
+        job_execution_summary.each_result do |raw_result, custom_metadata, instance_action_status, _hrid_list|
           # Only update suppression for successfully processed records
           next unless ['CREATED', 'UPDATED'].include?(instance_action_status)
           next unless raw_result['sourceRecordId']
 
           source_record_id = raw_result['sourceRecordId']
           suppress_discovery = custom_metadata[:suppress_discovery]
-          puts "Updating suppression for sourceRecordId: #{source_record_id}, suppress_discovery: #{suppress_discovery}"
 
           begin
             @folio_writer.suppress_record_from_discovery(source_record_id, suppress_discovery)
             Rails.logger.debug("Updated suppression status for sourceRecordId: #{source_record_id}")
           rescue StandardError => e
             error = FolioSync::Errors::ProcessingError.new(
-              resource_uri: custom_metadata[:aspace_uri],
+              resource_uri:
+                "repositories/#{custom_metadata[:repository_key]}/resources/#{custom_metadata[:resource_key]}",
               message: "Failed to update suppression status: #{e.message}"
             )
             @processing_errors << error
