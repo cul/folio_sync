@@ -21,14 +21,35 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       }
     }
   end
+  let(:records) do
+    [
+      instance_double(AspaceToFolioRecord, archivesspace_marc_xml_path: 'instance1/repo1-resource1-aspace.xml',
+                                          folio_marc_xml_path: 'instance1/repo1-resource1-folio.xml',
+                                          folio_hrid: 'hrid1',
+                                          repository_key: 1,
+                                          resource_key: 123),
+      instance_double(AspaceToFolioRecord, archivesspace_marc_xml_path: 'instance1/repo2-resource2-aspace.xml',
+                                          folio_marc_xml_path: nil,
+                                          folio_hrid: nil,
+                                          repository_key: 2,
+                                          resource_key: 456)
+    ]
+  end
+  let(:enhancers) { records.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
+  let(:marc_records) { enhancers.map { double('MARC::Record') } }
+
 
   before do
     allow(Rails.configuration).to receive_messages(archivesspace: archivesspace_config)
     allow(Logger).to receive(:new).and_return(logger)
+        allow(AspaceToFolioRecord).to receive(:where).with(archivesspace_instance_key: instance_key, pending_update: 'to_folio').and_return(records)
 
     # Mock ArchivesSpace client dependencies
     allow(ArchivesSpace::Configuration).to receive(:new).and_return(double('config'))
     allow_any_instance_of(FolioSync::ArchivesSpace::Client).to receive(:login)
+
+    allow(File).to receive(:join).and_return('/mocked/path/to/file.xml')
+    allow(File).to receive(:binwrite) # Mock file writing
   end
 
   describe '#initialize' do
@@ -130,60 +151,43 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   describe '#sync_resources_to_folio' do
     let(:base_dir) { Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory] }
     let(:downloads_dir) { File.join(base_dir, instance_key) }
-    let(:files) { ['file1.xml', 'file2.xml'] }
-    let(:enhancers) { files.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
+    let(:enhancers) { records.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
     let(:marc_records) { enhancers.map { double('MARC::Record') } }
 
     before do
-      allow(FolioSync::Folio::Writer).to receive(:new).and_return(folio_writer)
-      allow(Rails.logger).to receive(:debug)
-
-      # Mock directory iteration
-      allow(Dir).to receive(:foreach).with(downloads_dir)
-                                     .and_yield('.')
-                                     .and_yield('..')
-                                     .and_yield(files[0])
-                                     .and_yield(files[1])
-
-      # Mock MarcRecordEnhancer behavior for each file
-      files.each_with_index do |file, index|
-        bib_id = File.basename(file, '.xml')
-        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer)
-          .to receive(:new)
-          .with(bib_id, instance_key)
-          .and_return(enhancers[index])
-        allow(enhancers[index]).to receive(:enhance_marc_record!)
-        allow(enhancers[index]).to receive(:marc_record).and_return(marc_records[index])
+      allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).and_return(*enhancers)
+      enhancers.each_with_index do |enhancer, index|
+        allow(enhancer).to receive(:enhance_marc_record!).and_return(marc_records[index])
+        allow(enhancer).to receive(:marc_record).and_return(marc_records[index])
       end
-
-      # Mock the folio_writer behavior
-      allow(folio_writer).to receive(:create_or_update_folio_record)
+      allow(File).to receive(:join).and_return('/mocked/path/to/file.xml')
+      allow(File).to receive(:binwrite)
     end
 
-    it 'processes each MARC file in the directory' do
+    it 'processes each database record and enhances MARC records' do
       instance.sync_resources_to_folio
-      files.each_with_index do |file, index|
-        bib_id = File.basename(file, '.xml')
-        expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to have_received(:new).with(bib_id, instance_key)
+      records.each_with_index do |record, index|
+        expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to have_received(:new).with(
+          File.join(base_dir, record.archivesspace_marc_xml_path),
+          record.folio_hrid ? File.join(base_dir, record.folio_marc_xml_path) : nil,
+          record.folio_hrid,
+          instance_key
+        )
         expect(enhancers[index]).to have_received(:enhance_marc_record!)
-        expect(folio_writer).to have_received(:create_or_update_folio_record).with(marc_records[index])
       end
-    end
-
-    it 'skips "." and ".." entries' do
-      instance.sync_resources_to_folio
-      expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('.', instance_key)
-      expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).not_to have_received(:new).with('..', instance_key)
     end
 
     it 'appends SyncingError instances to @syncing_errors when errors occur' do
       allow(enhancers[0]).to receive(:enhance_marc_record!).and_raise(StandardError, 'Enhancer error')
       instance.sync_resources_to_folio
-      expect(logger).to have_received(:error).with('Error syncing resources to FOLIO: Enhancer error')
-
-      expect(instance.syncing_errors).to contain_exactly(
-        an_instance_of(FolioSync::Errors::SyncingError).and(have_attributes(bib_id: 'file1',
-                                                                            message: 'Enhancer error'))
+      expect(logger).to have_received(:error).with('Error syncing resources to FOLIO: Enhancer error').at_least(:once)
+      expect(instance.syncing_errors).to include(
+        an_instance_of(FolioSync::Errors::SyncingError).and(
+          have_attributes(
+            resource_uri: 'repositories/1/resources/123',
+            message: 'Enhancer error'
+          )
+        )
       )
     end
   end

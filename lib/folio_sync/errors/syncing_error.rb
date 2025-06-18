@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 class FolioSync::Errors::SyncingError
-  attr_reader :bib_id, :message
+  attr_reader :resource_uri, :message
 
-  def initialize(bib_id:, message:)
-    @bib_id = bib_id
+  def initialize(resource_uri:, message:)
+    @resource_uri = resource_uri
     @message = message
   end
 end

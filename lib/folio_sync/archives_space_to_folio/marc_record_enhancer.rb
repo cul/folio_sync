@@ -3,45 +3,49 @@
 module FolioSync
   module ArchivesSpaceToFolio
     class MarcRecordEnhancer
-      attr_reader :marc_record, :bibid
+      attr_reader :marc_record, :hrid
 
-      def initialize(bibid, instance_key)
-        @bibid = bibid
+      def initialize(aspace_marc_path, folio_marc_path, hrid, _instance_key)
+        @hrid = hrid
 
-        config = Rails.configuration.folio_sync[:aspace_to_folio]
-        aspace_marc_path = File.join(config[:marc_download_base_directory], instance_key, "#{bibid}.xml")
         aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
-
-        # TODO: If folio_record exists, update the 035 field
-        folio_reader = FolioSync::Folio::Reader.new
-        @folio_record = folio_reader.get_marc_record(bibid)
-
+        # The final MARC record is mostly constructed from the ArchivesSpace MARC
         @marc_record = aspace_record.first
+
+        @folio_marc = hrid ? MARC::XMLReader.new(folio_marc_path, parser: 'nokogiri').first : nil
       end
 
       def enhance_marc_record!
         Rails.logger.debug 'Processing...'
 
         begin
-          add_controlfield_001
+          update_controlfield_001
           add_controlfield_003
+          merge_035_fields if @hrid
           update_datafield_100
           update_datafield_856
           add_965_no_export_auth
           remove_corpname_punctuation
         rescue StandardError => e
-          raise "Error enhacing ArchivesSpace MARC record: #{e.message}"
+          raise "Error enhancing ArchivesSpace MARC record: #{e.message}"
         end
 
         @marc_record
       end
 
-      # Add bibid to controlfield 001 if it doesn't exist
-      def add_controlfield_001
-        return if @marc_record['001']
+      # Update or remove controlfield 001 based on hrid presence
+      def update_controlfield_001
+        unless @hrid
+          @marc_record.fields.delete_if { |field| field.tag == '001' }
+          return
+        end
 
-        ctrl_field = MARC::ControlField.new('001', @bibid)
-        @marc_record.append(ctrl_field)
+        ctrl_field = @marc_record['001']
+        if ctrl_field
+          ctrl_field.value = @hrid
+        else
+          @marc_record.append(MARC::ControlField.new('001', @hrid))
+        end
       end
 
       # Add NNC to controlfield 003 if it doesn't exist
@@ -50,6 +54,22 @@ module FolioSync
 
         ctrl_field = MARC::ControlField.new('003', 'NNC')
         @marc_record.append(ctrl_field)
+      end
+
+      # Merge 035 fields from ASpace and FOLIO MARC records
+      # And remove any duplicate 035 fields (fields with the same indicator and subfield values)
+      def merge_035_fields
+        aspace_035_fields = @marc_record.fields('035')
+        folio_035_fields = @folio_marc.fields('035')
+
+        # Combine all 035 fields into a single array and ensure uniqueness
+        combined_035_fields = (aspace_035_fields + (folio_035_fields || [])).uniq do |field|
+          # Uniqueness is determined by the tag, indicators, and subfield values
+          [field.tag, field.indicator1, field.indicator2, field.subfields.map { |sf| [sf.code, sf.value] }]
+        end
+
+        @marc_record.fields.delete_if { |field| field.tag == '035' }
+        combined_035_fields.each { |field| @marc_record.append(field) }
       end
 
       # Update datafield 100 - remove trailing punctuation from subfield d and remove subfield e

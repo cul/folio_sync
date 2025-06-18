@@ -36,6 +36,7 @@ module FolioSync
 
         fetch_archivesspace_resources(modified_since)
         download_marc_from_archivesspace_and_folio
+        sync_resources_to_folio
       end
 
       def fetch_archivesspace_resources(modified_since)
@@ -77,32 +78,37 @@ module FolioSync
       end
 
       def sync_resources_to_folio
-        # Iterate over all files in the directory specified in the folio_sync.yml
-        # Use foreach for better performance with large directories
-        folio_writer = FolioSync::Folio::Writer.new
+        pending_records = AspaceToFolioRecord.where(
+          archivesspace_instance_key: @instance_key,
+          pending_update: 'to_folio'
+        )
 
-        config = Rails.configuration.folio_sync[:aspace_to_folio]
-        downloads_dir = File.join(config[:marc_download_base_directory], @instance_key)
+        pending_records.each do |record|
+          config = Rails.configuration.folio_sync[:aspace_to_folio]
 
-        Dir.foreach(downloads_dir) do |file|
-          next if ['.', '..'].include?(file)
+          aspace_marc_path = File.join(config[:marc_download_base_directory], record.archivesspace_marc_xml_path)
+          folio_marc_path = nil
 
-          begin
-            Rails.logger.debug "Processing file: #{file}"
-
-            bib_id = File.basename(file, '.xml')
-            enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id, @instance_key)
-            enhancer.enhance_marc_record!
-            marc_record = enhancer.marc_record
-
-            folio_writer.create_or_update_folio_record(marc_record)
-          rescue StandardError => e
-            @logger.error("Error syncing resources to FOLIO: #{e.message}")
-            @syncing_errors << FolioSync::Errors::SyncingError.new(
-              bib_id: bib_id,
-              message: e.message
-            )
+          if record.folio_hrid.present?
+            folio_marc_path = File.join(config[:marc_download_base_directory], record.folio_marc_xml_path)
           end
+
+          enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
+            aspace_marc_path,
+            folio_marc_path,
+            record.folio_hrid,
+            @instance_key
+          )
+          enhancer.enhance_marc_record!
+          enhancer.marc_record
+          # TODO: Sync to FOLIO
+          # enhanced_record = enhancer.marc_record
+        rescue StandardError => e
+          @logger.error("Error syncing resources to FOLIO: #{e.message}")
+          @syncing_errors << FolioSync::Errors::SyncingError.new(
+            resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
+            message: e.message
+          )
         end
       end
 

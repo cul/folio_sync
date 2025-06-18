@@ -51,6 +51,8 @@ group :development, :test do
 
   gem 'rspec-rails', '~> 7.1', '>= 7.1.1'
 
+  gem 'pry', '~> 0.15.0'
+
   # rubocop + CUL presets
   gem 'rubocul', '~> 4.0.3'
 

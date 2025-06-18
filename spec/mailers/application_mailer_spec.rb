@@ -22,11 +22,11 @@ RSpec.describe ApplicationMailer, type: :mailer do
   let(:syncing_errors) do
     [
       FolioSync::Errors::SyncingError.new(
-        bib_id: '123',
+        resource_uri: '/repositories/4/resources/789',
         message: 'Failed to sync resource to FOLIO'
       ),
       FolioSync::Errors::SyncingError.new(
-        bib_id: '456',
+        resource_uri: '/repositories/5/resources/123',
         message: 'Invalid MARC record'
       )
     ]
@@ -67,7 +67,7 @@ RSpec.describe ApplicationMailer, type: :mailer do
 
     it 'includes syncing errors in the email body' do
       syncing_errors.each do |error|
-        expect(mail.body.encoded).to include("Bib ID: #{error.bib_id}")
+        expect(mail.body.encoded).to include("Resource URI: #{error.resource_uri}")
         expect(mail.body.encoded).to include("Error: #{error.message}")
       end
     end
