@@ -41,6 +41,7 @@ module FolioSync
         @batch_errors = []
         @processing_errors = []
         @folio_client = FolioSync::Folio::Client.instance
+        @folio_reader = FolioSync::Folio::Reader.new
         @folio_writer = FolioSync::Folio::Writer.new
         @record_processor = RecordProcessor.new(instance_key)
       end
@@ -81,7 +82,6 @@ module FolioSync
       end
 
       def submit_batch_to_folio(processed_records)
-        puts "Submitting batch of #{processed_records.length} records to FOLIO"
         # Create JobExecution
         job_execution = @folio_client.create_job_execution(
           job_profile_uuid,
@@ -102,8 +102,10 @@ module FolioSync
         job_execution.start
         job_execution_summary = job_execution.wait_until_complete
 
-        # Update database records based on results
+        # Update suppression status based on results
         update_suppression_status(job_execution_summary)
+
+        # Update database records based on results
         update_records_from_results(job_execution_summary)
 
         Rails.logger.info("Batch completed: #{job_execution_summary.records_processed} records processed")
@@ -135,23 +137,33 @@ module FolioSync
 
       def update_suppression_status(job_execution_summary)
         job_execution_summary.each_result do |raw_result, custom_metadata, instance_action_status, hrid_list, id_list|
-          puts "Raw result: #{raw_result.inspect}"
-          puts "custom metadata: #{custom_metadata.inspect}"
-
-          puts '----'
-          puts "Found my instance id #{id_list.first}"
-
-          return
-          # Only update suppression for successfully processed records
           next unless ['CREATED', 'UPDATED'].include?(instance_action_status)
-          next unless raw_result['sourceRecordId']
-
-          source_record_id = raw_result['sourceRecordId']
-          suppress_discovery = custom_metadata[:suppress_discovery]
 
           begin
-            @folio_writer.suppress_instance_from_discovery(id_list.first, suppress_discovery)
-            Rails.logger.debug("Updated suppression status for sourceRecordId: #{source_record_id}")
+            instance_record_id = id_list.first
+            incoming_suppress = custom_metadata[:suppress_discovery]
+
+            # Get instance record from FOLIO and check suppression status
+            folio_record = @folio_reader.get_instance_by_id(instance_id)
+            current_folio_suppress = folio_record['discoverySuppress']
+
+            if current_folio_suppress == incoming_suppress
+              Rails.logger.info("No change in suppression status for instance record: #{instance_record_id}")
+              next
+            end
+
+            # This is the minimum data we need to send to update suppression status
+            data_to_send = {
+              'discoverySuppress' => incoming_suppress,
+              'title' => folio_record['title'],
+              'source' => 'MARC',
+              'instanceTypeId' => folio_record['instanceTypeId'], # This value might be the same for every record
+              'hrid' => folio_record['hrid'], # We can also use the HRID from the hrid_list
+              '_version' => folio_record['_version']
+            }
+
+            @folio_writer.update_instance_record(instance_record_id, data_to_send)
+            Rails.logger.debug("Updated suppression status for sourceRecordId: #{instance_record_id}")
           rescue StandardError => e
             error = FolioSync::Errors::ProcessingError.new(
               resource_uri:
@@ -159,7 +171,7 @@ module FolioSync
               message: "Failed to update suppression status: #{e.message}"
             )
             @processing_errors << error
-            Rails.logger.error("Error updating suppression for #{source_record_id}: #{e.message}")
+            Rails.logger.error("Error updating suppression for #{instance_record_id}: #{e.message}")
           end
         end
       end
