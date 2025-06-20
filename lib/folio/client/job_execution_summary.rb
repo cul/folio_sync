@@ -17,7 +17,6 @@ class Folio::Client::JobExecutionSummary
   # @yield [raw_result, custom_metadata, instance_action_status, hrid_list]
   def each_result
     @raw_results.each do |raw_result|
-      puts "Processing raw result: #{raw_result.inspect}"
       custom_metadata = @custom_metadata_for_records[raw_result['sourceRecordOrder'].to_i] || {}
       instance_action_status = raw_result.dig('relatedInstanceInfo', 'actionStatus')
       hrid_list = raw_result.dig('relatedInstanceInfo', 'hridList')

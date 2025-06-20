@@ -22,7 +22,7 @@ module FolioSync
         @syncing_errors = []
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        download_archivesspace_marc_xml(modified_since)
+        # download_archivesspace_marc_xml(modified_since)
         sync_resources_to_folio
       end
 
@@ -65,16 +65,6 @@ module FolioSync
 
         @logger.error("Errors encountered during MARC download: #{downloader.downloading_errors}")
         @downloading_errors = downloader.downloading_errors
-      end
-
-      def download_archivesspace_marc_xml(modified_since)
-        exporter = FolioSync::ArchivesSpace::MarcExporter.new(@instance_key)
-        exporter.export_recent_resources(modified_since)
-
-        return if exporter.exporting_errors.blank?
-
-        @logger.error("Errors encountered during MARC XML download: #{exporter.exporting_errors}")
-        @downloading_errors = exporter.exporting_errors
       end
 
       def sync_resources_to_folio

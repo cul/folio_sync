@@ -8,7 +8,6 @@ module FolioSync
       end
 
       def update_instance_record(instance_id, instance_record)
-        # Send the updated instance record as JSON to FOLIO
         @client.put("/instance-storage/instances/#{instance_id}", instance_record)
       end
     end

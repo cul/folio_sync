@@ -9,10 +9,6 @@ module FolioSync
         @resource_uri = resource_uri
         @message = message
       end
-
-      def to_s
-        "Processing Error - URI: #{resource_uri}, Message: #{message}"
-      end
     end
 
     class BatchError
@@ -21,10 +17,6 @@ module FolioSync
       def initialize(batch_size:, message:)
         @batch_size = batch_size
         @message = message
-      end
-
-      def to_s
-        "Batch Error - Size: #{batch_size}, Message: #{message}"
       end
     end
   end
