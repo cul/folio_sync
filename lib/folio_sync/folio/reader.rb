@@ -21,6 +21,10 @@ module FolioSync
 
         record&.to_xml_string
       end
+
+      def get_instance_by_id(instance_id)
+        @client.get("/instance-storage/instances/#{instance_id}")
+      end
     end
   end
 end

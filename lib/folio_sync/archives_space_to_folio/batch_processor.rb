@@ -81,6 +81,7 @@ module FolioSync
       end
 
       def submit_batch_to_folio(processed_records)
+        puts "Submitting batch of #{processed_records.length} records to FOLIO"
         # Create JobExecution
         job_execution = @folio_client.create_job_execution(
           job_profile_uuid,
@@ -109,12 +110,15 @@ module FolioSync
       end
 
       def update_records_from_results(job_execution_summary)
-        job_execution_summary.each_result do |_raw_result, custom_metadata, instance_action_status, hrid_list|
+        job_execution_summary.each_result do |_raw_result, custom_metadata, instance_action_status, hrid_list, _id_list|
+          puts "Processing result for custom metadata: #{custom_metadata.inspect}, status: #{instance_action_status}"
+
           record = AspaceToFolioRecord.find_by(
             archivesspace_instance_key: @instance_key,
             repository_key: custom_metadata[:repository_key],
             resource_key: custom_metadata[:resource_key]
           )
+          puts "Found record: #{record.inspect}"
 
           if ['CREATED', 'UPDATED'].include?(instance_action_status)
             # Update the record with new HRID if it was a create operation
@@ -130,7 +134,14 @@ module FolioSync
       end
 
       def update_suppression_status(job_execution_summary)
-        job_execution_summary.each_result do |raw_result, custom_metadata, instance_action_status, _hrid_list|
+        job_execution_summary.each_result do |raw_result, custom_metadata, instance_action_status, hrid_list, id_list|
+          puts "Raw result: #{raw_result.inspect}"
+          puts "custom metadata: #{custom_metadata.inspect}"
+
+          puts '----'
+          puts "Found my instance id #{id_list.first}"
+
+          return
           # Only update suppression for successfully processed records
           next unless ['CREATED', 'UPDATED'].include?(instance_action_status)
           next unless raw_result['sourceRecordId']
@@ -139,7 +150,7 @@ module FolioSync
           suppress_discovery = custom_metadata[:suppress_discovery]
 
           begin
-            @folio_writer.suppress_record_from_discovery(source_record_id, suppress_discovery)
+            @folio_writer.suppress_instance_from_discovery(id_list.first, suppress_discovery)
             Rails.logger.debug("Updated suppression status for sourceRecordId: #{source_record_id}")
           rescue StandardError => e
             error = FolioSync::Errors::ProcessingError.new(
