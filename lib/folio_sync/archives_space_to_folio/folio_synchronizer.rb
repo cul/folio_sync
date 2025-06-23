@@ -10,23 +10,20 @@ module FolioSync
       def initialize(instance_key)
         @logger = Logger.new($stdout)
         @instance_key = instance_key
-
-        @saving_errors = []
-        @fetching_errors = []
-        @downloading_errors = []
-        @syncing_errors = []
+        clear_error_arrays!
       end
 
       def fetch_and_sync_aspace_to_folio_records(last_x_hours)
-        @fetching_errors = []
-        @saving_errors = []
-        @downloading_errors = []
-        @syncing_errors = []
+        clear_error_arrays!
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
+        # 1. Fetch resources from ArchivesSpace based on their modification time and save them to the database
         fetch_archivesspace_resources(modified_since)
+        # 2. Download MARC XML files from ArchivesSpace and FOLIO
         download_marc_from_archivesspace_and_folio
+        # 3. Enhance MARC records and sync them to FOLIO (including the discoverySuppress status)
         sync_resources_to_folio
+        # 4. TODO: For newly created FOLIO records, update their respective ASpace records with the FOLIO HRIDs
       end
 
       def fetch_archivesspace_resources(modified_since)
@@ -85,6 +82,15 @@ module FolioSync
         config = Rails.configuration.folio_sync[:aspace_to_folio]
         downloads_dir = File.join(config[:marc_download_base_directory], @instance_key)
         FileUtils.rm_rf(Dir["#{downloads_dir}/*"])
+      end
+
+      private
+
+      def clear_error_arrays!
+        @syncing_errors = []
+        @downloading_errors = []
+        @saving_errors = []
+        @fetching_errors = []
       end
     end
   end
