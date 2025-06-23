@@ -33,7 +33,7 @@ namespace :folio_sync do
         end
 
       puts 'Fetching MARC resources...'
-      processor.fetch_and_sync_resources_to_folio(modified_since_time)
+      processor.fetch_and_sync_aspace_to_folio_records(modified_since_time)
 
       # Send email if there are any errors
       if processor.syncing_errors.any? || processor.downloading_errors.any?

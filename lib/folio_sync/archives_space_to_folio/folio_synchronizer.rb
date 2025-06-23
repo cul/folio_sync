@@ -17,16 +17,6 @@ module FolioSync
         @syncing_errors = []
       end
 
-      def fetch_and_sync_resources_to_folio(last_x_hours)
-        @downloading_errors = []
-        @syncing_errors = []
-        modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
-
-        # download_archivesspace_marc_xml(modified_since)
-        sync_resources_to_folio
-      end
-
-      # WIP - new sync method
       def fetch_and_sync_aspace_to_folio_records(last_x_hours)
         @fetching_errors = []
         @saving_errors = []
@@ -56,7 +46,6 @@ module FolioSync
         @saving_errors = fetcher.saving_errors
       end
 
-      # New download method
       def download_marc_from_archivesspace_and_folio
         downloader = FolioSync::ArchivesSpaceToFolio::MarcDownloader.new(@instance_key)
         downloader.download_pending_marc_records

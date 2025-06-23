@@ -76,31 +76,37 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     end
   end
 
-  # describe '#fetch_and_sync_resources_to_folio' do
-  #   let(:current_time) { Time.utc(2025, 5, 11, 15, 25, 23, 516_125) }
-  #   let(:modified_since) { current_time - (last_x_hours * described_class::ONE_HOUR_IN_SECONDS) }
+  describe '#fetch_and_sync_aspace_to_folio_records' do
+    let(:current_time) { Time.utc(2025, 5, 11, 15, 25, 23, 516_125) }
+    let(:modified_since) { current_time - (last_x_hours * described_class::ONE_HOUR_IN_SECONDS) }
 
-  #   before do
-  #     allow(Time).to receive(:now).and_return(current_time)
-  #     allow(instance).to receive(:download_archivesspace_marc_xml)
-  #     allow(instance).to receive(:sync_resources_to_folio)
-  #   end
+    before do
+      allow(Time).to receive(:now).and_return(current_time)
+      allow(instance).to receive(:fetch_archivesspace_resources)
+      allow(instance).to receive(:download_marc_from_archivesspace_and_folio)
+      allow(instance).to receive(:sync_resources_to_folio)
+    end
 
-  #   it 'fetches and saves recent MARC resources' do
-  #     instance.fetch_and_sync_resources_to_folio(last_x_hours)
-  #     expect(instance).to have_received(:download_archivesspace_marc_xml).with(modified_since)
-  #   end
+    it 'fetches recent MARC resources from ArchivesSpace' do
+      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
+      expect(instance).to have_received(:fetch_archivesspace_resources).with(modified_since)
+    end
 
-  #   it 'syncs resources to FOLIO' do
-  #     instance.fetch_and_sync_resources_to_folio(last_x_hours)
-  #     expect(instance).to have_received(:sync_resources_to_folio)
-  #   end
+    it 'downloads MARC XML from ArchivesSpace and FOLIO' do
+      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
+      expect(instance).to have_received(:download_marc_from_archivesspace_and_folio)
+    end
 
-  #   it 'handles nil last_x_hours to fetch all resources' do
-  #     instance.fetch_and_sync_resources_to_folio(nil)
-  #     expect(instance).to have_received(:download_archivesspace_marc_xml).with(nil)
-  #   end
-  # end
+    it 'syncs resources to FOLIO' do
+      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
+      expect(instance).to have_received(:sync_resources_to_folio)
+    end
+
+    it 'handles nil last_x_hours to fetch all resources' do
+      instance.fetch_and_sync_aspace_to_folio_records(nil)
+      expect(instance).to have_received(:fetch_archivesspace_resources).with(nil)
+    end
+  end
 
   # describe '#download_archivesspace_marc_xml' do
   #   let(:modified_since) { Time.utc(2023, 1, 1) }
