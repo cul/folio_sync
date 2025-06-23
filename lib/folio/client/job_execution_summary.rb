@@ -14,7 +14,7 @@ class Folio::Client::JobExecutionSummary
   end
 
   # Iterate over each result
-  # @yield [raw_result, custom_metadata, instance_action_status, hrid_list]
+  # @yield [raw_result, custom_metadata, instance_action_status, hrid_list, id_list]
   def each_result
     @raw_results.each do |raw_result|
       custom_metadata = @custom_metadata_for_records[raw_result['sourceRecordOrder'].to_i] || {}
