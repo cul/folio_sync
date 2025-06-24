@@ -35,12 +35,8 @@ namespace :folio_sync do
       # Pre-download Aspace MARC records
       cul_aspace_client = FolioSync::ArchivesSpace::Client.new('cul')
       records_to_update.each do |record_to_update|
-        hrid = record_to_update[:hrid]
         aspace_marc_download_path = record_to_update[:aspace_marc_download_path]
 
-        # download_path = File.join(
-        #   Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory], 'cul', "#{hrid}.xml"
-        # )
         download_path = File.join(
           Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory],
           "cul/#{record_to_update[:repository_key]}-#{record_to_update[:resource_key]}-aspace.xml"
@@ -98,8 +94,6 @@ namespace :folio_sync do
         ).enhance_marc_record!
 
         puts "Successfully enhanced MARC record for HRID: #{hrid}" if enhanced_marc_record
-
-        puts 'Returning'
 
         job_execution.add_record(enhanced_marc_record, { hrid: hrid, aspace_uri: aspace_uri, suppressDiscovery: true })
       end
