@@ -69,13 +69,10 @@ module FolioSync
         batch_processor = BatchProcessor.new(@instance_key)
         batch_processor.process_records(pending_records)
 
-        # Collect errors from batch processor
-        @syncing_errors.concat(batch_processor.batch_errors)
-        @syncing_errors.concat(batch_processor.processing_errors)
+        return if batch_processor.syncing_errors.blank?
 
-        return unless @syncing_errors.any?
-
-        @logger.error("Errors encountered during sync: #{@syncing_errors.length} total errors")
+        @logger.error("Errors encountered during sync: #{batch_processor.syncing_errors}")
+        @syncing_errors = batch_processor.syncing_errors
       end
 
       def clear_downloads!

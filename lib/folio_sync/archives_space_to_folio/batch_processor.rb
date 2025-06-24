@@ -1,37 +1,16 @@
 # frozen_string_literal: true
 
 module FolioSync
-  module Errors
-    class ProcessingError
-      attr_reader :resource_uri, :message
-
-      def initialize(resource_uri:, message:)
-        @resource_uri = resource_uri
-        @message = message
-      end
-    end
-
-    class BatchError
-      attr_reader :batch_size, :message
-
-      def initialize(batch_size:, message:)
-        @batch_size = batch_size
-        @message = message
-      end
-    end
-  end
-
   module ArchivesSpaceToFolio
     class BatchProcessor
-      attr_reader :batch_errors, :processing_errors
+      attr_reader :syncing_errors
 
       DEFAULT_BATCH_SIZE = 50
       DEFAULT_JOB_PROFILE_UUID = '3fe97378-297c-40d9-9b42-232510afc58f' # ArchivesSpace to FOLIO job profile
 
       def initialize(instance_key)
         @instance_key = instance_key
-        @batch_errors = []
-        @processing_errors = []
+        @syncing_errors = []
         @folio_client = FolioSync::Folio::Client.instance
         @folio_reader = FolioSync::Folio::Reader.new
         @folio_writer = FolioSync::Folio::Writer.new
@@ -45,7 +24,7 @@ module FolioSync
           process_batch(batch)
         end
 
-        @processing_errors.concat(@record_processor.processing_errors)
+        @syncing_errors.concat(@record_processor.processing_errors)
       end
 
       private
@@ -64,11 +43,10 @@ module FolioSync
 
         submit_batch_to_folio(processed_records)
       rescue StandardError => e
-        error = FolioSync::Errors::BatchError.new(
-          batch_size: records_batch.count,
-          message: "Failed to process batch: #{e.message}"
+        error = FolioSync::Errors::SyncingError.new(
+          message: "Failed to process a batch of #{records_batch.count} records: #{e.message}"
         )
-        @batch_errors << error
+        @syncing_errors << error
         Rails.logger.error("Error processing batch: #{e.message}")
       end
 
@@ -81,7 +59,7 @@ module FolioSync
         result_processor = FolioSync::ArchivesSpaceToFolio::JobResultProcessor.new(@folio_reader, @folio_writer, @instance_key)
         result_processing_errors = result_processor.process_results(job_execution_summary)
 
-        @processing_errors.concat(result_processing_errors)
+        @syncing_errors.concat(result_processing_errors)
       end
 
       def batch_size

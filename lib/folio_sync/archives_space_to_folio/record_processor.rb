@@ -20,7 +20,7 @@ module FolioSync
 
         { marc_record: enhanced_marc, metadata: metadata }
       rescue StandardError => e
-        error = FolioSync::Errors::ProcessingError.new(
+        error = FolioSync::Errors::SyncingError.new(
           resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
           message: "Failed to process record: #{e.message}"
         )

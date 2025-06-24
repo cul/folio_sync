@@ -12,7 +12,7 @@ module FolioSync
 
       # Processes job execution results, handling both suppression updates and database record updates
       # @param job_execution_summary [Folio::Client::JobExecutionSummary] The completed job summary
-      # @return [Array<FolioSync::Errors::ProcessingError>] Any processing errors that occurred
+      # @return [Array<FolioSync::Errors::SyncingError>] Any processing errors that occurred
       def process_results(job_execution_summary)
         @processing_errors = []
 
@@ -99,7 +99,7 @@ module FolioSync
       end
 
       def handle_suppression_update_error(custom_metadata, instance_record_id, error)
-        processing_error = FolioSync::Errors::ProcessingError.new(
+        processing_error = FolioSync::Errors::SyncingError.new(
           resource_uri: "repositories/#{custom_metadata[:repository_key]}/resources/#{custom_metadata[:resource_key]}",
           message: "Failed to update suppression status: #{error.message}"
         )

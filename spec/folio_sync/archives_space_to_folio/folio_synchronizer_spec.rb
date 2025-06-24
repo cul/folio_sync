@@ -161,7 +161,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
 
   describe '#sync_resources_to_folio' do
     let(:pending_records) { records }
-    let(:batch_processor) { instance_double(FolioSync::ArchivesSpaceToFolio::BatchProcessor, process_records: nil, batch_errors: [], processing_errors: []) }
+    let(:batch_processor) { instance_double(FolioSync::ArchivesSpaceToFolio::BatchProcessor, process_records: nil, syncing_errors: []) }
 
     before do
       allow(AspaceToFolioRecord).to receive(:where).and_return(pending_records)
@@ -184,15 +184,14 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       before do
         allow(pending_records).to receive(:empty?).and_return(false)
         allow(pending_records).to receive(:count).and_return(2)
-        allow(batch_processor).to receive(:batch_errors).and_return(['batch error'])
-        allow(batch_processor).to receive(:processing_errors).and_return(['processing error'])
+        allow(batch_processor).to receive(:syncing_errors).and_return(['syncing error'])
       end
 
       it 'processes records and collects errors' do
         expect(logger).to receive(:info).with(/Found 2 pending records/)
-        expect(logger).to receive(:error).with(/Errors encountered during sync: 2 total errors/)
+        expect(logger).to receive(:error).with(/Errors encountered during sync/)
         instance.sync_resources_to_folio
-        expect(instance.syncing_errors).to include('batch error', 'processing error')
+        expect(instance.syncing_errors).to include('syncing error')
       end
     end
   end

@@ -15,6 +15,12 @@ RSpec.describe FolioSync::Errors::SyncingError do
     it 'returns the expected value' do
       expect(instance.resource_uri).to eq(resource_uri)
     end
+
+  it 'allows resource_uri to be nil' do
+    instance_without_uri = described_class.new(message: message)
+    expect(instance_without_uri.resource_uri).to be_nil
+    expect(instance_without_uri.message).to eq(message)
+  end
   end
 
   describe '#message' do
