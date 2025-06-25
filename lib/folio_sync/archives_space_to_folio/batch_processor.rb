@@ -52,7 +52,8 @@ module FolioSync
 
       def submit_batch_to_folio(processed_records)
         # Execute the FOLIO job
-        job_manager = Folio::Client::JobExecutionManager.new(@folio_client, job_profile_uuid, batch_size)
+        # Use the :: prefix to avoid namespace issues
+        job_manager = ::Folio::Client::JobExecutionManager.new(@folio_client, job_profile_uuid, batch_size)
         job_execution_summary = job_manager.execute_job(processed_records)
 
         # Process the results (suppression updates and database record updates)

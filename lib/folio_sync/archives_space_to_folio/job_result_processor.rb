@@ -29,6 +29,16 @@ module FolioSync
 
       private
 
+      # @param custom_metadata [Hash] Metadata containing suppression status and other info
+      # Example of custom_metadata:
+      # {
+      #   repository_key: database_record.repository_key,
+      #   resource_key: database_record.resource_key,
+      #   hrid: database_record.folio_hrid,
+      #   suppress_discovery: database_record.is_folio_suppressed
+      # }
+      # @param id_list [Array<String>] List of instance record IDs to update,
+      # there should be only one ID in this list
       def update_suppression_status(custom_metadata, id_list)
         return if id_list.blank?
 
@@ -51,6 +61,17 @@ module FolioSync
         end
       end
 
+      # @param custom_metadata [Hash] Metadata containing suppression status and other info
+      # Example of custom_metadata:
+      # {
+      #   repository_key: database_record.repository_key,
+      #   resource_key: database_record.resource_key,
+      #   hrid: database_record.folio_hrid,
+      #   suppress_discovery: database_record.is_folio_suppressed
+      # }
+      # @param instance_action_status [String] The status of the instance action (e.g., 'CREATED', 'UPDATED', 'DISCARDED')
+      # @param hrid_list [Array<String>] List of HRIDs for the instance,
+      # there should be only one HRID in this list if the record was created or updated
       def update_database_record(custom_metadata, instance_action_status, hrid_list)
         record = find_local_record(custom_metadata)
         return unless record
@@ -70,6 +91,8 @@ module FolioSync
         )
       end
 
+      # Updates the local record status based on the instance action status
+      # Newly created records will have their HRID set and marked for update to ArchivesSpace
       def update_record_status(record, instance_action_status, hrid_list)
         if instance_action_status == 'CREATED' && hrid_list&.any?
           record.update!(folio_hrid: hrid_list.first, pending_update: 'to_aspace')
