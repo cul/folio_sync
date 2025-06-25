@@ -134,12 +134,19 @@ namespace :folio_sync do
 
       ApplicationMailer.with(
         to: recipients_for(instance_key),
-        subject: 'FOLIO Sync Errors',
+        subject: 'FOLIO Sync Errors - Test Email',
         downloading_errors: [
-          FolioSync::Errors::DownloadingError.new(resource_uri: '/uri-test', message: 'Error test 1')
+          FolioSync::Errors::DownloadingError.new(resource_uri: '/uri-test-1', message: 'Error test 1')
+        ],
+        fetching_errors: [
+          FolioSync::Errors::FetchingError.new(resource_uri: '/uri-test-2', message: 'Error test 2')
+        ],
+        saving_errors: [
+          FolioSync::Errors::SavingError.new(resource_uri: '/uri-test-3', message: 'Error test 3')
         ],
         syncing_errors: [
-          FolioSync::Errors::SyncingError.new(bib_id: '1234567', message: 'Error test 2')
+          FolioSync::Errors::SyncingError.new(resource_uri: '/uri-test-4', message: 'Error test 4'),
+          FolioSync::Errors::SyncingError.new(message: 'Error test 5')
         ]
       ).folio_sync_error_email.deliver
     end
