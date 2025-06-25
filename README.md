@@ -96,16 +96,16 @@ bundle exec rake folio_sync:aspace_to_folio:sync_exported_resources instance_key
 ---
 
 ### `folio_sync:aspace_to_folio:process_marc_xml`
-This task allows you to test the processing of a MARC XML file for a specific `bib_id`. It reads the MARC XML file from the `marc_download_base_directory` specified in `folio_sync.yml` file, processes it, and applies the necessary transformations.
+This task allows you to test the processing of a MARC XML file. It reads the MARC XML file from the `marc_download_base_directory` specified in `folio_sync.yml` file, processes it, and applies the necessary transformations.
 
 #### Usage:
 ```bash
-bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=<bib_id> instance_key=instance1
+bundle exec rake folio_sync:aspace_to_folio:process_marc_xml instance_key=<instance_key> file_name=<file_name_with_extension>
 ```
 
 #### Example:
 ```bash
-bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789 instance_key=instance1
+bundle exec rake folio_sync:aspace_to_folio:process_marc_xml instance_key=my_instance file_name=test_file.xml
 ```
 
 ---

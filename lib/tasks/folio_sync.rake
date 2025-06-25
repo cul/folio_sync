@@ -82,22 +82,27 @@ namespace :folio_sync do
 
     # Add a MARC XML test file to the directory specified in folio_sync.yml
     # Run as:
-    # bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=<bib_id>'
-    # ! Quotes are necessary to pass the argument correctly
-    desc 'Process a MARC XML file for a given bib_id'
+    # bundle exec rake folio_sync:aspace_to_folio:process_marc_xml instance_key=<instance_key> file_name=<file_name>'
+    desc 'Create an enhanced MARC record from a MARC XML file'
     task process_marc_xml: :environment do
       FolioSync::Rake::EnvValidator.validate!(
-        ['bib_id'],
-        'bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789'
+        ['instance_key', 'file_name'],
+        'bundle exec rake folio_sync:aspace_to_folio:process_marc_xml instance_key=instance_name file_name=test.xml'
       )
 
-      bib_id = ENV['bib_id']
-      puts "Testing MARC processing for bib_id: #{bib_id}"
+      instance_key = ENV['instance_key']
+      file_name = ENV['file_name']
+      base_dir = Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory]
+      file_path = File.join(base_dir, instance_key, file_name)
 
-      enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id)
-      marc_record = enhancer.enhance_marc_record!
+      enhanced_marc_record = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
+        file_path,
+        nil, # We don't need to pass a FOLIO MARC record for this example
+        nil, # HRID is used only to manipulate controlfield 001
+        instance_key
+      ).enhance_marc_record!
 
-      puts "Processed MARC record: #{marc_record}"
+      puts "Processed MARC record: #{enhanced_marc_record}"
     end
 
     desc 'Perform a health check on the FOLIO API'
