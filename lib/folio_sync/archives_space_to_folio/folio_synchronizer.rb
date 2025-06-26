@@ -22,8 +22,10 @@ module FolioSync
         @syncing_errors = []
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        download_archivesspace_marc_xml(modified_since)
-        sync_resources_to_folio
+        # download_archivesspace_marc_xml(modified_since)
+        # sync_resources_to_folio
+
+        update_archivesspace_records
       end
 
       # WIP - new sync method
@@ -110,6 +112,22 @@ module FolioSync
             message: e.message
           )
         end
+      end
+
+      def update_archivesspace_records
+        pending_records = AspaceToFolioRecord.where(
+          archivesspace_instance_key: @instance_key,
+          pending_update: 'to_aspace'
+        )
+
+        puts "Pending records to update: #{pending_records.count}"
+        updater = FolioSync::ArchivesSpace::ResourceUpdater.new(@instance_key)
+        updater.update_records(pending_records)
+
+        return if updater.updating_errors.blank?
+
+        @logger.error("Errors encountered during ArchivesSpace updates: #{updater.updating_errors}")
+        # ? Should we create a new error class for this?
       end
 
       def clear_downloads!
