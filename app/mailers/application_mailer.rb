@@ -60,7 +60,7 @@ class ApplicationMailer < ActionMailer::Base
     error_sections.each do |section|
       summary_lines << "#{section[:summary_label]}: #{section[:errors].size}"
     end
-    summary_lines << ''
+    summary_lines << "\n"
 
     body_content = summary_lines.join("\n")
 
