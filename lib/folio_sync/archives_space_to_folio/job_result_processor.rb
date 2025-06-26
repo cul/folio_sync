@@ -3,6 +3,8 @@
 module FolioSync
   module ArchivesSpaceToFolio
     class JobResultProcessor
+      attr_reader :processing_errors
+
       def initialize(folio_reader, folio_writer, instance_key)
         @folio_reader = folio_reader
         @folio_writer = folio_writer
@@ -14,8 +16,6 @@ module FolioSync
       # @param job_execution_summary [Folio::Client::JobExecutionSummary] The completed job summary
       # @return [Array<FolioSync::Errors::SyncingError>] Any processing errors that occurred
       def process_results(job_execution_summary)
-        @processing_errors = []
-
         job_execution_summary.each_result do |_raw_result, custom_metadata, instance_action_status, hrid_list, id_list|
           # Update suppression status for successful records
           update_suppression_status(custom_metadata, id_list) if ['CREATED', 'UPDATED'].include?(instance_action_status)
@@ -23,8 +23,6 @@ module FolioSync
           # Update database record status
           update_database_record(custom_metadata, instance_action_status, hrid_list)
         end
-
-        @processing_errors
       end
 
       private
@@ -80,6 +78,11 @@ module FolioSync
 
       def handle_failed_record(record, instance_action_status)
         Rails.logger.warn("Record #{record.id} processing failed with status: #{instance_action_status}")
+        processing_error = FolioSync::Errors::SyncingError.new(
+          resource_uri: "repositories/#{record[:repository_key]}/resources/#{record[:resource_key]}",
+          message: "Failed to create or update record #{record.id}, status: #{instance_action_status}"
+        )
+        @processing_errors << processing_error
       end
 
       def build_suppression_update_payload(folio_record, incoming_suppress)

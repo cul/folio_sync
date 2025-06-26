@@ -57,9 +57,10 @@ module FolioSync
 
         # Process the results (suppression updates and database record updates)
         result_processor = FolioSync::ArchivesSpaceToFolio::JobResultProcessor.new(@folio_reader, @folio_writer, @instance_key)
-        result_processing_errors = result_processor.process_results(job_execution_summary)
+        result_processor.process_results(job_execution_summary)
 
-        @syncing_errors.concat(result_processing_errors)
+        job_result_errors = result_processor.processing_errors
+        @syncing_errors.concat(job_result_errors)
       end
 
       def batch_size
