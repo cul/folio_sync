@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-#
 # Updates ArchivesSpace resources with FOLIO HRIDs
 module FolioSync
   module ArchivesSpace
@@ -25,14 +24,16 @@ module FolioSync
         mark_record_as_updated(record)
         @logger.info("Successfully updated ArchivesSpace record #{record.id}")
       rescue StandardError => e
-        puts "Error updating ArchivesSpace record #{record.id}: #{e.message}"
+        @logger.error("Error updating ArchivesSpace record #{record.id}: #{e.message}")
+        @updating_errors << FolioSync::Errors::SyncingError.new(
+          resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
+          message: e.message
+        )
       end
 
       def update_archivesspace_resource(record)
-        puts "Updating ArchivesSpace resource with resource key: #{record.resource_key}"
         case @instance_key
         when 'cul'
-          puts "Updating CUL resource with ID: #{record.resource_key}"
           update_id_fields(record)
         when 'barnard'
           update_string_1_field(record)
@@ -46,13 +47,12 @@ module FolioSync
 
         # Instance-specific updates
         updated_resource_data = yield(resource_data)
-        puts 'Instance-specific updates applied'
 
         # Always update boolean_1 to indicate a successful FOLIO sync
         user_defined = updated_resource_data['user_defined'] || {}
         user_defined['boolean_1'] = true
+
         final_resource_data = updated_resource_data.merge('user_defined' => user_defined)
-        puts final_resource_data.inspect
         @client.update_resource(repo_id, resource_id, final_resource_data)
       end
 

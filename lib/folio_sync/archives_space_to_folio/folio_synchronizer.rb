@@ -22,10 +22,8 @@ module FolioSync
         @syncing_errors = []
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        # download_archivesspace_marc_xml(modified_since)
-        # sync_resources_to_folio
-
-        update_archivesspace_records
+        download_archivesspace_marc_xml(modified_since)
+        sync_resources_to_folio
       end
 
       # WIP - new sync method
@@ -39,6 +37,7 @@ module FolioSync
         fetch_archivesspace_resources(modified_since)
         download_marc_from_archivesspace_and_folio
         sync_resources_to_folio
+        update_archivesspace_records
       end
 
       def fetch_archivesspace_resources(modified_since)
@@ -120,7 +119,6 @@ module FolioSync
           pending_update: 'to_aspace'
         )
 
-        puts "Pending records to update: #{pending_records.count}"
         updater = FolioSync::ArchivesSpace::ResourceUpdater.new(@instance_key)
         updater.update_records(pending_records)
 
