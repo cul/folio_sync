@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-# This error class is used to represent errors encountered
-# while downloading MARC files from ArchivesSpace or FOLIO
-class FolioSync::Errors::DownloadingError
+# This error class is used to represent errors encountered while fetching resources from ArchivesSpace
+class FolioSync::Errors::FetchingError
   attr_reader :resource_uri, :message
 
   def initialize(resource_uri:, message:)

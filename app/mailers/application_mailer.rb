@@ -4,16 +4,41 @@ class ApplicationMailer < ActionMailer::Base
   default from: Rails.configuration.folio_sync['default_sender_email_address']
   layout 'mailer'
 
-  DISPLAY_LIMIT = 50
+  DISPLAY_LIMIT = 25
+
+  ERROR_TYPES = [
+    {
+      key: :fetching_errors,
+      title: 'Fetching from ArchivesSpace Errors',
+      summary_label: 'Fetching Errors'
+    },
+    {
+      key: :saving_errors,
+      title: 'Local Database Save Errors:',
+      summary_label: 'Saving Errors'
+    },
+    {
+      key: :downloading_errors,
+      title: 'Downloading MARC Errors',
+      summary_label: 'Downloading Errors'
+    },
+    {
+      key: :syncing_errors,
+      title: 'Syncing to FOLIO Errors',
+      summary_label: 'Syncing Errors'
+    }
+  ].freeze
 
   def folio_sync_error_email
-    downloading_errors = params[:downloading_errors] || []
-    syncing_errors = params[:syncing_errors] || []
+    error_sections = ERROR_TYPES.map do |type|
+      {
+        title: type[:title],
+        summary_label: type[:summary_label],
+        errors: params[type[:key]] || []
+      }
+    end
 
-    body_content = format_folio_sync_errors(
-      downloading_errors: downloading_errors,
-      syncing_errors: syncing_errors
-    )
+    body_content = format_folio_sync_errors(error_sections)
 
     mail(
       to: params[:to],
@@ -25,14 +50,27 @@ class ApplicationMailer < ActionMailer::Base
 
   private
 
-  def format_folio_sync_errors(downloading_errors:, syncing_errors:, display_limit: DISPLAY_LIMIT)
-    body_content = "One or more errors were encountered during FOLIO sync:\n\n"
-    body_content += "Total Errors: #{downloading_errors.size + syncing_errors.size}\n"
-    body_content += "Downloading Errors: #{downloading_errors.size}\n"
-    body_content += "Syncing Errors: #{syncing_errors.size}\n\n"
+  def format_folio_sync_errors(error_sections, display_limit: DISPLAY_LIMIT)
+    total_errors_size = error_sections.sum { |section| section[:errors].size }
 
-    body_content += format_error_section(downloading_errors, 'Downloading Errors', display_limit)
-    body_content += format_error_section(syncing_errors, 'Syncing Errors', display_limit)
+    summary_lines = [
+      "One or more errors were encountered during FOLIO sync:\n",
+      "Total Errors: #{total_errors_size}"
+    ]
+    error_sections.each do |section|
+      summary_lines << "#{section[:summary_label]}: #{section[:errors].size}"
+    end
+    summary_lines << "\n"
+
+    body_content = summary_lines.join("\n")
+
+    error_sections.each do |section|
+      body_content += format_error_section(
+        section[:errors],
+        section[:title],
+        display_limit
+      )
+    end
 
     body_content
   end
@@ -42,7 +80,7 @@ class ApplicationMailer < ActionMailer::Base
 
     content = "======== #{title} ========\n"
     errors.first(display_limit).each do |error|
-      content += "Resource URI: #{error.resource_uri}\n" if error.respond_to?(:resource_uri)
+      content += "Resource URI: #{error.resource_uri}\n" if error.respond_to?(:resource_uri) && error.resource_uri.present?
       content += "Error: #{error.message}\n"
       content += "--------\n\n"
     end

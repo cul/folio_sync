@@ -35,31 +35,14 @@ namespace :folio_sync do
       puts 'Fetching MARC resources...'
       processor.fetch_and_sync_aspace_to_folio_records(modified_since_time)
 
-      # Send email if there are any errors
-      if processor.syncing_errors.any? || processor.downloading_errors.any?
-        puts 'Errors occurred during processing:'
-
-        unless processor.downloading_errors.empty?
-          puts 'Downloading errors:'
-          processor.downloading_errors.each do |error|
-            puts "Resource URI: #{error.resource_uri}"
-            puts "Error: #{error.message}"
-          end
-          puts '=========================='
-        end
-
-        unless processor.syncing_errors.empty?
-          puts 'Syncing errors:'
-          processor.syncing_errors.each do |error|
-            puts "Bib ID: #{error.bib_id}"
-            puts "Error: #{error.message}"
-          end
-          puts '=========================='
-        end
+      if FolioSync::Rake::ErrorLogger.any_errors?(processor)
+        FolioSync::Rake::ErrorLogger.log_errors_to_console(processor)
 
         ApplicationMailer.with(
           to: recipients_for(instance_key),
           subject: 'FOLIO Sync Errors',
+          fetching_errors: processor.fetching_errors,
+          saving_errors: processor.saving_errors,
           downloading_errors: processor.downloading_errors,
           syncing_errors: processor.syncing_errors
         ).folio_sync_error_email.deliver
@@ -99,22 +82,27 @@ namespace :folio_sync do
 
     # Add a MARC XML test file to the directory specified in folio_sync.yml
     # Run as:
-    # bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=<bib_id>'
-    # ! Quotes are necessary to pass the argument correctly
-    desc 'Process a MARC XML file for a given bib_id'
+    # bundle exec rake folio_sync:aspace_to_folio:process_marc_xml instance_key=<instance_key> file_name=<file_name>'
+    desc 'Create an enhanced MARC record from a MARC XML file'
     task process_marc_xml: :environment do
       FolioSync::Rake::EnvValidator.validate!(
-        ['bib_id'],
-        'bundle exec rake folio_sync:aspace_to_folio:process_marc_xml bib_id=123456789'
+        ['instance_key', 'file_name'],
+        'bundle exec rake folio_sync:aspace_to_folio:process_marc_xml instance_key=instance_name file_name=test.xml'
       )
 
-      bib_id = ENV['bib_id']
-      puts "Testing MARC processing for bib_id: #{bib_id}"
+      instance_key = ENV['instance_key']
+      file_name = ENV['file_name']
+      base_dir = Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory]
+      file_path = File.join(base_dir, instance_key, file_name)
 
-      enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(bib_id)
-      marc_record = enhancer.enhance_marc_record!
+      enhanced_marc_record = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
+        file_path,
+        nil, # We don't need to pass a FOLIO MARC record for this example
+        nil, # HRID is used only to manipulate controlfield 001
+        instance_key
+      ).enhance_marc_record!
 
-      puts "Processed MARC record: #{marc_record}"
+      puts "Processed MARC record: #{enhanced_marc_record}"
     end
 
     desc 'Perform a health check on the FOLIO API'
@@ -134,12 +122,19 @@ namespace :folio_sync do
 
       ApplicationMailer.with(
         to: recipients_for(instance_key),
-        subject: 'FOLIO Sync Errors',
+        subject: 'FOLIO Sync Errors - Test Email',
         downloading_errors: [
-          FolioSync::Errors::DownloadingError.new(resource_uri: '/uri-test', message: 'Error test 1')
+          FolioSync::Errors::DownloadingError.new(resource_uri: '/uri-test-1', message: 'Error test 1')
+        ],
+        fetching_errors: [
+          FolioSync::Errors::FetchingError.new(resource_uri: '/uri-test-2', message: 'Error test 2')
+        ],
+        saving_errors: [
+          FolioSync::Errors::SavingError.new(resource_uri: '/uri-test-3', message: 'Error test 3')
         ],
         syncing_errors: [
-          FolioSync::Errors::SyncingError.new(bib_id: '1234567', message: 'Error test 2')
+          FolioSync::Errors::SyncingError.new(resource_uri: '/uri-test-4', message: 'Error test 4'),
+          FolioSync::Errors::SyncingError.new(message: 'Error test 5')
         ]
       ).folio_sync_error_email.deliver
     end
