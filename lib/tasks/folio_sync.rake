@@ -82,23 +82,47 @@ namespace :folio_sync do
 
     # Add a MARC XML test file to the directory specified in folio_sync.yml
     # Run as:
-    # bundle exec rake folio_sync:aspace_to_folio:process_marc_xml instance_key=<instance_key> file_name=<file_name>'
+    # bundle exec rake folio_sync:aspace_to_folio:process_marc_without_folio instance_key=<instance_key> file_name=<file_name>'
     desc 'Create an enhanced MARC record from a MARC XML file'
-    task process_marc_xml: :environment do
+    task process_marc_without_folio: :environment do
       FolioSync::Rake::EnvValidator.validate!(
         ['instance_key', 'file_name'],
-        'bundle exec rake folio_sync:aspace_to_folio:process_marc_xml instance_key=instance_name file_name=test.xml'
+        'bundle exec rake folio_sync:aspace_to_folio:process_marc_without_folio instance_key=instance_name file_name=test.xml'
       )
 
       instance_key = ENV['instance_key']
-      file_name = ENV['file_name']
-      base_dir = Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory]
-      file_path = File.join(base_dir, instance_key, file_name)
+      file_path = File.join(instance_key, ENV['file_name'])
 
       enhanced_marc_record = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
         file_path,
         nil, # We don't need to pass a FOLIO MARC record for this example
         nil, # HRID is used only to manipulate controlfield 001
+        instance_key
+      ).enhance_marc_record!
+
+      puts "Processed MARC record: #{enhanced_marc_record}"
+    end
+
+    # Add two MARC XML test files to the directory specified in folio_sync.yml
+    # Run as:
+    # bundle exec rake folio_sync:aspace_to_folio:process_marc_with_folio instance_key=<instance_key>
+    # aspace_file=<file_name> folio_file=<file_name>
+    task process_marc_with_folio: :environment do
+      FolioSync::Rake::EnvValidator.validate!(
+        ['instance_key', 'aspace_file', 'folio_file'],
+        'bundle exec rake folio_sync:aspace_to_folio:process_marc_with_folio ' \
+        'instance_key=cul aspace_file_name=aspace_record.xml ' \
+        'folio_file_name=folio_record.xml'
+      )
+
+      instance_key = ENV['instance_key']
+      aspace_file_path = construct_file_path(instance_key, ENV['aspace_file'])
+      folio_file_path = construct_file_path(instance_key, ENV['folio_file'])
+
+      enhanced_marc_record = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
+        aspace_file_path,
+        folio_file_path,
+        'This HRID should be visible in the controlfield 001',
         instance_key
       ).enhance_marc_record!
 
@@ -178,6 +202,11 @@ namespace :folio_sync do
 
       aspace_client = FolioSync::ArchivesSpace::Client.new(instance_key)
       aspace_client.update_string_1_field(repo_id, resource_id, new_string)
+    end
+
+    def construct_file_path(instance_key, file_name)
+      base_dir = Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory]
+      File.join(base_dir, instance_key, file_name)
     end
   end
 end
