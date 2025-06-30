@@ -3,7 +3,7 @@
 module FolioSync
   module ArchivesSpaceToFolio
     class FolioSynchronizer
-      attr_reader :syncing_errors, :downloading_errors, :saving_errors, :fetching_errors
+      attr_reader :syncing_errors, :downloading_errors, :saving_errors, :fetching_errors, :linking_errors
 
       ONE_HOUR_IN_SECONDS = 3600
 
@@ -125,7 +125,7 @@ module FolioSync
         return if updater.updating_errors.blank?
 
         @logger.error("Errors encountered during ArchivesSpace updates: #{updater.updating_errors}")
-        # ? Should we create a new error class for this?
+        @linking_errors = updater.updating_errors
       end
 
       def clear_downloads!
