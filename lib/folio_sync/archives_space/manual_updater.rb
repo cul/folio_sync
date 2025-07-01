@@ -6,69 +6,49 @@ require 'csv'
 module FolioSync
   module ArchivesSpace
     class ManualUpdater
-      PAGE_SIZE = 2 # Reduced for testing purposes
+      PAGE_SIZE = 200
 
       def initialize(instance_key)
         @logger = Logger.new($stdout)
         @aspace_client = FolioSync::ArchivesSpace::Client.new(instance_key)
         @folio_client = FolioSync::Folio::Client.instance
         @instance_key = instance_key
-
-        initialize_csv_file
       end
 
-      def retrieve_sync_aspace_resources
+      def retrieve_and_sync_aspace_resources
         @aspace_client.fetch_all_repositories.each do |repo|
           next log_repository_skip(repo) unless repo['publish']
 
           repo_id = extract_id(repo['uri'])
-          fetch_from_repository(repo_id)
+          fetch_from_repo_and_update_resources(repo_id)
         end
       end
 
-      def fetch_from_repository(repo_id)
+      def fetch_from_repo_and_update_resources(repo_id)
         query_params = build_query_params
 
         @aspace_client.retrieve_resources_for_repository(repo_id, query_params) do |resources|
           resources.each do |resource|
             next if resource['suppressed']
 
-            retrieve_folio_record(resource)
+            potential_hrid = resource['id_0'] if @instance_key == 'cul'
+            source_record = @folio_client.find_source_record(instance_record_hrid: potential_hrid)
+
+            if source_record
+              log_resource_processing(resource)
+              update_aspace_record(resource, repo_id)
+            end
           rescue StandardError => e
-            @logger.error("Error fetching resource #{resource['uri']}: #{e.message}")
+            @logger.error("Error updating resource #{resource['uri']}: #{e.message}")
           end
         end
       end
 
-      def retrieve_folio_record(resource)
-        potential_hrid = resource['id_0'] if @instance_key == 'cul'
+      def update_aspace_record(resource, repo_id)
+        user_defined = resource['user_defined'] || {}
+        user_defined['boolean_1'] = true
 
-        # Check if a record of this resource already exists in FOLIO
-        source_record = @folio_client.find_source_record(instance_record_hrid: potential_hrid)
-        return unless source_record
-
-        puts "Found source record for hrid: #{potential_hrid}"
-        append_to_csv(potential_hrid, resource['uri'], source_record['recordId'])
-      end
-
-      # Initializes the CSV file with headers if it doesn't exist
-      def initialize_csv_file
-        file_path = 'aspace_analysis.csv'
-
-        return if File.exist?(file_path)
-
-        CSV.open(file_path, 'w') do |csv|
-          csv << ['hrid', 'aspace_uri', 'folio_record_id']
-        end
-      end
-
-      # Appends to a CSV file for the processed resources
-      def append_to_csv(hrid, aspace_uri, folio_record_id)
-        file_path = 'aspace_analysis.csv'
-
-        CSV.open(file_path, 'a') do |csv|
-          csv << [hrid, aspace_uri, folio_record_id]
-        end
+        @aspace_client.update_resource(repo_id, extract_id(resource['uri']), resource)
       end
 
       def build_query_params
@@ -84,7 +64,7 @@ module FolioSync
       end
 
       def log_resource_processing(resource)
-        @logger.info("Processing resource: #{resource['title']} (ID: #{resource['id']})")
+        @logger.info("Processing resource: #{resource['title']} (URI: #{resource['uri']})")
       end
     end
   end

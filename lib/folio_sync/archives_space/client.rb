@@ -57,7 +57,6 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
     query[:page] ||= 1
 
     loop do
-      puts "Page #{query[:page]} for repository #{repo_id}"
       response = self.get("repositories/#{repo_id}/resources", { query: query })
       handle_response(response, 'Error fetching resources')
 
@@ -65,8 +64,7 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
       Rails.logger.debug "Page: #{data['this_page']}, Total Pages: #{data['last_page']}"
       yield(data['results']) if block_given?
 
-      # ! Temporarily only check the first 2 pages
-      break if data['this_page'] >= data['last_page'] || query[:page] == 2
+      break if data['this_page'] >= data['last_page']
 
       query[:page] += 1
     end
