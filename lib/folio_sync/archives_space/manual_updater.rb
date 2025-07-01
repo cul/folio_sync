@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'csv'
-
 # This class is meant to be used in a one-time manual step
 module FolioSync
   module ArchivesSpace
