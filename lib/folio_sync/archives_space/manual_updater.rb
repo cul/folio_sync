@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'csv'
+
 # This class is meant to be used in a one-time manual step
 module FolioSync
   module ArchivesSpace
@@ -11,6 +13,8 @@ module FolioSync
         @aspace_client = FolioSync::ArchivesSpace::Client.new(instance_key)
         @folio_client = FolioSync::Folio::Client.instance
         @instance_key = instance_key
+        @csv_file_path = "#{instance_key}_updated_aspace_resources_#{Time.zone.now.strftime('%Y%m%d%H%M%S')}.csv"
+        initialize_csv_file
       end
 
       def retrieve_and_sync_aspace_resources
@@ -41,12 +45,24 @@ module FolioSync
             source_record = @folio_client.find_source_record(instance_record_hrid: potential_hrid)
 
             if source_record
-              log_resource_processing(resource)
               update_aspace_record(resource, repo_id)
+              write_to_csv(resource, potential_hrid)
             end
           rescue StandardError => e
             @logger.error("Error updating resource #{resource['uri']}: #{e.message}")
           end
+        end
+      end
+
+      def initialize_csv_file
+        CSV.open(@csv_file_path, 'w') do |csv|
+          csv << ['Resource URI', 'HRID']
+        end
+      end
+
+      def write_to_csv(resource, potential_hrid)
+        CSV.open(@csv_file_path, 'a') do |csv|
+          csv << [resource['uri'], potential_hrid]
         end
       end
 
@@ -67,10 +83,6 @@ module FolioSync
 
       def log_repository_skip(repo)
         @logger.info("Repository #{repo['uri']} is not published, skipping...")
-      end
-
-      def log_resource_processing(resource)
-        @logger.info("Processing resource: #{resource['title']} (URI: #{resource['uri']})")
       end
     end
   end
