@@ -13,7 +13,7 @@ module FolioSync
         @aspace_client = FolioSync::ArchivesSpace::Client.new(instance_key)
         @folio_client = FolioSync::Folio::Client.instance
         @instance_key = instance_key
-        @csv_file_path = "#{instance_key}_updated_aspace_resources_#{Time.zone.now.strftime('%Y%m%d%H%M%S')}.csv"
+        @csv_file_path = "tmp/#{instance_key}_updated_aspace_resources_#{Time.zone.now.strftime('%Y%m%d%H%M%S')}.csv"
         initialize_csv_file
       end
 
