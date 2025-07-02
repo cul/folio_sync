@@ -22,6 +22,14 @@ module FolioSync
         end
       end
 
+      def determine_potential_hrid(resource)
+        if @instance_key == 'cul'
+          resource['id_0']
+        elsif @instance_key == 'barnard' && resource['user_defined']['integer_1']
+          resource['user_defined']['integer_1']
+        end
+      end
+
       def fetch_from_repo_and_update_resources(repo_id)
         query_params = build_query_params
 
@@ -29,7 +37,7 @@ module FolioSync
           resources.each do |resource|
             next if resource['suppressed']
 
-            potential_hrid = resource['id_0'] if @instance_key == 'cul'
+            potential_hrid = determine_potential_hrid(resource)
             source_record = @folio_client.find_source_record(instance_record_hrid: potential_hrid)
 
             if source_record
