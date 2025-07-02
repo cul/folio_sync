@@ -29,8 +29,8 @@ module FolioSync
       def determine_potential_hrid(resource)
         if @instance_key == 'cul'
           resource['id_0']
-        elsif @instance_key == 'barnard' && resource['user_defined']['integer_1']
-          resource['user_defined']['integer_1']
+        elsif @instance_key == 'barnard' && resource['user_defined']['string_1']
+          resource['user_defined']['string_1']
         end
       end
 
