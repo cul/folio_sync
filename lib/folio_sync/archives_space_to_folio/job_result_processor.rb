@@ -33,20 +33,18 @@ module FolioSync
         instance_record_id = id_list.first
         incoming_suppress = custom_metadata[:suppress_discovery]
 
-        begin
-          folio_record = @folio_reader.get_instance_by_id(instance_record_id)
-          current_folio_suppress = folio_record['discoverySuppress']
+        folio_record = @folio_reader.get_instance_by_id(instance_record_id)
+        current_folio_suppress = folio_record['discoverySuppress']
 
-          unless current_folio_suppress != incoming_suppress
-            Rails.logger.info("No change in suppression status for instance record: #{instance_record_id}")
-            return
-          end
-
-          data_to_send = build_suppression_update_payload(folio_record, incoming_suppress)
-          update_folio_instance_suppression(instance_record_id, data_to_send)
-        rescue StandardError => e
-          handle_suppression_update_error(custom_metadata, instance_record_id, e)
+        if current_folio_suppress == incoming_suppress
+          Rails.logger.info("No change in suppression status for instance record: #{instance_record_id}")
+          return
         end
+
+        data_to_send = build_suppression_update_payload(folio_record, incoming_suppress)
+        update_folio_instance_suppression(instance_record_id, data_to_send)
+      rescue StandardError => e
+        handle_suppression_update_error(custom_metadata, instance_record_id, e)
       end
 
       def update_database_record(custom_metadata, instance_action_status, hrid_list)

@@ -14,7 +14,6 @@ module FolioSync
       end
 
       def fetch_and_sync_aspace_to_folio_records(last_x_hours)
-        clear_error_arrays!
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
         # 1. Fetch resources from ArchivesSpace based on their modification time and save them to the database

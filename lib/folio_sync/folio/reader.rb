@@ -23,7 +23,7 @@ module FolioSync
       end
 
       def get_instance_by_id(instance_id)
-        @client.get("/instance-storage/instances/#{instance_id}")
+        @client.find_instance_record(instance_record_id: instance_id)
       end
     end
   end
