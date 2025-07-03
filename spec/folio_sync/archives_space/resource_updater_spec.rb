@@ -37,25 +37,13 @@ RSpec.describe FolioSync::ArchivesSpace::ResourceUpdater do
     end
   end
 
-  describe '#update_records' do
-    it 'calls update_single_record for each record' do
-      updater = described_class.new(instance_key)
-      allow(updater).to receive(:update_single_record)
-      records = [record, record]
-      updater.update_records(records)
-      expect(updater).to have_received(:update_single_record).twice
-    end
-  end
-
   describe '#update_single_record' do
-    it 'calls update_archivesspace_resource and mark_record_as_updated' do
+    it 'calls update_archivesspace_resource' do
       updater = described_class.new(instance_key)
       allow(updater).to receive(:update_archivesspace_resource)
-      allow(updater).to receive(:mark_record_as_updated)
 
       updater.update_single_record(record)
       expect(updater).to have_received(:update_archivesspace_resource).with(record)
-      expect(updater).to have_received(:mark_record_as_updated).with(record)
       expect(logger).to have_received(:info).with("Successfully updated ArchivesSpace record #{record.id}")
     end
   end
@@ -108,14 +96,6 @@ RSpec.describe FolioSync::ArchivesSpace::ResourceUpdater do
       updater = described_class.new('barnard')
       expect(updater).to receive(:update_resource_with_folio_data).with(1, 123)
       updater.update_string_1_field(record)
-    end
-  end
-
-  describe '#mark_record_as_updated' do
-    it 'updates the record pending_update to no_update' do
-      updater = described_class.new(instance_key)
-      expect(record).to receive(:update!).with(pending_update: 'no_update')
-      updater.mark_record_as_updated(record)
     end
   end
 end

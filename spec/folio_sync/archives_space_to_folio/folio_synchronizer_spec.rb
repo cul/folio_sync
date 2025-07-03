@@ -200,37 +200,50 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
           repository_key: 1,
           resource_key: 123,
           folio_hrid: 'hrid1',
+          pending_update: 'to_aspace'
         ),
         instance_double(
           AspaceToFolioRecord,
           repository_key: 2,
           resource_key: 456,
           folio_hrid: 'hrid2',
+          pending_update: 'to_aspace'
         )
       ]
     end
     let(:updater) { instance_double(FolioSync::ArchivesSpace::ResourceUpdater, updating_errors: []) }
 
     before do
-      allow(AspaceToFolioRecord).to receive(:where).with(
-        archivesspace_instance_key: instance_key,
-        pending_update: 'to_aspace'
-      ).and_return(pending_records)
+      allow(AspaceToFolioRecord).to receive(:where).with(archivesspace_instance_key: instance_key, pending_update: 'to_aspace').and_return(pending_records)
       allow(FolioSync::ArchivesSpace::ResourceUpdater).to receive(:new).with(instance_key).and_return(updater)
-      allow(updater).to receive(:update_records)
+      allow(updater).to receive(:update_single_record).and_return(true)
+      pending_records.each do |record|
+        allow(record).to receive(:update!).with(pending_update: 'no_update')
+      end
     end
 
-    it 'instantiates ResourceUpdater and calls update_records with pending records' do
+    it 'calls update_single_record for each pending record' do
       instance.update_archivesspace_records
-      expect(FolioSync::ArchivesSpace::ResourceUpdater).to have_received(:new).with(instance_key)
-      expect(updater).to have_received(:update_records).with(pending_records)
+      pending_records.each do |pending_record|
+        expect(updater).to have_received(:update_single_record).with(pending_record)
+      end
+    end
+
+    it 'updates the database record if ArchivesSpace resource is successfully updated' do
+      pending_records.each do |pending_record|
+        expect(pending_record).to receive(:update!).with(pending_update: 'no_update')
+      end
+
+      instance.update_archivesspace_records
     end
 
     it 'logs errors if updating_errors are present' do
       errors = [
-        FolioSync::Errors::SyncingError.new(resource_uri: 'repositories/1/resources/123', message: 'Update failed')
+        FolioSync::Errors::SyncingError.new(resource_uri: 'repositories/1/resources/123', message: 'Update failed'),
+        FolioSync::Errors::SyncingError.new(resource_uri: 'repositories/2/resources/456', message: 'Update failed')
       ]
       allow(updater).to receive(:updating_errors).and_return(errors)
+      allow(logger).to receive(:error)
       instance.update_archivesspace_records
       expect(logger).to have_received(:error).with("Errors encountered during ArchivesSpace updates: #{errors}")
     end

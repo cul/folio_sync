@@ -13,22 +13,19 @@ module FolioSync
         @updating_errors = []
       end
 
-      def update_records(records)
-        records.each do |record|
-          update_single_record(record)
-        end
-      end
-
+      # For the given AspaceToFolioRecord object, updates its associated ArchivesSpace resource with a FOLIO HRID
+      # and sets a boolean field to indicate at least one successful FOLIO sync.
       def update_single_record(record)
         update_archivesspace_resource(record)
-        mark_record_as_updated(record)
         @logger.info("Successfully updated ArchivesSpace record #{record.id}")
+        true
       rescue StandardError => e
         @logger.error("Error updating ArchivesSpace record #{record.id}: #{e.message}")
         @updating_errors << FolioSync::Errors::SyncingError.new(
           resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
           message: e.message
         )
+        false
       end
 
       def update_archivesspace_resource(record)
@@ -71,10 +68,6 @@ module FolioSync
           user_defined['string_1'] = record.folio_hrid
           resource_data.merge('user_defined' => user_defined)
         end
-      end
-
-      def mark_record_as_updated(record)
-        record.update!(pending_update: 'no_update')
       end
     end
   end

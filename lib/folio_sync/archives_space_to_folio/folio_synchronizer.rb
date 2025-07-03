@@ -120,7 +120,10 @@ module FolioSync
         )
 
         updater = FolioSync::ArchivesSpace::ResourceUpdater.new(@instance_key)
-        updater.update_records(pending_records)
+        pending_records.each do |pending_record|
+          successful_update = updater.update_single_record(pending_record)
+          pending_record.update!(pending_update: 'no_update') if successful_update
+        end
 
         return if updater.updating_errors.blank?
 
