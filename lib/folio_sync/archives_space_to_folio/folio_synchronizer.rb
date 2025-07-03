@@ -3,7 +3,7 @@
 module FolioSync
   module ArchivesSpaceToFolio
     class FolioSynchronizer
-      attr_reader :syncing_errors, :downloading_errors, :saving_errors, :fetching_errors
+      attr_reader :syncing_errors, :downloading_errors, :saving_errors, :fetching_errors, :linking_errors
 
       ONE_HOUR_IN_SECONDS = 3600
 
@@ -22,7 +22,8 @@ module FolioSync
         download_marc_from_archivesspace_and_folio
         # 3. Enhance MARC records and sync them to FOLIO (including the discoverySuppress status)
         sync_resources_to_folio
-        # 4. TODO: For newly created FOLIO records, update their respective ASpace records with the FOLIO HRIDs
+        # 4. For newly created FOLIO records, update their respective ASpace records with the FOLIO HRIDs
+        update_archivesspace_records
       end
 
       def fetch_archivesspace_resources(modified_since)
@@ -72,6 +73,24 @@ module FolioSync
 
         @logger.error("Errors encountered during sync: #{batch_processor.syncing_errors}")
         @syncing_errors = batch_processor.syncing_errors
+      end
+
+      def update_archivesspace_records
+        pending_records = AspaceToFolioRecord.where(
+          archivesspace_instance_key: @instance_key,
+          pending_update: 'to_aspace'
+        )
+
+        updater = FolioSync::ArchivesSpace::ResourceUpdater.new(@instance_key)
+        pending_records.each do |pending_record|
+          successful_update = updater.update_single_record(pending_record)
+          pending_record.update!(pending_update: 'no_update') if successful_update
+        end
+
+        return if updater.updating_errors.blank?
+
+        @logger.error("Errors encountered during ArchivesSpace updates: #{updater.updating_errors}")
+        @linking_errors = updater.updating_errors
       end
 
       def clear_downloads!
