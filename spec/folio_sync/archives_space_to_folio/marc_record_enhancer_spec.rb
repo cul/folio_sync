@@ -9,8 +9,8 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
   let(:repo_key) { '123' }
   let(:resource_key) { '456' }
   let(:instance_key) { 'test' }
-  let(:aspace_marc_path) { File.join(base_dir, instance_key, "#{repo_key}-##{resource_key}-aspace.xml") }
-  let(:folio_marc_path) { File.join(base_dir, instance_key, "#{repo_key}-##{resource_key}-folio.xml") }
+  let(:aspace_marc_path) { File.join(base_dir, instance_key, "#{repo_key}-#{resource_key}-aspace.xml") }
+  let(:folio_marc_path) { File.join(base_dir, instance_key, "#{repo_key}-#{resource_key}-folio.xml") }
   let(:field_856_xml) do
     <<-XML
       <datafield tag="856" ind1="4" ind2="2">
