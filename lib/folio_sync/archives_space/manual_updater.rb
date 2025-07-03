@@ -13,16 +13,21 @@ module FolioSync
         @aspace_client = FolioSync::ArchivesSpace::Client.new(instance_key)
         @folio_client = FolioSync::Folio::Client.instance
         @instance_key = instance_key
-        @csv_file_path = "tmp/#{instance_key}_updated_aspace_resources_#{Time.zone.now.strftime('%Y%m%d%H%M%S')}.csv"
-        initialize_csv_file
+        @csv_file_path = Rails.root.join(
+          "tmp/#{instance_key}_updated_aspace_resources_#{Time.zone.now.strftime('%Y%m%d%H%M%S')}.csv"
+        )
       end
 
       def retrieve_and_sync_aspace_resources
-        @aspace_client.fetch_all_repositories.each do |repo|
-          next log_repository_skip(repo) unless repo['publish']
+        CSV.open(@csv_file_path, 'w') do |csv|
+          csv << ['Resource URI', 'HRID']
 
-          repo_id = extract_id(repo['uri'])
-          fetch_from_repo_and_update_resources(repo_id)
+          @aspace_client.fetch_all_repositories.each do |repo|
+            next log_repository_skip(repo) unless repo['publish']
+
+            repo_id = extract_id(repo['uri'])
+            fetch_from_repo_and_update_resources(repo_id, csv)
+          end
         end
       end
 
@@ -34,7 +39,7 @@ module FolioSync
         end
       end
 
-      def fetch_from_repo_and_update_resources(repo_id)
+      def fetch_from_repo_and_update_resources(repo_id, csv)
         query_params = build_query_params
 
         @aspace_client.retrieve_resources_for_repository(repo_id, query_params) do |resources|
@@ -46,7 +51,7 @@ module FolioSync
 
             if source_record
               update_aspace_record(resource, repo_id)
-              write_to_csv(resource, potential_hrid)
+              write_to_csv(resource, potential_hrid, csv)
             end
           rescue StandardError => e
             @logger.error("Error updating resource #{resource['uri']}: #{e.message}")
@@ -54,16 +59,8 @@ module FolioSync
         end
       end
 
-      def initialize_csv_file
-        CSV.open(@csv_file_path, 'w') do |csv|
-          csv << ['Resource URI', 'HRID']
-        end
-      end
-
-      def write_to_csv(resource, potential_hrid)
-        CSV.open(@csv_file_path, 'a') do |csv|
-          csv << [resource['uri'], potential_hrid]
-        end
+      def write_to_csv(resource, potential_hrid, csv)
+        csv << [resource['uri'], potential_hrid]
       end
 
       def update_aspace_record(resource, repo_id)
