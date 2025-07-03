@@ -41,9 +41,16 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   before do
     allow(Rails.configuration).to receive_messages(archivesspace: archivesspace_config)
     allow(Logger).to receive(:new).and_return(logger)
+    
+    # Stub for sync_resources_to_folio method
     allow(AspaceToFolioRecord).to receive(:where)
       .with(archivesspace_instance_key: instance_key, pending_update: 'to_folio')
       .and_return(relation_double)
+
+    # Stub for update_archivesspace_records method
+    allow(AspaceToFolioRecord).to receive(:where)
+      .with(archivesspace_instance_key: instance_key, pending_update: 'to_aspace')
+      .and_return([])
 
     # Stub in_batches to yield the array as a single batch
     allow(relation_double).to receive(:empty?).and_return(records.empty?)
@@ -87,6 +94,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       allow(instance).to receive(:fetch_archivesspace_resources)
       allow(instance).to receive(:download_marc_from_archivesspace_and_folio)
       allow(instance).to receive(:sync_resources_to_folio)
+      allow(instance).to receive(:update_archivesspace_records)
     end
 
     it 'fetches recent MARC resources from ArchivesSpace' do
@@ -107,6 +115,11 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     it 'handles nil last_x_hours to fetch all resources' do
       instance.fetch_and_sync_aspace_to_folio_records(nil)
       expect(instance).to have_received(:fetch_archivesspace_resources).with(nil)
+    end
+
+    it 'syncs resources to ArchivesSpace' do
+      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
+      expect(instance).to have_received(:update_archivesspace_records)
     end
   end
 
@@ -196,7 +209,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     end
   end
 
-    describe '#clear_downloads!' do
+  describe '#clear_downloads!' do
     let(:config) { { marc_download_base_directory: '/tmp/downloads' } }
 
     before do
@@ -234,7 +247,9 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     let(:updater) { instance_double(FolioSync::ArchivesSpace::ResourceUpdater, updating_errors: []) }
 
     before do
-      allow(AspaceToFolioRecord).to receive(:where).with(archivesspace_instance_key: instance_key, pending_update: 'to_aspace').and_return(pending_records)
+      allow(AspaceToFolioRecord).to receive(:where)
+        .with(archivesspace_instance_key: instance_key, pending_update: 'to_aspace')
+        .and_return(pending_records)
       allow(FolioSync::ArchivesSpace::ResourceUpdater).to receive(:new).with(instance_key).and_return(updater)
       allow(updater).to receive(:update_single_record).and_return(true)
       pending_records.each do |record|
