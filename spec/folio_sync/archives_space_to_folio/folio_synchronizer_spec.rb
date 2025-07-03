@@ -35,14 +35,19 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
                                           resource_key: 456)
     ]
   end
-  let(:enhancers) { records.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
-  let(:marc_records) { enhancers.map { double('MARC::Record') } }
 
+  let(:relation_double) { double('ActiveRecord::Relation') }
 
   before do
     allow(Rails.configuration).to receive_messages(archivesspace: archivesspace_config)
     allow(Logger).to receive(:new).and_return(logger)
-        allow(AspaceToFolioRecord).to receive(:where).with(archivesspace_instance_key: instance_key, pending_update: 'to_folio').and_return(records)
+    allow(AspaceToFolioRecord).to receive(:where)
+      .with(archivesspace_instance_key: instance_key, pending_update: 'to_folio')
+      .and_return(relation_double)
+
+    # Stub in_batches to yield the array as a single batch
+    allow(relation_double).to receive(:empty?).and_return(records.empty?)
+    allow(relation_double).to receive(:in_batches).and_yield(records)
 
     # Mock ArchivesSpace client dependencies
     allow(ArchivesSpace::Configuration).to receive(:new).and_return(double('config'))
@@ -65,130 +70,145 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       expect(instance.instance_variable_get(:@instance_key)).to eq(instance_key)
     end
 
-    it 'initializes downloading_errors and syncing_errors as empty arrays' do
+    it 'initializes error arrays as empty' do
       expect(instance.downloading_errors).to eq([])
       expect(instance.syncing_errors).to eq([])
+      expect(instance.saving_errors).to eq([])
+      expect(instance.fetching_errors).to eq([])
     end
   end
 
-  describe '#fetch_and_sync_resources_to_folio' do
+  describe '#fetch_and_sync_aspace_to_folio_records' do
     let(:current_time) { Time.utc(2025, 5, 11, 15, 25, 23, 516_125) }
     let(:modified_since) { current_time - (last_x_hours * described_class::ONE_HOUR_IN_SECONDS) }
 
     before do
       allow(Time).to receive(:now).and_return(current_time)
-      allow(instance).to receive(:download_archivesspace_marc_xml)
+      allow(instance).to receive(:fetch_archivesspace_resources)
+      allow(instance).to receive(:download_marc_from_archivesspace_and_folio)
       allow(instance).to receive(:sync_resources_to_folio)
     end
 
-    it 'fetches and saves recent MARC resources' do
-      instance.fetch_and_sync_resources_to_folio(last_x_hours)
-      expect(instance).to have_received(:download_archivesspace_marc_xml).with(modified_since)
+    it 'fetches recent MARC resources from ArchivesSpace' do
+      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
+      expect(instance).to have_received(:fetch_archivesspace_resources).with(modified_since)
+    end
+
+    it 'downloads MARC XML from ArchivesSpace and FOLIO' do
+      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
+      expect(instance).to have_received(:download_marc_from_archivesspace_and_folio)
     end
 
     it 'syncs resources to FOLIO' do
-      instance.fetch_and_sync_resources_to_folio(last_x_hours)
+      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
       expect(instance).to have_received(:sync_resources_to_folio)
     end
 
     it 'handles nil last_x_hours to fetch all resources' do
-      instance.fetch_and_sync_resources_to_folio(nil)
-      expect(instance).to have_received(:download_archivesspace_marc_xml).with(nil)
+      instance.fetch_and_sync_aspace_to_folio_records(nil)
+      expect(instance).to have_received(:fetch_archivesspace_resources).with(nil)
     end
   end
 
-  describe '#download_archivesspace_marc_xml' do
-    let(:modified_since) { Time.utc(2023, 1, 1) }
-    let(:exporter) { instance_double(FolioSync::ArchivesSpace::MarcExporter) }
-    let(:exporting_errors) do
-      [
-        FolioSync::Errors::DownloadingError.new(
-          resource_uri: 'repositories/1/resources/123',
-          message: 'Error message 1'
-        ),
-        FolioSync::Errors::DownloadingError.new(
-          resource_uri: 'repositories/2/resources/456',
-          message: 'Error message 2'
-        )
-      ]
-    end
+  describe '#fetch_archivesspace_resources' do
+    let(:fetcher) { instance_double(FolioSync::ArchivesSpace::ResourceFetcher, fetching_errors: [], saving_errors: []) }
 
     before do
-      allow(FolioSync::ArchivesSpace::MarcExporter).to receive(:new).with(instance_key).and_return(exporter)
-      allow(exporter).to receive(:export_recent_resources)
-      allow(exporter).to receive(:exporting_errors).and_return(exporting_errors)
+      allow(FolioSync::ArchivesSpace::ResourceFetcher).to receive(:new).and_return(fetcher)
+      allow(fetcher).to receive(:fetch_and_save_recent_resources)
     end
 
-    it 'initializes a MarcExporter and calls export_recent_resources with the correct modified_since' do
-      instance.download_archivesspace_marc_xml(modified_since)
-      expect(FolioSync::ArchivesSpace::MarcExporter).to have_received(:new).with(instance_key)
-      expect(exporter).to have_received(:export_recent_resources).with(modified_since)
+    it 'calls fetch_and_save_recent_resources on the fetcher' do
+      instance.fetch_archivesspace_resources(nil)
+      expect(fetcher).to have_received(:fetch_and_save_recent_resources).with(nil)
     end
 
-    it 'logs errors if exporting_errors are present' do
-      instance.download_archivesspace_marc_xml(modified_since)
-      expect(logger).to have_received(:error).with("Errors encountered during MARC XML download: #{exporting_errors}")
+    it 'sets fetching_errors and logs if present' do
+      allow(fetcher).to receive(:fetching_errors).and_return(['fetch error'])
+      expect(logger).to receive(:error).with(/Error fetching resources/)
+      instance.fetch_archivesspace_resources(nil)
+      expect(instance.fetching_errors).to eq(['fetch error'])
     end
 
-    it 'updates @downloading_errors with DownloadingError instances if present' do
-      instance.download_archivesspace_marc_xml(modified_since)
-      expect(instance.downloading_errors).to eq(exporting_errors)
+    it 'sets saving_errors and logs if present' do
+      allow(fetcher).to receive(:saving_errors).and_return(['save error'])
+      expect(logger).to receive(:error).with(/Error saving resources/)
+      instance.fetch_archivesspace_resources(nil)
+      expect(instance.saving_errors).to eq(['save error'])
+    end
+  end
+
+  describe '#download_marc_from_archivesspace_and_folio' do
+    let(:downloader) { instance_double(FolioSync::ArchivesSpaceToFolio::MarcDownloader, downloading_errors: []) }
+
+    before do
+      allow(FolioSync::ArchivesSpaceToFolio::MarcDownloader).to receive(:new).and_return(downloader)
+      allow(downloader).to receive(:download_pending_marc_records)
     end
 
-    it 'does not log errors or update @downloading_errors if exporting_errors is empty' do
-      allow(exporter).to receive(:exporting_errors).and_return([])
-      instance.download_archivesspace_marc_xml(modified_since)
-      expect(logger).not_to have_received(:error)
-      expect(instance.downloading_errors).to be_empty
+    it 'calls download_pending_marc_records on the downloader' do
+      instance.download_marc_from_archivesspace_and_folio
+      expect(downloader).to have_received(:download_pending_marc_records)
     end
 
-    it 'handles nil modified_since to fetch all resources' do
-      instance.download_archivesspace_marc_xml(nil)
-      expect(exporter).to have_received(:export_recent_resources).with(nil)
+    it 'sets downloading_errors and logs if present' do
+      allow(downloader).to receive(:downloading_errors).and_return(['download error'])
+      expect(logger).to receive(:error).with(/Errors encountered during MARC download/)
+      instance.download_marc_from_archivesspace_and_folio
+      expect(instance.downloading_errors).to eq(['download error'])
     end
   end
 
   describe '#sync_resources_to_folio' do
-    let(:base_dir) { Rails.configuration.folio_sync[:aspace_to_folio][:marc_download_base_directory] }
-    let(:downloads_dir) { File.join(base_dir, instance_key) }
-    let(:enhancers) { records.map { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) } }
-    let(:marc_records) { enhancers.map { double('MARC::Record') } }
+    let(:pending_records) { records }
+    let(:batch_processor) { instance_double(FolioSync::ArchivesSpaceToFolio::BatchProcessor, process_records: nil, syncing_errors: []) }
 
     before do
-      allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).and_return(*enhancers)
-      enhancers.each_with_index do |enhancer, index|
-        allow(enhancer).to receive(:enhance_marc_record!).and_return(marc_records[index])
-        allow(enhancer).to receive(:marc_record).and_return(marc_records[index])
-      end
-      allow(File).to receive(:join).and_return('/mocked/path/to/file.xml')
-      allow(File).to receive(:binwrite)
+      allow(AspaceToFolioRecord).to receive(:where).and_return(pending_records)
+      allow(FolioSync::ArchivesSpaceToFolio::BatchProcessor).to receive(:new).and_return(batch_processor)
     end
 
-    it 'processes each database record and enhances MARC records' do
-      instance.sync_resources_to_folio
-      records.each_with_index do |record, index|
-        expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to have_received(:new).with(
-          File.join(base_dir, record.archivesspace_marc_xml_path),
-          record.folio_hrid ? File.join(base_dir, record.folio_marc_xml_path) : nil,
-          record.folio_hrid,
-          instance_key
-        )
-        expect(enhancers[index]).to have_received(:enhance_marc_record!)
+    context 'when there are no pending records' do
+      before do
+        allow(pending_records).to receive(:empty?).and_return(true)
+      end
+
+      it 'logs that there are no pending records and returns' do
+        expect(logger).to receive(:info).with(/No pending records/)
+        instance.sync_resources_to_folio
+        expect(FolioSync::ArchivesSpaceToFolio::BatchProcessor).not_to have_received(:new)
       end
     end
 
-    it 'appends SyncingError instances to @syncing_errors when errors occur' do
-      allow(enhancers[0]).to receive(:enhance_marc_record!).and_raise(StandardError, 'Enhancer error')
-      instance.sync_resources_to_folio
-      expect(logger).to have_received(:error).with('Error syncing resources to FOLIO: Enhancer error').at_least(:once)
-      expect(instance.syncing_errors).to include(
-        an_instance_of(FolioSync::Errors::SyncingError).and(
-          have_attributes(
-            resource_uri: 'repositories/1/resources/123',
-            message: 'Enhancer error'
-          )
-        )
-      )
+    context 'when there are pending records' do
+      before do
+        allow(pending_records).to receive(:empty?).and_return(false)
+        allow(pending_records).to receive(:count).and_return(2)
+        allow(batch_processor).to receive(:syncing_errors).and_return(['syncing error'])
+      end
+
+      it 'processes records and collects errors' do
+        expect(logger).to receive(:info).with(/Found 2 pending records/)
+        expect(logger).to receive(:error).with(/Errors encountered during sync/)
+        instance.sync_resources_to_folio
+        expect(instance.syncing_errors).to include('syncing error')
+      end
+    end
+  end
+
+    describe '#clear_downloads!' do
+    let(:config) { { marc_download_base_directory: '/tmp/downloads' } }
+
+    before do
+      allow(Rails).to receive_message_chain(:configuration, :folio_sync, :[]).with(:aspace_to_folio).and_return(config)
+      allow(File).to receive(:join).and_call_original
+      allow(FileUtils).to receive(:rm_rf)
+      allow(Dir).to receive(:[]).and_return(['/tmp/downloads/instance1/file1.xml'])
+    end
+
+    it 'removes files in the downloads directory' do
+      expect(FileUtils).to receive(:rm_rf).with(['/tmp/downloads/instance1/file1.xml'])
+      instance.clear_downloads!
     end
   end
 

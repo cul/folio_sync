@@ -44,9 +44,9 @@ RSpec.configure do |config|
   # If you enable ActiveRecord support you should uncomment these lines,
   # note if you'd prefer not to run each example within a transaction, you
   # should set use_transactional_fixtures to false.
-  #
-  # config.fixture_path = Rails.root.join('spec/fixtures')
-  # config.use_transactional_fixtures = true
+
+  config.fixture_paths = Rails.root.join('spec/fixtures')
+  config.use_transactional_fixtures = true
 
   # RSpec Rails uses metadata to mix in different behaviours to your tests,
   # for example enabling you to call `get` and `post` in request specs. e.g.:
