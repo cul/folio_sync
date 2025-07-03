@@ -1,10 +1,6 @@
 require 'rails_helper'
 
 RSpec.describe AspaceToFolioRecord, type: :model do
-  before(:each) do
-    AspaceToFolioRecord.delete_all
-  end
-
   describe 'validations' do
     it 'is valid with valid attributes' do
       record = AspaceToFolioRecord.new(
