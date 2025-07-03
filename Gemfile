@@ -40,7 +40,6 @@ gem 'actionmailer', '~> 8.0.2'
 gem 'marc'
 
 gem 'folio_api_client', '~> 0.4.0'
-# gem 'folio_api_client', path: '../folio_api_client'
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -49,7 +48,7 @@ group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem 'brakeman', require: false
 
-  gem 'rspec-rails', '~> 7.1', '>= 7.1.1'
+  gem 'rspec-rails', '~> 8.0.0'
 
   gem 'pry', '~> 0.15.0'
 
