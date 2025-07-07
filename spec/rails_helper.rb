@@ -45,7 +45,9 @@ RSpec.configure do |config|
   # note if you'd prefer not to run each example within a transaction, you
   # should set use_transactional_fixtures to false.
 
-  config.fixture_paths = Rails.root.join('spec/fixtures')
+  config.fixture_paths = [
+    Rails.root.join('spec/fixtures')
+  ]
   config.use_transactional_fixtures = true
 
   # RSpec Rails uses metadata to mix in different behaviours to your tests,

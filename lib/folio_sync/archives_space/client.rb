@@ -50,6 +50,26 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
     end
   end
 
+  # This method is used only for a one-time manual step
+  # to identify which ASpace resources have corresponding FOLIO records.
+  def retrieve_resources_for_repository(repo_id, query_params)
+    query = query_params.dup
+    query[:page] ||= 1
+
+    loop do
+      response = self.get("repositories/#{repo_id}/resources", { query: query })
+      handle_response(response, 'Error fetching resources')
+
+      data = response.parsed
+      Rails.logger.debug "Page: #{data['this_page']}, Total Pages: #{data['last_page']}"
+      yield(data['results']) if block_given?
+
+      break if data['this_page'] >= data['last_page']
+
+      query[:page] += 1
+    end
+  end
+
   # @param repo_id [String] The ID of the repository to fetch resources from.
   # @param resource_id [String] The ID of the resource to fetch MARC data for.
   #
