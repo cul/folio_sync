@@ -41,9 +41,16 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   before do
     allow(Rails.configuration).to receive_messages(archivesspace: archivesspace_config)
     allow(Logger).to receive(:new).and_return(logger)
+    
+    # Stub for sync_resources_to_folio method
     allow(AspaceToFolioRecord).to receive(:where)
       .with(archivesspace_instance_key: instance_key, pending_update: 'to_folio')
       .and_return(relation_double)
+
+    # Stub for update_archivesspace_records method
+    allow(AspaceToFolioRecord).to receive(:where)
+      .with(archivesspace_instance_key: instance_key, pending_update: 'to_aspace')
+      .and_return([])
 
     # Stub in_batches to yield the array as a single batch
     allow(relation_double).to receive(:empty?).and_return(records.empty?)
@@ -87,6 +94,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       allow(instance).to receive(:fetch_archivesspace_resources)
       allow(instance).to receive(:download_marc_from_archivesspace_and_folio)
       allow(instance).to receive(:sync_resources_to_folio)
+      allow(instance).to receive(:update_archivesspace_records)
     end
 
     it 'fetches recent MARC resources from ArchivesSpace' do
@@ -107,6 +115,11 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     it 'handles nil last_x_hours to fetch all resources' do
       instance.fetch_and_sync_aspace_to_folio_records(nil)
       expect(instance).to have_received(:fetch_archivesspace_resources).with(nil)
+    end
+
+    it 'syncs resources to ArchivesSpace' do
+      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
+      expect(instance).to have_received(:update_archivesspace_records)
     end
   end
 
@@ -196,7 +209,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     end
   end
 
-    describe '#clear_downloads!' do
+  describe '#clear_downloads!' do
     let(:config) { { marc_download_base_directory: '/tmp/downloads' } }
 
     before do
@@ -209,6 +222,65 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     it 'removes files in the downloads directory' do
       expect(FileUtils).to receive(:rm_rf).with(['/tmp/downloads/instance1/file1.xml'])
       instance.clear_downloads!
+    end
+  end
+
+  describe '#update_archivesspace_records' do
+    let(:pending_records) do
+      [
+        instance_double(
+          AspaceToFolioRecord,
+          repository_key: 1,
+          resource_key: 123,
+          folio_hrid: 'hrid1',
+          pending_update: 'to_aspace'
+        ),
+        instance_double(
+          AspaceToFolioRecord,
+          repository_key: 2,
+          resource_key: 456,
+          folio_hrid: 'hrid2',
+          pending_update: 'to_aspace'
+        )
+      ]
+    end
+    let(:updater) { instance_double(FolioSync::ArchivesSpace::ResourceUpdater, updating_errors: []) }
+
+    before do
+      allow(AspaceToFolioRecord).to receive(:where)
+        .with(archivesspace_instance_key: instance_key, pending_update: 'to_aspace')
+        .and_return(pending_records)
+      allow(FolioSync::ArchivesSpace::ResourceUpdater).to receive(:new).with(instance_key).and_return(updater)
+      allow(updater).to receive(:update_single_record).and_return(true)
+      pending_records.each do |record|
+        allow(record).to receive(:update!).with(pending_update: 'no_update')
+      end
+    end
+
+    it 'calls update_single_record for each pending record' do
+      instance.update_archivesspace_records
+      pending_records.each do |pending_record|
+        expect(updater).to have_received(:update_single_record).with(pending_record)
+      end
+    end
+
+    it 'updates the database record if ArchivesSpace resource is successfully updated' do
+      pending_records.each do |pending_record|
+        expect(pending_record).to receive(:update!).with(pending_update: 'no_update')
+      end
+
+      instance.update_archivesspace_records
+    end
+
+    it 'logs errors if updating_errors are present' do
+      errors = [
+        FolioSync::Errors::SyncingError.new(resource_uri: 'repositories/1/resources/123', message: 'Update failed'),
+        FolioSync::Errors::SyncingError.new(resource_uri: 'repositories/2/resources/456', message: 'Update failed')
+      ]
+      allow(updater).to receive(:updating_errors).and_return(errors)
+      allow(logger).to receive(:error)
+      instance.update_archivesspace_records
+      expect(logger).to have_received(:error).with("Errors encountered during ArchivesSpace updates: #{errors}")
     end
   end
 end
