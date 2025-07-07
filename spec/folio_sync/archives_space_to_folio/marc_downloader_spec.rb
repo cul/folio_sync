@@ -42,7 +42,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcDownloader do
       expect(downloader.downloading_errors).to include(
         an_instance_of(FolioSync::Errors::DownloadingError).and(
           have_attributes(
-            resource_uri: `'repositories/#{record.repository_key}/resources/#{record.resource_key}'`,
+            resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
             message: 'Test error'
           )
         )

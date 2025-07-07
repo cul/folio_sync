@@ -17,7 +17,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
       let(:fake_marc) { double('Marc::Record') }
       let(:processed_record) { marc_record.enhance_marc_record! }
 
-    it 'returns a hash with marc_record and metadata' do
+      it 'returns a hash with marc_record and metadata' do
         fake_marc = double('MARC::Record')
         enhancer = double('MarcRecordEnhancer')
         allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(
