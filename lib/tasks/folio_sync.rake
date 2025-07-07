@@ -44,7 +44,8 @@ namespace :folio_sync do
           fetching_errors: processor.fetching_errors,
           saving_errors: processor.saving_errors,
           downloading_errors: processor.downloading_errors,
-          syncing_errors: processor.syncing_errors
+          syncing_errors: processor.syncing_errors,
+          linking_errors: processor.linking_errors
         ).folio_sync_error_email.deliver
       else
         puts 'Script completed successfully.'
@@ -159,6 +160,9 @@ namespace :folio_sync do
         syncing_errors: [
           FolioSync::Errors::SyncingError.new(resource_uri: '/uri-test-4', message: 'Error test 4'),
           FolioSync::Errors::SyncingError.new(message: 'Error test 5')
+        ],
+        linking_errors: [
+          FolioSync::Errors::LinkingError.new(resource_uri: '/uri-test-6', message: 'Error test 6')
         ]
       ).folio_sync_error_email.deliver
     end
