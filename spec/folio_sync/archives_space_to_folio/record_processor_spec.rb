@@ -5,23 +5,9 @@ require 'rails_helper'
 RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
   include_context 'FolioSync directory setup'
 
-  let(:instance_key) { 'test' }
   let(:processor) { described_class.new(instance_key) }
   let(:folio_hrid) { 'f123' }
-
-  let(:record) do  
-    instance_double(AspaceToFolioRecord, archivesspace_marc_xml_path: "#{instance_key}/123-456-aspace.xml",
-                                        folio_marc_xml_path: "#{instance_key}/123-456-folio.xml",
-                                        archivesspace_instance_key: instance_key,
-                                        folio_hrid: 'f123',
-                                        repository_key: 123,
-                                        resource_key: 456,
-                                        is_folio_suppressed: true,
-                                        pending_update: 'to_folio',
-                                        id: 42)
-    
-  end
-
+  let(:record) { FactoryBot.create(:aspace_to_folio_record, :suppressed_record, :with_folio_data) }
   let(:base_dir) { 'tmp/test/downloaded_files' }
   let(:aspace_marc_path) { File.join(base_dir, record.archivesspace_marc_xml_path) }
   let(:folio_marc_path) { File.join(base_dir, record.folio_marc_xml_path) }
@@ -37,7 +23,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
         allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(
           aspace_marc_path,
           folio_marc_path,
-          folio_hrid,
+          record.folio_hrid,
           instance_key
         ).and_return(enhancer)
         allow(enhancer).to receive(:enhance_marc_record!).and_return(fake_marc)
@@ -46,9 +32,9 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
         expect(result).to be_a(Hash)
         expect(result[:marc_record]).to eq(fake_marc)
         expect(result[:metadata]).to eq(
-          repository_key: 123,
-          resource_key: 456,
-          hrid: 'f123',
+          repository_key: record.repository_key,
+          resource_key: record.resource_key,
+          hrid: record.folio_hrid,
           suppress_discovery: true
         )
       end
@@ -58,7 +44,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
         allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(
           aspace_marc_path,
           folio_marc_path,
-          folio_hrid,
+          record.folio_hrid,
           instance_key
         ).and_return(enhancer)
         allow(enhancer).to receive(:enhance_marc_record!).and_return(double('MARC::Record'))
@@ -92,12 +78,12 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
       end
 
       it 'returns nil and logs the error' do
-        expect(Rails.logger).to receive(:error).with(/Error processing record 42/)
+        expect(Rails.logger).to receive(:error).with(/Error processing record #{record.id}/)
         result = processor.process_record(record)
         expect(result).to be_nil
         expect(processor.processing_errors).not_to be_empty
         error = processor.processing_errors.first
-        expect(error.resource_uri).to eq('repositories/123/resources/456')
+        expect(error.resource_uri).to eq("repositories/#{record.repository_key}/resources/#{record.resource_key}")
         expect(error.message).to match(/Failed to process record/)
       end
     end
