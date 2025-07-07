@@ -23,16 +23,8 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   end
   let(:records) do
     [
-      instance_double(AspaceToFolioRecord, archivesspace_marc_xml_path: 'instance1/repo1-resource1-aspace.xml',
-                                          folio_marc_xml_path: 'instance1/repo1-resource1-folio.xml',
-                                          folio_hrid: 'hrid1',
-                                          repository_key: 1,
-                                          resource_key: 123),
-      instance_double(AspaceToFolioRecord, archivesspace_marc_xml_path: 'instance1/repo2-resource2-aspace.xml',
-                                          folio_marc_xml_path: nil,
-                                          folio_hrid: nil,
-                                          repository_key: 2,
-                                          resource_key: 456)
+      FactoryBot.create(:aspace_to_folio_record, :with_folio_data),
+      FactoryBot.create(:aspace_to_folio_record, folio_hrid: nil)
     ]
   end
 
@@ -228,20 +220,8 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   describe '#update_archivesspace_records' do
     let(:pending_records) do
       [
-        instance_double(
-          AspaceToFolioRecord,
-          repository_key: 1,
-          resource_key: 123,
-          folio_hrid: 'hrid1',
-          pending_update: 'to_aspace'
-        ),
-        instance_double(
-          AspaceToFolioRecord,
-          repository_key: 2,
-          resource_key: 456,
-          folio_hrid: 'hrid2',
-          pending_update: 'to_aspace'
-        )
+        FactoryBot.create(:aspace_to_folio_record, :ready_for_aspace),
+        FactoryBot.create(:aspace_to_folio_record, :ready_for_aspace)
       ]
     end
     let(:updater) { instance_double(FolioSync::ArchivesSpace::ResourceUpdater, updating_errors: []) }

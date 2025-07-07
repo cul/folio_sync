@@ -56,6 +56,8 @@ group :development, :test do
   gem 'rubocul', '~> 4.0.3'
 
   gem 'simplecov', require: false
+
+  gem 'factory_bot_rails'
 end
 
 group :development do

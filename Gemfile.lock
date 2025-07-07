@@ -129,6 +129,11 @@ GEM
     ed25519 (1.4.0)
     erb (5.0.1)
     erubi (1.13.1)
+    factory_bot (6.5.4)
+      activesupport (>= 6.1.0)
+    factory_bot_rails (6.5.0)
+      factory_bot (~> 6.5)
+      railties (>= 6.1.0)
     faraday (2.13.1)
       faraday-net_http (>= 2.0, < 3.5)
       json
@@ -418,6 +423,7 @@ DEPENDENCIES
   capistrano-passenger (~> 0.1)
   capistrano-rails (~> 1.4)
   debug
+  factory_bot_rails
   folio_api_client (~> 0.4.0)
   kamal
   marc
