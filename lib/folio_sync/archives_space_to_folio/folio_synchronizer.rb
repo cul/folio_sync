@@ -129,6 +129,7 @@ module FolioSync
         @downloading_errors = []
         @saving_errors = []
         @fetching_errors = []
+        @linking_errors = []
       end
     end
   end

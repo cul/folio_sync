@@ -44,7 +44,6 @@ RSpec.describe AspaceToFolioRecord, type: :model do
     context 'when creating a new record' do
       it 'creates a new record with the provided data' do
         data = base_data.merge(
-          folio_hrid: 'test_hrid',
           pending_update: 'no_update',
           is_folio_suppressed: true
         )
@@ -56,7 +55,6 @@ RSpec.describe AspaceToFolioRecord, type: :model do
         expect(record.archivesspace_instance_key).to eq('test_instance')
         expect(record.repository_key).to eq(2)
         expect(record.resource_key).to eq(123)
-        expect(record.folio_hrid).to eq('test_hrid')
         expect(record.pending_update).to eq('no_update')
         expect(record.is_folio_suppressed).to be true
       end
