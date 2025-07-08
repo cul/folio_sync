@@ -4,28 +4,28 @@ class ApplicationMailer < ActionMailer::Base
   default from: Rails.configuration.folio_sync['default_sender_email_address']
   layout 'mailer'
 
-  DISPLAY_LIMIT = 25
+  DISPLAY_LIMIT = 20
 
   ERROR_TYPES = [
     {
       key: :fetching_errors,
-      title: 'Fetching from ArchivesSpace Errors',
-      summary_label: 'Fetching Errors'
+      title: 'Fetching from ArchivesSpace API errors'
     },
     {
       key: :saving_errors,
-      title: 'Local Database Save Errors:',
-      summary_label: 'Saving Errors'
+      title: 'Creating or updating local database records errors'
     },
     {
       key: :downloading_errors,
-      title: 'Downloading MARC Errors',
-      summary_label: 'Downloading Errors'
+      title: 'Downloading MARC errors'
     },
     {
       key: :syncing_errors,
-      title: 'Syncing to FOLIO Errors',
-      summary_label: 'Syncing Errors'
+      title: 'Syncing resources to FOLIO errors'
+    },
+    {
+      key: :linking_errors,
+      title: 'Updating ArchivesSpace resources errors'
     }
   ].freeze
 
@@ -33,7 +33,6 @@ class ApplicationMailer < ActionMailer::Base
     error_sections = ERROR_TYPES.map do |type|
       {
         title: type[:title],
-        summary_label: type[:summary_label],
         errors: params[type[:key]] || []
       }
     end
@@ -58,7 +57,7 @@ class ApplicationMailer < ActionMailer::Base
       "Total Errors: #{total_errors_size}"
     ]
     error_sections.each do |section|
-      summary_lines << "#{section[:summary_label]}: #{section[:errors].size}"
+      summary_lines << "#{section[:title]}: #{section[:errors].size}"
     end
     summary_lines << "\n"
 

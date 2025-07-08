@@ -3,24 +3,14 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcDownloader do
   let(:downloader) { described_class.new(instance_key) }
   let(:aspace_client) { instance_double(FolioSync::ArchivesSpace::Client) }
   let(:folio_reader) { instance_double(FolioSync::Folio::Reader) }
-  let(:record) do
-    double(
-      'AspaceToFolioRecord',
-      repository_key: 1,
-      resource_key: 1234,
-      archivesspace_instance_key: 'test_instance_key',
-      folio_hrid: 'folio123',
-      archivesspace_marc_xml_path: 'path/to/aspace_marc.xml',
-      folio_marc_xml_path: 'path/to/folio_marc.xml'
-    )
-  end
+  let(:record) { FactoryBot.create(:aspace_to_folio_record, :with_folio_data) }
   let(:marc_data) { '<record>MARC data</record>' }
 
   before do
     allow(FolioSync::ArchivesSpace::Client).to receive(:new).with(instance_key).and_return(aspace_client)
     allow(FolioSync::Folio::Reader).to receive(:new).and_return(folio_reader)
     allow(aspace_client).to receive(:fetch_marc_xml_resource).and_return(marc_data)
-    allow(folio_reader).to receive(:get_marc_record_as_xml).with('folio123').and_return(marc_data)
+    allow(folio_reader).to receive(:get_marc_record_as_xml).with(record.folio_hrid).and_return(marc_data)
     allow(File).to receive(:binwrite)
   end
 
@@ -52,7 +42,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcDownloader do
       expect(downloader.downloading_errors).to include(
         an_instance_of(FolioSync::Errors::DownloadingError).and(
           have_attributes(
-            resource_uri: 'repositories/1/resources/1234',
+            resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
             message: 'Test error'
           )
         )
@@ -62,8 +52,8 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcDownloader do
 
   describe '#download_marc_for_record' do
     it 'fetches and saves MARC records from ArchivesSpace and FOLIO' do
-      expect(aspace_client).to receive(:fetch_marc_xml_resource).with(1, 1234)
-      expect(folio_reader).to receive(:get_marc_record_as_xml).with('folio123')
+      expect(aspace_client).to receive(:fetch_marc_xml_resource).with(record.repository_key, record.resource_key)
+      expect(folio_reader).to receive(:get_marc_record_as_xml).with(record.folio_hrid)
       expect(downloader).to receive(:save_marc_file).twice
       downloader.download_marc_for_record(record)
     end
