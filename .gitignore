@@ -57,3 +57,4 @@ coverage
 
 # Ignore local rake tasks
 /lib/tasks/local.rake
+/lib/tasks/test_create_or_update.rake

@@ -8,17 +8,22 @@ class AspaceToFolioRecord < ApplicationRecord
   validates :resource_key, presence: true
 
   def self.create_or_update_from_data(data)
-    record = find_or_initialize_by(
-      archivesspace_instance_key: data[:archivesspace_instance_key],
-      repository_key: data[:repository_key],
-      resource_key: data[:resource_key]
-    )
+    if data[:folio_hrid].present?
+      existing_record = find_by(folio_hrid: data[:folio_hrid])
 
-    record.folio_hrid = data[:folio_hrid] if data.key?(:folio_hrid)
-    record.pending_update = data[:pending_update] if data.key?(:pending_update)
-    record.is_folio_suppressed = data[:is_folio_suppressed] if data.key?(:is_folio_suppressed)
+      if existing_record
+        # Update the existing record with only pending_update and is_folio_suppressed
+        # Other fields remain unchanged
+        existing_record.update!(
+          pending_update: data[:pending_update],
+          is_folio_suppressed: data[:is_folio_suppressed]
+        )
+        return existing_record
+      end
+    end
 
-    record.save!
+    # Create a new record with all the data (either folio_hrid is nil or there is no existing record)
+    create!(data)
   end
 
   def archivesspace_marc_xml_path
