@@ -29,6 +29,29 @@ class ApplicationMailer < ActionMailer::Base
     }
   ].freeze
 
+  def folio_sync_database_error_email
+    body_content = <<~EMAIL
+      The FOLIO Sync script has been interrupted due to a database integrity issue.
+
+      One or more database records were found with missing folio_hrid values. To prevent the creation of duplicate entries in FOLIO, the synchronization process has been halted.
+
+      Please investigate the following:
+      1. Review recent synchronization logs for any errors or interruptions
+      2. Check database records with nil folio_hrid values for instance: #{params[:instance_key]}
+      3. Determine if records need to be manually corrected or re-synchronized
+      4. Restart the sync process only after resolving the underlying issue
+
+      This is an automated notification.
+    EMAIL
+
+    mail(
+      to: params[:to],
+      subject: params[:subject],
+      body: body_content,
+      content_type: 'text/plain'
+    )
+  end
+
   def folio_sync_error_email
     error_sections = ERROR_TYPES.map do |type|
       {
