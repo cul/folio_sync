@@ -12,12 +12,14 @@ class AspaceToFolioRecord < ApplicationRecord
       existing_record = find_by(folio_hrid: data[:folio_hrid])
 
       if existing_record
-        # Update the existing record with only pending_update and is_folio_suppressed
+        # Update the existing record with pending_update, is_folio_suppressed and folio_hrid
         # Other fields remain unchanged
-        existing_record.update!(
-          pending_update: data[:pending_update],
-          is_folio_suppressed: data[:is_folio_suppressed]
-        )
+        update_attributes = {}
+        update_attributes[:pending_update] = data[:pending_update] if data.key?(:pending_update)
+        update_attributes[:is_folio_suppressed] = data[:is_folio_suppressed] if data.key?(:is_folio_suppressed)
+        update_attributes[:folio_hrid] = data[:folio_hrid] if data.key?(:folio_hrid)
+
+        existing_record.update!(update_attributes)
         return existing_record
       end
     end
