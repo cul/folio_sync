@@ -25,7 +25,7 @@ set :deploy_to, "/opt/passenger/#{fetch(:deploy_name)}"
 
 # Default value for :linked_files is []
 append  :linked_files,
-        # 'config/database.yml',
+        'config/database.yml',
         'config/folio.yml',
         'config/archivesspace.yml',
         'config/folio_sync.yml',

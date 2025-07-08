@@ -25,11 +25,11 @@ gem 'thruster', require: false
 # Nokogiri 1.17 runs successfully
 gem 'nokogiri', '~> 1.17.2'
 
-# Use sqlite3 as the database for Active Record
-gem "sqlite3", ">= 2.1"
-
 # For cron tasks
 gem 'whenever', require: false
+
+# Only used in prod environments
+gem 'mysql2'
 
 gem 'activerecord', '~> 8.0.2'
 
@@ -42,6 +42,9 @@ gem 'marc'
 gem 'folio_api_client', '~> 0.4.0'
 
 group :development, :test do
+  # Use SQLite as the database for Active Record, MySQL will be used in production
+  gem 'sqlite3'
+
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem 'debug', platforms: %i[mri windows], require: 'debug/prelude'
 

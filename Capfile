@@ -12,7 +12,7 @@ install_plugin Capistrano::SCM::Git
 # Include tasks from other gems included in your Gemfile
 require 'capistrano/cul'
 require 'capistrano/bundler'
-# require "capistrano/rails/migrations"
+require 'capistrano/rails/migrations'
 require 'capistrano/passenger'
 require 'whenever/capistrano'
 
