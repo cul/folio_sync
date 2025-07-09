@@ -86,13 +86,13 @@ module FolioSync
 
       def should_process_resource?(resource)
         return false if resource['suppressed']
-        return false if resource['user_defined']&.dig('boolean_1') # Already processed
+        return false if resource.dig('user_defined', 'boolean_1') # Already processed
 
         case @instance_key
         when 'cul'
           resource['id_0'].present?
         when 'barnard'
-          resource['user_defined']&.dig('string_1').present?
+          resource.dig('user_defined', 'string_1').present?
         else
           false
         end
