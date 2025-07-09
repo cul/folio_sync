@@ -35,7 +35,7 @@ module FolioSync
         if @instance_key == 'cul'
           resource['id_0']
         elsif @instance_key == 'barnard'
-          resource['user_defined']&.dig('string_1')
+          resource.dig('user_defined', 'string_1')
         end
       end
 
