@@ -81,13 +81,14 @@ RSpec.describe FolioSync::ArchivesSpace::ManualUpdater do
   end
 
   describe '#fetch_from_repo_and_update_resources' do
+    let(:instance_key) { 'cul' }
     let(:instance) { described_class.new(instance_key) }
     let(:repo_id) { '1' }
     let(:csv_mock) { instance_double(CSV) }
     let(:resources) do
       [
-        { 'id' => '123', 'title' => 'Resource 1', 'suppressed' => false, 'id_0' => 'HRID123', 'uri' => '/repositories/1/resources/123' },
-        { 'id' => '456', 'title' => 'Resource 2', 'suppressed' => true, 'id_0' => 'HRID456', 'uri' => '/repositories/1/resources/456' }
+        { 'id' => '123', 'title' => 'Resource 1', 'suppressed' => false, 'id_0' => 'HRID123', 'uri' => '/repositories/1/resources/123', 'user_defined' => { 'boolean_1' => false } },
+        { 'id' => '456', 'title' => 'Resource 2', 'suppressed' => true, 'id_0' => 'HRID456', 'uri' => '/repositories/1/resources/456', 'user_defined' => { 'boolean_1' => false } }
       ]
     end
 
@@ -96,7 +97,6 @@ RSpec.describe FolioSync::ArchivesSpace::ManualUpdater do
       allow(folio_client).to receive(:find_source_record).and_return(true, nil)
       allow(instance).to receive(:update_aspace_record)
       allow(instance).to receive(:write_to_csv)
-      allow(instance).to receive(:determine_potential_hrid).and_return('HRID123', 'HRID456')
       allow(csv_mock).to receive(:<<)
     end
 
@@ -119,19 +119,44 @@ RSpec.describe FolioSync::ArchivesSpace::ManualUpdater do
   end
 
   describe '#update_aspace_record' do
-    let(:instance) { described_class.new(instance_key) }
-    let(:resource) { { 'id' => '123', 'user_defined' => {}, 'uri' => '/repositories/1/resources/123' } }
     let(:repo_id) { '1' }
 
     before do
       allow(aspace_client).to receive(:update_resource)
-      allow(instance).to receive(:extract_id).and_return('123')
     end
 
-    it 'updates the resource with the correct data' do
-      instance.update_aspace_record(resource, repo_id)
-      expect(resource['user_defined']['boolean_1']).to be true
-      expect(aspace_client).to have_received(:update_resource).with(repo_id, '123', resource)
+    context 'when instance_key is "cul"' do
+      let(:instance_key) { 'cul' }
+      let(:instance) { described_class.new(instance_key) }
+
+      it 'creates user_defined and sets boolean_1 to true when user_defined is missing' do
+        resource = { 'id' => '123', 'uri' => '/repositories/1/resources/123' }
+        instance.update_aspace_record(resource, repo_id)
+        
+        expect(resource['user_defined']).to eq({ 'boolean_1' => true })
+        expect(aspace_client).to have_received(:update_resource).with(repo_id, '123', resource)
+      end
+
+      it 'preserves existing user_defined fields and sets boolean_1 to true' do
+        resource = { 'id' => '123', 'user_defined' => { 'string_1' => 'existing' }, 'uri' => '/repositories/1/resources/123' }
+        instance.update_aspace_record(resource, repo_id)
+        
+        expect(resource['user_defined']).to eq({ 'string_1' => 'existing', 'boolean_1' => true })
+        expect(aspace_client).to have_received(:update_resource).with(repo_id, '123', resource)
+      end
+    end
+
+    context 'when instance_key is "barnard"' do
+      let(:instance_key) { 'barnard' }
+      let(:instance) { described_class.new(instance_key) }
+
+      it 'sets boolean_1 to true in existing user_defined' do
+        resource = { 'id' => '123', 'user_defined' => { 'string_1' => 'BC456' }, 'uri' => '/repositories/1/resources/123' }
+        instance.update_aspace_record(resource, repo_id)
+        
+        expect(resource['user_defined']).to eq({ 'string_1' => 'BC456', 'boolean_1' => true })
+        expect(aspace_client).to have_received(:update_resource).with(repo_id, '123', resource)
+      end
     end
   end
 
@@ -218,6 +243,7 @@ RSpec.describe FolioSync::ArchivesSpace::ManualUpdater do
           'suppressed' => false, 
           'id_0' => '111222', 
           'uri' => '/repositories/1/resources/123',
+          'user_defined' => { 'boolean_1' => false }
         }
       ]
     end
@@ -230,6 +256,7 @@ RSpec.describe FolioSync::ArchivesSpace::ManualUpdater do
           'suppressed' => false, 
           'id_0' => '333444', 
           'uri' => '/repositories/2/resources/456',
+          'user_defined' => { 'boolean_1' => false }
         }
       ]
     end
@@ -242,6 +269,7 @@ RSpec.describe FolioSync::ArchivesSpace::ManualUpdater do
           'suppressed' => false, 
           'id_0' => '555666', 
           'uri' => '/repositories/3/resources/789',
+          'user_defined' => { 'boolean_1' => false }
         }
       ]
     end
@@ -291,6 +319,53 @@ RSpec.describe FolioSync::ArchivesSpace::ManualUpdater do
 
       expect(csv_data[2]['Resource URI']).to eq('/repositories/3/resources/789')
       expect(csv_data[2]['HRID']).to eq('555666')
+    end
+  end
+
+  describe '#should_process_resource?' do
+    let(:instance) { described_class.new(instance_key) }
+
+    context 'when instance_key is "cul"' do
+      let(:instance_key) { 'cul' }
+
+      it 'returns true for valid CUL resource' do
+        resource = { 'suppressed' => false, 'id_0' => 'CUL123', 'user_defined' => { 'boolean_1' => false } }
+        expect(instance.should_process_resource?(resource)).to be true
+      end
+
+      it 'returns false for suppressed resource' do
+        resource = { 'suppressed' => true, 'id_0' => 'CUL123', 'user_defined' => { 'boolean_1' => false } }
+        expect(instance.should_process_resource?(resource)).to be false
+      end
+
+      it 'returns false for already processed resource' do
+        resource = { 'suppressed' => false, 'id_0' => 'CUL123', 'user_defined' => { 'boolean_1' => true } }
+        expect(instance.should_process_resource?(resource)).to be false
+      end
+
+      it 'returns true for CUL resource without user_defined' do
+        resource = { 'suppressed' => false, 'id_0' => 'CUL123' }
+        expect(instance.should_process_resource?(resource)).to be true
+      end
+    end
+
+    context 'when instance_key is "barnard"' do
+      let(:instance_key) { 'barnard' }
+
+      it 'returns true for valid Barnard resource' do
+        resource = { 'suppressed' => false, 'user_defined' => { 'string_1' => 'BC456', 'boolean_1' => false } }
+        expect(instance.should_process_resource?(resource)).to be true
+      end
+
+      it 'returns false for Barnard resource without user_defined' do
+        resource = { 'suppressed' => false, 'id_0' => 'BC456' }
+        expect(instance.should_process_resource?(resource)).to be false
+      end
+
+      it 'returns false for Barnard resource without string_1' do
+        resource = { 'suppressed' => false, 'user_defined' => { 'boolean_1' => false } }
+        expect(instance.should_process_resource?(resource)).to be false
+      end
     end
   end
 end
