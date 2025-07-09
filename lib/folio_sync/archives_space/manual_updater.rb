@@ -34,8 +34,8 @@ module FolioSync
       def determine_potential_hrid(resource)
         if @instance_key == 'cul'
           resource['id_0']
-        elsif @instance_key == 'barnard' && resource['user_defined']['string_1']
-          resource['user_defined']['string_1']
+        elsif @instance_key == 'barnard'
+          resource['user_defined']&.dig('string_1')
         end
       end
 
@@ -44,9 +44,11 @@ module FolioSync
 
         @aspace_client.retrieve_resources_for_repository(repo_id, query_params) do |resources|
           resources.each do |resource|
-            next if resource['suppressed']
+            next unless should_process_resource?(resource)
 
             potential_hrid = determine_potential_hrid(resource)
+            next unless potential_hrid
+
             source_record = @folio_client.find_source_record(instance_record_hrid: potential_hrid)
 
             if source_record
@@ -64,8 +66,8 @@ module FolioSync
       end
 
       def update_aspace_record(resource, repo_id)
-        user_defined = resource['user_defined'] || {}
-        user_defined['boolean_1'] = true
+        resource['user_defined'] ||= {}
+        resource['user_defined']['boolean_1'] = true
 
         @aspace_client.update_resource(repo_id, extract_id(resource['uri']), resource)
       end
@@ -80,6 +82,20 @@ module FolioSync
 
       def log_repository_skip(repo)
         @logger.info("Repository #{repo['uri']} is not published, skipping...")
+      end
+
+      def should_process_resource?(resource)
+        return false if resource['suppressed']
+        return false if resource['user_defined']&.dig('boolean_1') # Already processed
+
+        case @instance_key
+        when 'cul'
+          resource['id_0'].present?
+        when 'barnard'
+          resource['user_defined']&.dig('string_1').present?
+        else
+          false
+        end
       end
     end
   end
