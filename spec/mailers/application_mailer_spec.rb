@@ -32,6 +32,36 @@ RSpec.describe ApplicationMailer, type: :mailer do
     ]
   end
 
+  describe '#folio_sync_database_error_email' do
+    before do
+      allow(described_class).to receive(:default).and_return(from: 'test-email@example.com')
+    end
+
+    let(:mail) do
+      described_class.with(
+        to: to_email,
+        subject: mail_subject,
+        instance_key: 'test_instance_key'
+      ).folio_sync_database_error_email
+    end
+
+    it 'renders the correct subject' do
+      expect(mail.subject).to eq(mail_subject)
+    end
+
+    it 'sends the email to the correct recipient' do
+      expect(mail.to).to eq([to_email])
+    end
+
+    it 'sets the correct sender email' do
+      expect(mail.from).to eq(['test-email@example.com'])
+    end
+
+    it 'includes the instance key in the email body' do
+      expect(mail.body.encoded).to include('test_instance_key')
+    end
+  end
+
   describe '#folio_sync_error_email' do
     before do
       allow(described_class).to receive(:default).and_return(from: 'test-email@example.com')

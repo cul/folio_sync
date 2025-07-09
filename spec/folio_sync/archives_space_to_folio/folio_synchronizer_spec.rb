@@ -23,8 +23,8 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   end
   let(:records) do
     [
-      FactoryBot.create(:aspace_to_folio_record, :with_folio_data),
-      FactoryBot.create(:aspace_to_folio_record, folio_hrid: nil)
+      FactoryBot.create(:aspace_to_folio_record, :with_folio_data, archivesspace_instance_key: 'test_instance'),
+      FactoryBot.create(:aspace_to_folio_record, folio_hrid: nil, archivesspace_instance_key: 'test_instance')
     ]
   end
 
@@ -74,6 +74,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       expect(instance.syncing_errors).to eq([])
       expect(instance.saving_errors).to eq([])
       expect(instance.fetching_errors).to eq([])
+      expect(instance.linking_errors).to eq([])
     end
   end
 
@@ -87,6 +88,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       allow(instance).to receive(:download_marc_from_archivesspace_and_folio)
       allow(instance).to receive(:sync_resources_to_folio)
       allow(instance).to receive(:update_archivesspace_records)
+      allow(instance).to receive(:database_valid?).and_return(true)
     end
 
     it 'fetches recent MARC resources from ArchivesSpace' do
@@ -261,6 +263,76 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       allow(logger).to receive(:error)
       instance.update_archivesspace_records
       expect(logger).to have_received(:error).with("Errors encountered during ArchivesSpace updates: #{errors}")
+    end
+  end
+
+  describe '#database_valid?' do
+    let(:folio_sync_config) do
+      {
+        aspace_to_folio: {
+          developer_email_address: 'developer@example.com'
+        }
+      }
+    end
+    let(:mailer_double) { double('ApplicationMailer', deliver: true) }
+
+    before do
+      allow(Rails).to receive_message_chain(:configuration, :folio_sync).and_return(folio_sync_config)
+      allow(ApplicationMailer).to receive(:with).and_return(mailer_double)
+      allow(mailer_double).to receive(:folio_sync_database_error_email).and_return(mailer_double)
+    end
+
+    context 'when database is valid' do
+      before do
+        # Create records with folio_hrid values (valid records) for the target instance
+        FactoryBot.create(:aspace_to_folio_record, :with_folio_data, archivesspace_instance_key: instance_key)
+        FactoryBot.create(:aspace_to_folio_record, :with_folio_data, archivesspace_instance_key: instance_key)
+        
+        # Create records for different instance (should not affect validation)
+        FactoryBot.create(:aspace_to_folio_record, folio_hrid: nil, archivesspace_instance_key: 'other_instance')
+      end
+
+      it 'returns true' do
+        expect(instance.database_valid?).to be true
+      end
+
+      it 'does not send email' do
+        instance.database_valid?
+        expect(ApplicationMailer).not_to have_received(:with)
+      end
+
+      it 'does not raise error' do
+        expect { instance.database_valid? }.not_to raise_error
+      end
+    end
+
+    context 'when database is invalid' do
+      before do
+        # Create a mix of valid and invalid records for the target instance
+        FactoryBot.create(:aspace_to_folio_record, :with_folio_data, archivesspace_instance_key: instance_key)
+        FactoryBot.create(:aspace_to_folio_record, folio_hrid: nil, archivesspace_instance_key: instance_key)
+        
+        # Create records for different instance (should not affect validation)
+        FactoryBot.create(:aspace_to_folio_record, :with_folio_data, archivesspace_instance_key: 'other_instance')
+      end
+
+      it 'sends error email with correct parameters' do
+        expect(ApplicationMailer).to receive(:with).with(
+          to: 'developer@example.com',
+          subject: "FOLIO Sync failed to validate database for #{instance_key}",
+          instance_key: instance_key
+        ).and_return(mailer_double)
+
+        expect { instance.database_valid? }.to raise_error("Database is not valid for instance #{instance_key}.")
+      end
+
+      it 'raises error with correct message' do
+        expect { instance.database_valid? }.to raise_error("Database is not valid for instance #{instance_key}.")
+      end
+
+      it 'does not return true' do
+        expect { instance.database_valid? }.to raise_error
+      end
     end
   end
 end

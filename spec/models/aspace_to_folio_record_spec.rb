@@ -37,14 +37,14 @@ RSpec.describe AspaceToFolioRecord, type: :model do
       {
         archivesspace_instance_key: 'test_instance',
         repository_key: 2,
-        resource_key: 123
+        resource_key: 123,
+        folio_hrid: 'test_hrid',
       }
     end
 
     context 'when creating a new record' do
       it 'creates a new record with the provided data' do
         data = base_data.merge(
-          folio_hrid: 'test_hrid',
           pending_update: 'no_update',
           is_folio_suppressed: true
         )
@@ -56,9 +56,9 @@ RSpec.describe AspaceToFolioRecord, type: :model do
         expect(record.archivesspace_instance_key).to eq('test_instance')
         expect(record.repository_key).to eq(2)
         expect(record.resource_key).to eq(123)
-        expect(record.folio_hrid).to eq('test_hrid')
         expect(record.pending_update).to eq('no_update')
         expect(record.is_folio_suppressed).to be true
+        expect(record.folio_hrid).to eq('test_hrid')
       end
 
       it 'creates a record with only required fields when optional fields are not provided' do
@@ -69,33 +69,41 @@ RSpec.describe AspaceToFolioRecord, type: :model do
         expect(record.archivesspace_instance_key).to eq('test_instance')
         expect(record.repository_key).to eq(2)
         expect(record.resource_key).to eq(123)
-        expect(record.folio_hrid).to be_nil
         expect(record.pending_update).to eq('to_folio') # default value is 'to_folio'
         expect(record.is_folio_suppressed).to be false # default value from schema
       end
     end
 
     context 'when updating an existing record' do
-      let!(:existing_record) { FactoryBot.create(:aspace_to_folio_record, base_data.merge(folio_hrid: 'old_hrid', pending_update: 'no_update', is_folio_suppressed: false)) }
+      let!(:existing_record) { 
+        FactoryBot.create(:aspace_to_folio_record, 
+                         pending_update: 'no_update', 
+                         is_folio_suppressed: false, 
+                         folio_hrid: 'old_hrid') 
+      }
 
       it 'updates the existing record with new data' do
-        data = base_data.merge(
-          folio_hrid: 'new_hrid',
+        data = {
           pending_update: 'to_aspace',
-          is_folio_suppressed: true
-        )
+          is_folio_suppressed: true,
+          folio_hrid: 'old_hrid' # Use the existing folio_hrid to find the record
+        }
 
         expect { AspaceToFolioRecord.create_or_update_from_data(data) }
           .not_to change(AspaceToFolioRecord, :count)
 
         existing_record.reload
-        expect(existing_record.folio_hrid).to eq('new_hrid')
+        expect(existing_record.folio_hrid).to eq('old_hrid')
         expect(existing_record.pending_update).to eq('to_aspace')
         expect(existing_record.is_folio_suppressed).to be true
       end
 
       it 'does not update fields that are not present in the data hash' do
-        expect { AspaceToFolioRecord.create_or_update_from_data(base_data) }
+        data = {
+          folio_hrid: 'old_hrid' # Use the existing folio_hrid to find the record
+        }
+
+        expect { AspaceToFolioRecord.create_or_update_from_data(data) }
           .not_to change(AspaceToFolioRecord, :count)
 
         existing_record.reload

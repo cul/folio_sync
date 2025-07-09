@@ -14,6 +14,8 @@ module FolioSync
       end
 
       def fetch_and_sync_aspace_to_folio_records(last_x_hours)
+        database_valid?
+
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
         # 1. Fetch resources from ArchivesSpace based on their modification time and save them to the database
@@ -93,6 +95,27 @@ module FolioSync
         @linking_errors = updater.updating_errors
       end
 
+      # If any of the records in the database has its folio_hrid set to nil,
+      # we assume the database is not valid
+      def database_valid?
+        if AspaceToFolioRecord.exists?(
+          archivesspace_instance_key: @instance_key,
+          folio_hrid: nil
+        )
+
+          ApplicationMailer.with(
+            to: Rails.configuration.folio_sync[:aspace_to_folio][:developer_email_address],
+            subject: "FOLIO Sync failed to validate database for #{@instance_key}",
+            instance_key: @instance_key
+          ).folio_sync_database_error_email.deliver
+
+          raise "Database is not valid for instance #{@instance_key}."
+        end
+
+        @logger.info("Database is valid for instance #{@instance_key}.")
+        true
+      end
+
       def clear_downloads!
         config = Rails.configuration.folio_sync[:aspace_to_folio]
         downloads_dir = File.join(config[:marc_download_base_directory], @instance_key)
@@ -106,6 +129,7 @@ module FolioSync
         @downloading_errors = []
         @saving_errors = []
         @fetching_errors = []
+        @linking_errors = []
       end
     end
   end
