@@ -54,8 +54,8 @@ module FolioSync
         folio_hrid = nil
 
         if has_folio_hrid
-          folio_hrid = resource['id_0'] if @instance_key == 'cul'
-          folio_hrid = resource['user_defined']['string_1'] if @instance_key == 'barnard'
+          folio_hrid = json_parsed['id_0'] if @instance_key == 'cul'
+          folio_hrid = json_parsed['user_defined']['string_1'] if @instance_key == 'barnard'
         end
 
         data_to_save = {
