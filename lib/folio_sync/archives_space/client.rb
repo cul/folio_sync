@@ -50,8 +50,16 @@ class FolioSync::ArchivesSpace::Client < ArchivesSpace::Client
     end
   end
 
-  # This method is used only for a one-time manual step
-  # to identify which ASpace resources have corresponding FOLIO records.
+  # This method fetches all resources for a given repository
+  # and yields them to the block for processing.
+  # It handles pagination automatically.
+  #
+  # @param repo_id [String] The ID of the repository to fetch resources from.
+  # @param query_params [Hash] The query parameters for the API request.
+  #
+  # @yield [Array] The array of resources fetched from the API.
+  #
+  # @return [void]
   def retrieve_resources_for_repository(repo_id, query_params)
     query = query_params.dup
     query[:page] ||= 1

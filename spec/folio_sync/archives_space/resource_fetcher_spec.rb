@@ -75,15 +75,13 @@ RSpec.describe FolioSync::ArchivesSpace::ResourceFetcher do
 
     it 'builds query parameters with a modification time filter' do
       instance = described_class.new(instance_key)
-      allow(instance).to receive(:time_to_solr_date_format).with(modified_since).and_return('2023-01-01T00:00:00.000Z')
 
       result = instance.send(:build_query_params, modified_since)
 
       expect(result).to eq({
-        q: 'primary_type:resource suppressed:false system_mtime:[2023-01-01T00:00:00.000Z TO *]',
         page: 1,
         page_size: described_class::PAGE_SIZE,
-        fields: %w[id identifier system_mtime title publish json]
+        modified_since: modified_since.to_i
       })
     end
 
@@ -92,20 +90,9 @@ RSpec.describe FolioSync::ArchivesSpace::ResourceFetcher do
       result = instance.send(:build_query_params, nil)
 
       expect(result).to eq({
-        q: 'primary_type:resource suppressed:false',
         page: 1,
-        page_size: described_class::PAGE_SIZE,
-        fields: %w[id identifier system_mtime title publish json]
+        page_size: described_class::PAGE_SIZE
       })
-    end
-  end
-
-  describe '#time_to_solr_date_format' do
-    it 'formats time correctly for Solr' do
-      instance = described_class.new(instance_key)
-      time = Time.utc(2023, 1, 1, 12, 30, 45, 123_000)
-      result = instance.send(:time_to_solr_date_format, time)
-      expect(result).to eq('2023-01-01T12:30:45.123Z')
     end
   end
 
@@ -129,12 +116,12 @@ RSpec.describe FolioSync::ArchivesSpace::ResourceFetcher do
   end
 
   describe '#log_resource_processing' do
-    let(:resource) { { 'title' => 'Test Resource', 'id' => '123' } }
+    let(:resource) { { 'title' => 'Test Resource', 'uri' => '/repositories/1/resources/123' } }
 
     it 'logs resource processing message' do
       instance = described_class.new(instance_key)
       instance.send(:log_resource_processing, resource)
-      expect(logger).to have_received(:info).with('Processing resource: Test Resource (ID: 123)')
+      expect(logger).to have_received(:info).with('Processing resource: Test Resource (URI: /repositories/1/resources/123)')
     end
   end
 end

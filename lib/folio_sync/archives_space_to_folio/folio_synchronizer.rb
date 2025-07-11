@@ -29,7 +29,11 @@ module FolioSync
       end
 
       def fetch_archivesspace_resources(modified_since)
-        @logger.info("Fetching ArchivesSpace resources modified since: #{modified_since}")
+        if modified_since
+          @logger.info("Fetching ArchivesSpace resources modified since: #{modified_since.utc} (#{modified_since.to_i})")
+        else
+          @logger.info('Fetching all ArchivesSpace resources (no time filter)')
+        end
 
         fetcher = FolioSync::ArchivesSpace::ResourceFetcher.new(@instance_key)
         fetcher.fetch_and_save_recent_resources(modified_since)
