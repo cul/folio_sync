@@ -9,9 +9,11 @@ class AspaceToFolioRecord < ApplicationRecord
 
   def self.create_or_update_from_data(data)
     if data[:folio_hrid].present?
+      puts 'FOLIO HRID is present'
       existing_record = find_by(folio_hrid: data[:folio_hrid])
 
       if existing_record
+        puts "Found existing record with folio_hrid: #{data[:folio_hrid]}"
         # Update the existing record with pending_update, is_folio_suppressed and folio_hrid
         # Other fields remain unchanged
         update_attributes = {}

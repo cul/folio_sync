@@ -66,6 +66,7 @@ module FolioSync
           pending_update: 'to_folio',
           is_folio_suppressed: !resource['publish']
         }
+        @logger.info("Saving resource #{resource['id']} to with data #{data_to_save}...")
 
         AspaceToFolioRecord.create_or_update_from_data(data_to_save)
       rescue StandardError => e
