@@ -50,6 +50,7 @@ module FolioSync
 
       def save_resource_to_database(repo_id, resource)
         json_parsed = resource['json'] ? JSON.parse(resource['json']) : {}
+        @logger.error("We are calling save_resource_to_database on a resource with this data: #{json_parsed.inspect}")
         has_folio_hrid = json_parsed.dig('user_defined', 'boolean_1')
         folio_hrid = nil
 
