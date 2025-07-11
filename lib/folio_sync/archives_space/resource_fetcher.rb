@@ -32,8 +32,10 @@ module FolioSync
       def fetch_and_save_resources_from_repository(repo_id, modified_since)
         query_params = build_query_params(modified_since)
 
-        @client.retrieve_paginated_resources(repo_id, query_params) do |resources|
+        @client.retrieve_resources_for_repository(repo_id, query_params) do |resources|
           resources.each do |resource|
+            next if resource['suppressed']
+
             log_resource_processing(resource)
             save_resource_to_database(repo_id, resource)
           rescue StandardError => e
@@ -49,14 +51,13 @@ module FolioSync
       end
 
       def save_resource_to_database(repo_id, resource)
-        json_parsed = resource['json'] ? JSON.parse(resource['json']) : {}
-        @logger.error("We are calling save_resource_to_database on a resource with this data: #{json_parsed.inspect}")
-        has_folio_hrid = json_parsed.dig('user_defined', 'boolean_1')
+        @logger.info("We are calling save_resource_to_database on a resource with this data: #{resource.inspect}")
+        has_folio_hrid = resource.dig('user_defined', 'boolean_1')
         folio_hrid = nil
 
         if has_folio_hrid
-          folio_hrid = json_parsed['id_0'] if @instance_key == 'cul'
-          folio_hrid = json_parsed['user_defined']['string_1'] if @instance_key == 'barnard'
+          folio_hrid = resource['id_0'] if @instance_key == 'cul'
+          folio_hrid = resource.dig('user_defined', 'string_1') if @instance_key == 'barnard'
         end
 
         data_to_save = {
@@ -79,23 +80,21 @@ module FolioSync
 
       # Builds query parameters for fetching resources.
       # If a modification time is provided, the query filters resources updated since that time.
+      # The modified_since parameter should be a Time object, which gets converted to a Unix timestamp.
       # Otherwise, it retrieves all unsuppressed resources.
       # Note: Other instances may have different requirements for the query.
       def build_query_params(modified_since = nil)
         query = {
-          q: 'primary_type:resource suppressed:false',
           page: 1,
-          page_size: PAGE_SIZE,
-          fields: %w[id identifier system_mtime title publish json]
+          page_size: PAGE_SIZE
         }
 
-        query[:q] += " system_mtime:[#{time_to_solr_date_format(modified_since)} TO *]" if modified_since
+        if modified_since
+          # Convert Time object to Unix timestamp
+          query[:modified_since] = modified_since.to_i
+        end
 
         query
-      end
-
-      def time_to_solr_date_format(time)
-        time.utc.strftime('%Y-%m-%dT%H:%M:%S.%LZ')
       end
 
       def extract_id(uri)
@@ -107,7 +106,7 @@ module FolioSync
       end
 
       def log_resource_processing(resource)
-        @logger.info("Processing resource: #{resource['title']} (ID: #{resource['id']})")
+        @logger.info("Processing resource: #{resource['title']} (URI: #{resource['uri']})")
       end
     end
   end
