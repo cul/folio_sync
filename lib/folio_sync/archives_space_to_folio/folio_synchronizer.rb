@@ -113,7 +113,7 @@ module FolioSync
             instance_key: @instance_key
           ).folio_sync_database_error_email.deliver
 
-          raise "Database is not valid for instance #{@instance_key}."
+          raise FolioSync::Exceptions::InvalidDatabaseState, "Database is not valid for instance #{@instance_key}."
         end
 
         @logger.info("Database is valid for instance #{@instance_key}.")

@@ -25,6 +25,7 @@ module FolioSync
           update_controlfield_001
           add_controlfield_003
           merge_035_fields
+          update_datafield_099
           update_datafield_100
           update_datafield_856
           add_965_no_export_auth
@@ -73,6 +74,13 @@ module FolioSync
 
         @marc_record.fields.delete_if { |field| field.tag == '035' }
         combined_035_fields.each { |field| @marc_record.append(field) }
+      end
+
+      # For new FOLIO records (records without the hrid), remove datafield 099
+      def update_datafield_099
+        return if @hrid
+
+        @marc_record.fields.delete_if { |field| field.tag == '099' }
       end
 
       # Update datafield 100 - remove trailing punctuation from subfield d and remove subfield e

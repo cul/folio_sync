@@ -33,7 +33,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
   before do
     allow(Rails.configuration).to receive_messages(archivesspace: archivesspace_config)
     allow(Logger).to receive(:new).and_return(logger)
-    
+
     # Stub for sync_resources_to_folio method
     allow(AspaceToFolioRecord).to receive(:where)
       .with(archivesspace_instance_key: instance_key, pending_update: 'to_folio')
@@ -287,7 +287,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
         # Create records with folio_hrid values (valid records) for the target instance
         FactoryBot.create(:aspace_to_folio_record, :with_folio_data, archivesspace_instance_key: instance_key)
         FactoryBot.create(:aspace_to_folio_record, :with_folio_data, archivesspace_instance_key: instance_key)
-        
+
         # Create records for different instance (should not affect validation)
         FactoryBot.create(:aspace_to_folio_record, folio_hrid: nil, archivesspace_instance_key: 'other_instance')
       end
@@ -311,7 +311,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
         # Create a mix of valid and invalid records for the target instance
         FactoryBot.create(:aspace_to_folio_record, :with_folio_data, archivesspace_instance_key: instance_key)
         FactoryBot.create(:aspace_to_folio_record, folio_hrid: nil, archivesspace_instance_key: instance_key)
-        
+
         # Create records for different instance (should not affect validation)
         FactoryBot.create(:aspace_to_folio_record, :with_folio_data, archivesspace_instance_key: 'other_instance')
       end
@@ -331,7 +331,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       end
 
       it 'does not return true' do
-        expect { instance.database_valid? }.to raise_error
+        expect { instance.database_valid? }.to raise_error(FolioSync::Exceptions::InvalidDatabaseState)
       end
     end
   end
