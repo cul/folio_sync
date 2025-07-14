@@ -92,7 +92,7 @@ namespace :folio_sync do
       )
 
       instance_key = ENV['instance_key']
-      file_path = File.join(instance_key, ENV['file_name'])
+      file_path = construct_file_path(instance_key, ENV['file_name'])
 
       enhanced_marc_record = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(
         file_path,
