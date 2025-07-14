@@ -28,6 +28,9 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
           <subfield code="e">Editor</subfield>
         </datafield>
         #{field_856_xml}
+        <datafield tag="099" ind1=" " ind2=" ">
+          <subfield code="a">id_0_value_from_aspace</subfield>
+        </datafield>
         <datafield tag="110" ind1="2" ind2=" ">
           <subfield code="a">Corporate Name.</subfield>
         </datafield>
@@ -90,6 +93,9 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
       expect(processed_record['001'].value).to eq('123456')
       # Check controlfield 003
       expect(processed_record['003'].value).to eq('NNC')
+      # Check datafield 099
+      field_099 = processed_record['099']
+      expect(field_099['a']).to eq('id_0_value_from_aspace')
       # Check datafield 100
       field_100 = processed_record['100']
       expect(field_100['d']).to eq('1990')
@@ -108,6 +114,14 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
       field_610 = processed_record.fields('610').first
       expect(field_610['a']).to eq('Another Corporate Name.')
       expect(field_610['b']).to eq('Subfield b')
+    end
+
+    context 'when hrid is nil (during a first-time sync)' do
+      let(:hrid) { nil }
+      it 'applies some different transformations' do
+        # Check datafield 099
+        expect(processed_record['099']).to be_nil
+      end
     end
   end
 

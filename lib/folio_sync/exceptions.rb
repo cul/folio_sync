@@ -6,4 +6,6 @@ module FolioSync::Exceptions
   class ArchivesSpaceRequestError < FolioSyncException; end
 
   class FolioRequestError < FolioSyncException; end
+
+  class InvalidDatabaseState < FolioSyncException; end
 end
