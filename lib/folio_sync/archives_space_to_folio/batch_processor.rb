@@ -20,10 +20,21 @@ module FolioSync
       # Processes records in batches and sends them to FOLIO
       # @param records [ActiveRecord::Relation] Collection of AspaceToFolioRecord objects
       def process_records(records)
+        # Execute the FOLIO job
+        # Use the :: prefix to avoid namespace issues
+        @job_manager = ::Folio::Client::JobExecutionManager.new(@folio_client, job_profile_uuid, batch_size)
+
         records.in_batches(of: batch_size) do |batch|
           process_batch(batch)
         end
 
+        # All batches are executed in a single FOLIO Job Execution
+        job_execution_summary = @job_manager.execute
+
+        result_processor = FolioSync::ArchivesSpaceToFolio::JobResultProcessor.new(@folio_reader, @folio_writer, @instance_key)
+        result_processor.process_results(job_execution_summary)
+        job_result_errors = result_processor.processing_errors
+        @syncing_errors.concat(job_result_errors)
         @syncing_errors.concat(@record_processor.processing_errors)
       end
 
@@ -41,27 +52,14 @@ module FolioSync
 
         return if processed_records.empty?
 
-        submit_batch_to_folio(processed_records)
+        # Process the results (suppression updates and database record updates)
+        job_manager.add_records(processed_records)
       rescue StandardError => e
         error = FolioSync::Errors::SyncingError.new(
           message: "Failed to process a batch of #{records_batch.count} records: #{e.message}"
         )
         @syncing_errors << error
         Rails.logger.error("Error processing batch: #{e.message}")
-      end
-
-      def submit_batch_to_folio(processed_records)
-        # Execute the FOLIO job
-        # Use the :: prefix to avoid namespace issues
-        job_manager = ::Folio::Client::JobExecutionManager.new(@folio_client, job_profile_uuid, batch_size)
-        job_execution_summary = job_manager.execute_job(processed_records)
-
-        # Process the results (suppression updates and database record updates)
-        result_processor = FolioSync::ArchivesSpaceToFolio::JobResultProcessor.new(@folio_reader, @folio_writer, @instance_key)
-        result_processor.process_results(job_execution_summary)
-
-        job_result_errors = result_processor.processing_errors
-        @syncing_errors.concat(job_result_errors)
       end
 
       def batch_size
