@@ -51,6 +51,8 @@ group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem 'brakeman', require: false
 
+  gem 'retriable', '~> 3.1'
+
   gem 'rspec-rails', '~> 8.0.0'
 
   gem 'pry', '~> 0.15.0'

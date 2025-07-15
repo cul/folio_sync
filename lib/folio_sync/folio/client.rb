@@ -19,6 +19,13 @@ class FolioSync::Folio::Client < FolioApiClient
   end
 
   def create_job_execution(job_type_uuid, data_type, number_of_expected_records, batch_size)
-    Folio::Client::JobExecution.new(self, job_type_uuid, data_type, number_of_expected_records, batch_size)
+    Folio::Client::JobExecution.new(
+      self, job_type_uuid, data_type, number_of_expected_records, batch_size,
+      self.job_log_entry_batch_size
+    )
+  end
+
+  def job_log_entry_batch_size
+    Rails.configuration.folio_sync[:job_log_entry_batch_size] || 100
   end
 end

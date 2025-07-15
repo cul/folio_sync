@@ -1,5 +1,6 @@
 development:
   default_sender_email_address: folio-sync@abc.com
+  job_log_entry_batch_size: 100
 
   aspace_to_folio:
     # NOTE: MARC files will actually be downloaded to "#{marc_download_base_directory}/#{instance_key}"
@@ -18,6 +19,7 @@ development:
 
 test:
   default_sender_email_address: folio-sync@abc.com
+  job_log_entry_batch_size: 100
 
   aspace_to_folio:
     # NOTE: MARC files will actually be downloaded to "#{marc_download_base_directory}/#{instance_key}"
