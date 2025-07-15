@@ -26,12 +26,16 @@ class Folio::Client::JobExecution
   #                             A bigger value results in fewer requests.  A smaller number results in faster requests.
   #                             The batch_size is not realted to the total number of records you want to import in a
   #                             single job execution.
-  def initialize(folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size)
+  # @param [Integer] job_log_entry_batch_size The internal batch size to use when retrieving job log entries from the
+  #                                           data import API endpoint.  A bigger value results in fewer requests.
+  #                                           A smaller number results in faster requests.
+  def initialize(folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size, job_log_entry_batch_size)
     @client = folio_client
     @number_of_expected_records = number_of_expected_records
     @number_of_records_flushed_so_far = 0
     @has_started = false
     @batch_size = batch_size
+    @job_log_entry_batch_size = job_log_entry_batch_size
     @unflushed_record_batch = []
     @custom_metadata_for_records = []
     @job_profile_info_dto = { 'id': job_profile_uuid, 'dataType': data_type }
@@ -186,12 +190,8 @@ class Folio::Client::JobExecution
     Rails.logger.info("Job execution #{@id} has finished.  It took #{Time.current - start_time} seconds to run.")
 
     # When job is complete, iterate over all job log entries and collect relevant info.
-    # TODO: We might want to make multiple requests with a lower
-    # limit if we're expecting a potentially large number of results.
-    job_execution_status_response = client.get("/metadata-provider/jobLogEntries/#{@id}",
-                                               { limit: @number_of_expected_records })
+    entries = fetch_aggregated_job_execution_entries
 
-    entries = job_execution_status_response['entries'] || []
     Rails.logger.debug("Number of entries in response: #{entries.length}")
 
     # Log detailed information about each entry
@@ -207,6 +207,40 @@ class Folio::Client::JobExecution
 
     Rails.logger.info("Creating JobExecutionSummary with #{entries.length} entries")
     Folio::Client::JobExecutionSummary.new(entries, @custom_metadata_for_records)
+  end
+
+  def fetch_aggregated_job_execution_entries
+    entries = []
+
+    # We might have a very high number of entries in a job.  Could be on the scale of 5000+.
+    # We probably don't want to retrieve 5000 JSON objects in a single request, since FOLIO
+    # sometimes locks up with really large JSON responses, so we'll retireve the entries in
+    # paginated batches.  If we fail to retrieve one of the pages of results, we'll retry retrieval.
+
+    offset = 0
+    limit = @job_log_entry_batch_size
+
+    # offset = 0, limit = 100 ---> 100 records, starting at #1 (1-100)
+    # offset = 100, limit = 100 ---> 100 records, starting at #101 (101-200)
+    # offset = 200, limit = 100 ---> 100 records, starting at #201 (201-300)
+    loop do
+      Retriable.retriable(on: Faraday::Error, tries: 3, base_interval: 1) do
+        Rails.logger.debug(
+          '(within retriable block) fetch_aggregated_job_execution_entries is retrieving '\
+          "results with offset #{offset} and limit #{limit}..."
+        )
+        job_execution_status_response = client.get(
+          "/metadata-provider/jobLogEntries/#{@id}", { limit: limit, offset: offset }
+        )
+        entries.concat(job_execution_status_response['entries'])
+      end
+
+      offset += limit
+      break if offset >= @number_of_expected_records
+    end
+
+    Rails.logger.debug("fetch_aggregated_job_execution_entries is returning #{entries.length} entries")
+    entries
   end
 end
 
