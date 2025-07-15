@@ -3,6 +3,8 @@
 module FolioSync
   module ArchivesSpaceToFolio
     class FolioSynchronizer
+      VALID_MODES = [:all, :download, :sync].freeze
+
       attr_reader :syncing_errors, :downloading_errors, :saving_errors, :fetching_errors, :linking_errors
 
       ONE_HOUR_IN_SECONDS = 3600
@@ -13,19 +15,30 @@ module FolioSync
         clear_error_arrays!
       end
 
-      def fetch_and_sync_aspace_to_folio_records(last_x_hours)
+      # Creates DB records for Aspace records, performs MARC downloads, syncs resources to folio, and updates
+      # aspace record metadata after a sync.
+      # @param [Integer] last_x_hours Records newer than this are synced.
+      # @param [Symbol] mode One of the following values: :all, :download, :sync
+      def fetch_and_sync_aspace_to_folio_records(last_x_hours, mode)
+        raise ArgumentError, "Invalid mode: #{mode}" unless VALID_MODES.include?(mode)
+
         database_valid?
 
         modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        # 1. Fetch resources from ArchivesSpace based on their modification time and save them to the database
-        fetch_archivesspace_resources(modified_since)
-        # 2. Download MARC XML files from ArchivesSpace and FOLIO
-        download_marc_from_archivesspace_and_folio
-        # 3. Enhance MARC records and sync them to FOLIO (including the discoverySuppress status)
-        sync_resources_to_folio
-        # 4. For newly created FOLIO records, update their respective ASpace records with the FOLIO HRIDs
-        update_archivesspace_records
+        if [:all, :download].include?(mode)
+          # 1. Fetch resources from ArchivesSpace based on their modification time and save them to the database
+          fetch_archivesspace_resources(modified_since)
+          # 2. Download MARC XML files from ArchivesSpace and FOLIO
+          download_marc_from_archivesspace_and_folio
+        end
+
+        if [:all, :sync].include?(mode) # rubocop:disable Style/GuardClause
+          # 3. Enhance MARC records and sync them to FOLIO (including the discoverySuppress status)
+          sync_resources_to_folio
+          # 4. For newly created FOLIO records, update their respective ASpace records with the FOLIO HRIDs
+          update_archivesspace_records
+        end
       end
 
       def fetch_archivesspace_resources(modified_since)
