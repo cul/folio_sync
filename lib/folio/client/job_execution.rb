@@ -6,6 +6,9 @@
 # For more information about Data Import, follow the link below:
 # https://github.com/folio-org/mod-source-record-manager/tree/master?tab=readme-ov-file#data-import-workflow
 class Folio::Client::JobExecution
+  JOB_EXECUTION_START_TIMEOUT = 120
+  JOB_EXECUTION_INACTIVITY_TIMEOUT = 15
+
   attr_reader :client, :id, :has_started, :number_of_expected_records
 
   # Creates a new JobExecution.  Note that the creation of this object involves multiple API calls to FOLIO.
@@ -56,7 +59,7 @@ class Folio::Client::JobExecution
   # the creation of a job profile snapshot in FOLIO (which is required for a job execution to run).
   def set_job_profile_to_job_execution
     client.put("/change-manager/jobExecutions/#{@id}/jobProfile", @job_profile_info_dto)
-    Rails.logger.debug("Job profile set successfully")
+    Rails.logger.debug('Job profile set successfully')
   end
 
   # Add a single record to the current job execution.  This method can be called multiple times
@@ -77,7 +80,7 @@ class Folio::Client::JobExecution
     raise "Cannot add more MARC records to a #{self.class.name} that has already started!" if @has_started
 
     Rails.logger.info("Flushing batch of #{@unflushed_record_batch.length} records (is_last_batch: #{is_last_batch})")
-    
+
     counter_value_for_batch = @number_of_records_flushed_so_far + @unflushed_record_batch.length
     raw_records_dto = {
       id: SecureRandom.uuid, # for each chunk we need to have and unique uuid
@@ -118,93 +121,92 @@ class Folio::Client::JobExecution
 
     # Flush final empty batch with `is_last_batch: true` argument, which only serves to indicate that we are done
     # sending batches. (This practice is recommended by EBSCO.)
-    Rails.logger.info("Sending final empty batch to signal completion")
+    Rails.logger.info('Sending final empty batch to signal completion')
     self.flush_unflushed_record_batch(is_last_batch: true)
 
     @has_started = true
     Rails.logger.info("Job execution #{@id} started successfully")
   end
 
+  def folio_acknolwedged_job_has_started?
+    client.get("/change-manager/jobExecutions/#{@id}").dig('progress', 'current').positive?
+  end
+
+  def fetch_folio_job_execution_details
+    client.get("/change-manager/jobExecutions/#{@id}")
+  end
+
   # Blocks until the job execution is complete, and then returns a Folio::Client::JobExecutionSummary.
   # @return A Folio::Client::JobExecutionSummary object containing information about the job once it is complete.
   def wait_until_complete
-    Rails.logger.info("Waiting for job execution #{@id} to complete. Expecting #{@number_of_expected_records} records.")
+    # Wait for job to start
+    Rails.logger.info("Waiting for job execution #{@id} to start. Expecting #{@number_of_expected_records} records.")
     start_time = Time.current
-    processed_records = []
-    poll_count = 0
-    
     loop do
-      poll_count += 1
       sleep 2
+      break if folio_acknolwedged_job_has_started?
 
-      # Check progress
-      Rails.logger.debug("Poll ##{poll_count}: Checking job execution status for #{@id}")
-      job_execution_status_response = client.get("/metadata-provider/jobLogEntries/#{@id}")
-      Rails.logger.debug("Job execution status response: #{job_execution_status_response.to_json}")
+      time_since_start = Time.current - start_time
+      next unless time_since_start > JOB_EXECUTION_START_TIMEOUT
 
-      total_records_acknowledged = job_execution_status_response['totalRecords'] || 0
-      Rails.logger.debug("Total records acknowledged: #{total_records_acknowledged}")
+      raise FolioSync::Exceptions::JobExecutionStartTimeoutError,
+            "Job #{@id} has taken too long to start.  #{time_since_start} seconds have passed and no records "\
+            'have been processed.'
+    end
+    Rails.logger.info("Job execution #{@id} has started.  It took #{Time.current - start_time} seconds to start.")
 
-      # If it's been a while and the job still appears to have 0 records, we will
-      # assume that something has gone wrong and the job has failed, so we'll break.
-      elapsed_time_in_seconds = Time.current - start_time
-      if total_records_acknowledged.zero? && elapsed_time_in_seconds > 10
-        Rails.logger.error("Job execution #{@id} timed out with 0 records acknowledged after #{elapsed_time_in_seconds} seconds")
-        break
+    # Wait for job to complete (and monitor for inactivity)
+    Rails.logger.info("Waiting for job execution #{@id} to complete. Expecting #{@number_of_expected_records} records.")
+    last_activity_time = Time.current
+    num_records_processed = 0
+    loop do
+      sleep 2
+      folio_job_execution_details = fetch_folio_job_execution_details
+      break if folio_job_execution_details['status'] == 'COMMITTED' # This indicates that the job is done
+
+      latest_num_records_processed = folio_job_execution_details.dig('progress', 'current') || 0
+      if num_records_processed != latest_num_records_processed
+        num_records_processed = latest_num_records_processed
+        last_activity_time = Time.current
       end
 
-      # If some of the submitted records have been acknowledged, but not all of them are showing up yet,
-      # skip this loop iteration and check again during the next iteration.
-      if total_records_acknowledged < @number_of_expected_records
-        Rails.logger.debug("Only #{total_records_acknowledged}/#{@number_of_expected_records} records acknowledged. Continuing to wait...")
-        next
-      end
+      Rails.logger.debug(
+        "Current num_records_processed for job execution #{@id}: "\
+        "#{num_records_processed}. Expecting #{@number_of_expected_records} records."
+      )
 
-      # If we made it here, this means that all of the records have been acknowledged.
-      # Let's see how many have completed processing.
-      Rails.logger.info("All #{total_records_acknowledged} records acknowledged. Checking completion status...")
-      
-      entries = job_execution_status_response['entries'] || []
-      Rails.logger.debug("Number of entries in response: #{entries.length}")
-      
-      # Log detailed information about each entry
-      entries.each_with_index do |entry, index|
-        Rails.logger.debug("Entry #{index}: sourceRecordOrder=#{entry['sourceRecordOrder']}, " \
-                          "sourceRecordActionStatus=#{entry['sourceRecordActionStatus']}, " \
-                          "has sourceRecordActionStatus key=#{entry.key?('sourceRecordActionStatus')}, " \
-                          "error=#{entry['error']}, " \
-                          "relatedInstanceInfo.actionStatus=#{entry.dig('relatedInstanceInfo', 'actionStatus')}")
-      end
-      
-      processed_records = entries.select do |entry|
-        # sourceRecordActionStatus key is only present when processing is complete
-        has_status = entry.key?('sourceRecordActionStatus')
-        Rails.logger.debug("Entry sourceRecordOrder #{entry['sourceRecordOrder']}: has sourceRecordActionStatus = #{has_status}")
-        has_status
-      end
-      
-      Rails.logger.info("Processed records count: #{processed_records.length}/#{@number_of_expected_records}")
+      time_since_last_activity = Time.current - last_activity_time
+      next unless time_since_last_activity > JOB_EXECUTION_INACTIVITY_TIMEOUT
 
-      # Break if there are a positive number of records
-      # and all of those records have been processed.
-      if processed_records.length == @number_of_expected_records
-        Rails.logger.info("All records processed! Job execution #{@id} complete after #{elapsed_time_in_seconds} seconds")
-        break
-      else
-        Rails.logger.debug("Still waiting. #{processed_records.length}/#{@number_of_expected_records} records have sourceRecordActionStatus")
-      end
-      
-      # Add a safety check for maximum wait time
-      if elapsed_time_in_seconds > 300  # 5 minutes
-        Rails.logger.error("Job execution #{@id} timed out after #{elapsed_time_in_seconds} seconds. " \
-                          "Processed: #{processed_records.length}/#{@number_of_expected_records}")
-        Rails.logger.error("Final response state: #{job_execution_status_response.to_json}")
-        raise "Job execution timed out after 5 minutes"
-      end
+      raise FolioSync::Exceptions::JobExecutionInactivityTimeoutError,
+            "Job #{@id} has been inactive for too long. Timed out after #{time_since_last_activity} "\
+            "seconds of inactivity.  Number of records processed: #{num_records_processed} "\
+            "out of #{@number_of_expected_records} expected."
+    end
+    Rails.logger.info("Job execution #{@id} has finished.  It took #{Time.current - start_time} seconds to run.")
+
+    # When job is complete, iterate over all job log entries and collect relevant info.
+    # TODO: We might want to make multiple requests with a lower
+    # limit if we're expecting a potentially large number of results.
+    job_execution_status_response = client.get("/metadata-provider/jobLogEntries/#{@id}",
+                                               { limit: @number_of_expected_records })
+
+    entries = job_execution_status_response['entries'] || []
+    Rails.logger.debug("Number of entries in response: #{entries.length}")
+
+    # Log detailed information about each entry
+    entries.each_with_index do |entry, index|
+      Rails.logger.debug("Entry #{index}: sourceRecordOrder=#{entry['sourceRecordOrder']}, " \
+                        "sourceRecordActionStatus=#{entry['sourceRecordActionStatus']}, " \
+                        "has sourceRecordActionStatus key=#{entry.key?('sourceRecordActionStatus')}, " \
+                        "error=#{entry['error']}, " \
+                        "relatedInstanceInfo.actionStatus=#{entry.dig('relatedInstanceInfo', 'actionStatus')}")
     end
 
-    Rails.logger.info("Creating JobExecutionSummary with #{processed_records.length} processed records")
-    Folio::Client::JobExecutionSummary.new(processed_records, @custom_metadata_for_records)
+    Rails.logger.info("Entries count: #{entries.length}/#{@number_of_expected_records}")
+
+    Rails.logger.info("Creating JobExecutionSummary with #{entries.length} entries")
+    Folio::Client::JobExecutionSummary.new(entries, @custom_metadata_for_records)
   end
 end
 

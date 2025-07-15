@@ -24,7 +24,7 @@ module FolioSync
         total_records = records.count
         Rails.logger.info("Starting batch processing of #{total_records} records")
         batch_count = 0
-        
+
         records.in_batches(of: batch_size) do |batch|
           batch_count += 1
           Rails.logger.info("Processing batch #{batch_count} with #{batch.count} records")
@@ -39,7 +39,7 @@ module FolioSync
 
       def process_batch(records_batch)
         Rails.logger.info("Processing batch of #{records_batch.count} records")
-        
+
         # Log details about each record in the batch
         records_batch.each do |record|
           Rails.logger.debug("Batch contains record: repo=#{record.repository_key}, " \
@@ -70,22 +70,20 @@ module FolioSync
 
       def submit_batch_to_folio(processed_records)
         Rails.logger.info("Submitting batch of #{processed_records.length} records to FOLIO")
-        
+
         # Execute the FOLIO job
         # Use the :: prefix to avoid namespace issues
         job_manager = ::Folio::Client::JobExecutionManager.new(@folio_client, job_profile_uuid, batch_size)
         job_execution_summary = job_manager.execute_job(processed_records)
 
-        Rails.logger.info("FOLIO job execution completed. Processing results...")
-        
+        Rails.logger.info('FOLIO job execution completed. Processing results...')
+
         # Process the results (suppression updates and database record updates)
         result_processor = FolioSync::ArchivesSpaceToFolio::JobResultProcessor.new(@folio_reader, @folio_writer, @instance_key)
         result_processor.process_results(job_execution_summary)
 
         job_result_errors = result_processor.processing_errors
-        if job_result_errors.any?
-          Rails.logger.warn("Result processor reported #{job_result_errors.length} errors")
-        end
+        Rails.logger.warn("Result processor reported #{job_result_errors.length} errors") if job_result_errors.any?
         @syncing_errors.concat(job_result_errors)
       end
 
