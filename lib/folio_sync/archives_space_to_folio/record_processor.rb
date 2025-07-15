@@ -8,18 +8,24 @@ module FolioSync
       def initialize(instance_key)
         @instance_key = instance_key
         @processing_errors = []
+        Rails.logger.debug("RecordProcessor initialized for instance #{instance_key}")
       end
 
       # Processes a single AspaceToFolioRecord and returns enhanced MARC with metadata
       # @param record [AspaceToFolioRecord] The record to process
       # @return [Hash, nil] Returns { marc_record: MARC::Record, metadata: Hash } or nil if processing failed
       def process_record(record)
+        Rails.logger.debug("Processing record #{record.id}: repo=#{record.repository_key}, " \
+                          "resource=#{record.resource_key}, hrid=#{record.folio_hrid}")
+        
         aspace_marc_path, folio_marc_path = resolve_marc_paths(record)
+        
         enhanced_marc = create_enhanced_marc(aspace_marc_path, folio_marc_path, record.folio_hrid)
         metadata = build_metadata(record)
-
+        
+        Rails.logger.debug("Successfully processed record #{record.id} with metadata: #{metadata.inspect}")
         { marc_record: enhanced_marc, metadata: metadata }
-      rescue StandardError => e
+      rescue StandardError => e        
         error = FolioSync::Errors::SyncingError.new(
           resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
           message: "Failed to process record: #{e.message}"

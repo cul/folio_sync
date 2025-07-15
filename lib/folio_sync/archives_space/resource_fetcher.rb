@@ -51,7 +51,6 @@ module FolioSync
       end
 
       def save_resource_to_database(repo_id, resource)
-        @logger.info("We are calling save_resource_to_database on a resource with this data: #{resource.inspect}")
         has_folio_hrid = resource.dig('user_defined', 'boolean_1')
         folio_hrid = nil
 

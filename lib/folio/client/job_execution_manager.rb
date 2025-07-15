@@ -5,12 +5,20 @@ class Folio::Client::JobExecutionManager
     @folio_client = folio_client
     @job_profile_uuid = job_profile_uuid
     @batch_size = batch_size
+    Rails.logger.debug("JobExecutionManager initialized with profile #{job_profile_uuid}, batch_size #{batch_size}")
   end
 
   # Executes a complete FOLIO job with the given processed records
   # @param processed_records [Array<Hash>] Array of { marc_record: MARC::Record, metadata: Hash }
   # @return [Folio::Client::JobExecutionSummary] The completed job execution summary
   def execute_job(processed_records)
+    Rails.logger.info("Starting FOLIO job execution with #{processed_records.length} records")
+    
+    # Log metadata for each record
+    processed_records.each_with_index do |record, index|
+      Rails.logger.debug("Record #{index}: metadata=#{record[:metadata].inspect}")
+    end
+    
     # Create JobExecution
     job_execution = @folio_client.create_job_execution(
       @job_profile_uuid,
