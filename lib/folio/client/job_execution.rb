@@ -224,7 +224,7 @@ class Folio::Client::JobExecution
     # offset = 100, limit = 100 ---> 100 records, starting at #101 (101-200)
     # offset = 200, limit = 100 ---> 100 records, starting at #201 (201-300)
     loop do
-      ::Retriable.retriable(on: Faraday::Error, tries: 3, base_interval: 1) do
+      Retriable.retriable(on: Faraday::Error, tries: 3, base_interval: 1) do
         Rails.logger.debug(
           '(within retriable block) fetch_aggregated_job_execution_entries is retrieving '\
           "results with offset #{offset} and limit #{limit}..."
@@ -236,7 +236,7 @@ class Folio::Client::JobExecution
       end
 
       offset += limit
-      break if offset > @number_of_expected_records
+      break if offset >= @number_of_expected_records
     end
 
     Rails.logger.debug("fetch_aggregated_job_execution_entries is returning #{entries.length} entries")
