@@ -27,20 +27,15 @@ begin
 
   downloaded_files_dir = aspace_to_folio_config[:marc_download_base_directory]
   prepared_files_dir = aspace_to_folio_config[:prepared_marc_directory]
-  current_env = Rails.env
 
-  # If the downloads directory is not present, set a default downloads directory
   if downloaded_files_dir.blank?
-    downloaded_files_dir = Rails.root.join("tmp/#{current_env}/downloaded_files")
-    logger.warn("MARC download directory is not configured, defaulting to #{downloaded_files_dir}")
-    aspace_to_folio_config[:marc_download_base_directory] = downloaded_files_dir
+    logger.error('Directory for downloaded MARC files is not configured')
+    throw 'Please make sure the folio_sync.yml file contains a marc_download_base_directory'
   end
 
-  # If the prepared directory is not present, set a default prepared directory
   if prepared_files_dir.blank?
-    prepared_files_dir = Rails.root.join("tmp/#{current_env}/prepared_files")
-    logger.warn("Prepared MARC directory is not configured, defaulting to #{prepared_files_dir}")
-    aspace_to_folio_config[:prepared_marc_directory] = prepared_files_dir
+    logger.error('Directory for prepared MARC files is not configured')
+    throw 'Please make sure the folio_sync.yml file contains a prepared_marc_directory'
   end
 
   aspace_instances.each_key do |instance_name|

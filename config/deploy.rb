@@ -32,7 +32,7 @@ append  :linked_files,
         'config/master.key' # we don't use this often, when we do it is for API keys
 
 # Default value for linked_dirs is []
-append :linked_dirs, 'log', 'tmp/pids', 'node_modules'
+append :linked_dirs, 'log', 'tmp/pids', 'node_modules', 'tmp/working_data'
 # Capi will create symlinks to the linked_files and linked_dirs so that we can load
 # in config values without committing them to repo + these files can be shared across
 # deployments. They will actually exist inside the 'shared directory'
