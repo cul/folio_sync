@@ -28,7 +28,7 @@ RSpec.describe AspaceToFolioRecord, type: :model do
 
   describe 'enums' do
     it 'defines the correct values for pending_update' do
-      expect(AspaceToFolioRecord.pending_updates.keys).to match_array(%w[no_update to_folio to_aspace])
+      expect(AspaceToFolioRecord.pending_updates.keys).to match_array(%w[no_update to_folio to_aspace fix_required])
     end
   end
 

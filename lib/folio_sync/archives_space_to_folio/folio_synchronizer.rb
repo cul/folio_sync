@@ -75,10 +75,10 @@ module FolioSync
         @downloading_errors = downloader.downloading_errors
       end
 
+      # Create a new enhanced MARC binary record and save it to a local directory
       def prepare_folio_marc_records
         @logger.info('Preparing FOLIO MARC records for export')
 
-        # Create a new enhanced MARC binary record and save it to a local directory
         pending_records = AspaceToFolioRecord.where(
           archivesspace_instance_key: @instance_key,
           pending_update: 'to_folio'
@@ -88,7 +88,10 @@ module FolioSync
           aspace_marc_path = record.archivesspace_marc_xml_path
           folio_marc_path = record.folio_marc_xml_path if record.folio_hrid.present?
           prepared_folio_marc_path = record.prepared_folio_marc_path
-          @logger.info("Preparing FOLIO MARC record with ASpace MARC path: #{aspace_marc_path}, FOLIO MARC path: #{folio_marc_path}, and prepared path: #{prepared_folio_marc_path}")
+          @logger.info(
+            "Preparing FOLIO MARC record with ASpace MARC path: #{aspace_marc_path}, FOLIO MARC path: #{folio_marc_path}, " \
+            "and prepared path: #{prepared_folio_marc_path}"
+          )
 
           enhanced_record = create_enhanced_marc(aspace_marc_path, folio_marc_path, record.folio_hrid)
           File.binwrite(prepared_folio_marc_path, enhanced_record.to_marc)

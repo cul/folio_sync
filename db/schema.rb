@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_16_174504) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_09_201152) do
   create_table "aspace_to_folio_records", force: :cascade do |t|
     t.string "archivesspace_instance_key", null: false
     t.integer "repository_key", null: false
