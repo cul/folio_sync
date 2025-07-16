@@ -97,6 +97,7 @@ module FolioSync
         rescue StandardError => e
           @logger.error("Failed to prepare FOLIO MARC record for ID #{record.id}: #{e.message}")
           @logger.error("Backtrace: #{e.backtrace.join("\n")}")
+          record.update!(pending_update: 'fix_required')
           next
         end
       end
