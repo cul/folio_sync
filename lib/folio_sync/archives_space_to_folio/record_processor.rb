@@ -18,9 +18,7 @@ module FolioSync
         Rails.logger.debug("Processing record #{record.id}: repo=#{record.repository_key}, " \
                           "resource=#{record.resource_key}, hrid=#{record.folio_hrid}")
         
-        aspace_marc_path, folio_marc_path = resolve_marc_paths(record)
-        
-        enhanced_marc = create_enhanced_marc(aspace_marc_path, folio_marc_path, record.folio_hrid)
+        enhanced_marc = load_marc_record(record.prepared_folio_marc_path)
         metadata = build_metadata(record)
         
         Rails.logger.debug("Successfully processed record #{record.id} with metadata: #{metadata.inspect}")
@@ -35,20 +33,7 @@ module FolioSync
         nil
       end
 
-      def create_enhanced_marc(aspace_marc_path, folio_marc_path, folio_hrid)
-        enhancer = MarcRecordEnhancer.new(aspace_marc_path, folio_marc_path, folio_hrid, @instance_key)
-        enhancer.enhance_marc_record!
-      end
-
-      def resolve_marc_paths(record)
-        config = Rails.configuration.folio_sync[:aspace_to_folio]
-        aspace_marc_path = File.join(config[:marc_download_base_directory], record.archivesspace_marc_xml_path)
-        folio_marc_path = if record.folio_hrid.present?
-                            File.join(config[:marc_download_base_directory],
-                                      record.folio_marc_xml_path)
-                          end
-        [aspace_marc_path, folio_marc_path]
-      end
+      private
 
       # Preserve some of the data that cannot be sent in a MARC record
       # To use later when updating the record back in ArchivesSpace
@@ -59,6 +44,12 @@ module FolioSync
           hrid: record.folio_hrid,
           suppress_discovery: record.is_folio_suppressed
         }
+      end
+
+      def load_marc_record(marc_file_path)
+        raise "MARC file not found: #{marc_file_path}" unless File.exist?(marc_file_path)
+
+        MARC::Reader.new(marc_file_path).first
       end
     end
   end

@@ -18,7 +18,7 @@ namespace :folio_sync do
 
       # Optional environment variables
       modified_since = ENV['modified_since']
-      clear_downloads = (mode != :sync)
+      clear_downloads = mode != :sync && mode != :prepare
       puts "Will downloads be cleared? #{clear_downloads}"
 
       processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
@@ -64,7 +64,7 @@ namespace :folio_sync do
       instance_key = ENV['instance_key']
       puts 'Syncing exported resources...'
       processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
-      processor.sync_resources_to_folio
+      processor.sync_prepared_marc_records_to_folio
 
       if processor.syncing_errors.any?
         puts 'Errors occurred during syncing:'

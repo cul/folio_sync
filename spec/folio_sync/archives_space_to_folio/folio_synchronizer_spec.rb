@@ -34,7 +34,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     allow(Rails.configuration).to receive_messages(archivesspace: archivesspace_config)
     allow(Logger).to receive(:new).and_return(logger)
 
-    # Stub for sync_resources_to_folio method
+    # Stub for sync_prepared_marc_records_to_folio method
     allow(AspaceToFolioRecord).to receive(:where)
       .with(archivesspace_instance_key: instance_key, pending_update: 'to_folio')
       .and_return(relation_double)
@@ -86,7 +86,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       allow(Time).to receive(:now).and_return(current_time)
       allow(instance).to receive(:fetch_archivesspace_resources)
       allow(instance).to receive(:download_marc_from_archivesspace_and_folio)
-      allow(instance).to receive(:sync_resources_to_folio)
+      allow(instance).to receive(:sync_prepared_marc_records_to_folio)
       allow(instance).to receive(:update_archivesspace_records)
       allow(instance).to receive(:database_valid?).and_return(true)
     end
@@ -103,7 +103,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
 
     it 'syncs resources to FOLIO' do
       instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
-      expect(instance).to have_received(:sync_resources_to_folio)
+      expect(instance).to have_received(:sync_prepared_marc_records_to_folio)
     end
 
     it 'handles nil last_x_hours to fetch all resources' do
@@ -166,7 +166,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     end
   end
 
-  describe '#sync_resources_to_folio' do
+  describe '#sync_prepared_marc_records_to_folio' do
     let(:pending_records) { records }
     let(:batch_processor) { instance_double(FolioSync::ArchivesSpaceToFolio::BatchProcessor, process_records: nil, syncing_errors: []) }
 
@@ -182,7 +182,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
 
       it 'logs that there are no pending records and returns' do
         expect(logger).to receive(:info).with(/No pending records/)
-        instance.sync_resources_to_folio
+        instance.sync_prepared_marc_records_to_folio
         expect(FolioSync::ArchivesSpaceToFolio::BatchProcessor).not_to have_received(:new)
       end
     end
@@ -197,7 +197,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       it 'processes records and collects errors' do
         expect(logger).to receive(:info).with(/Found 2 pending records/)
         expect(logger).to receive(:error).with(/Errors encountered during sync/)
-        instance.sync_resources_to_folio
+        instance.sync_prepared_marc_records_to_folio
         expect(instance.syncing_errors).to include('syncing error')
       end
     end
