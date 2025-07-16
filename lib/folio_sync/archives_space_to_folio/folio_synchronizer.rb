@@ -32,9 +32,7 @@ module FolioSync
           download_marc_from_archivesspace_and_folio
         end
 
-        if [:all, :prepare].include?(mode)
-          # temporary fix to redownload MARC files after deployment for :prepare mode
-          download_marc_from_archivesspace_and_folio if mode == :prepare
+        if [:all, :prepare].include?(mode) # rubocop:disable Style/IfUnlessModifier
           prepare_folio_marc_records
         end
 
