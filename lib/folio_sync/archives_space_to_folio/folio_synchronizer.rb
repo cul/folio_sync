@@ -3,7 +3,7 @@
 module FolioSync
   module ArchivesSpaceToFolio
     class FolioSynchronizer
-      VALID_MODES = [:all, :download, :sync].freeze
+      VALID_MODES = [:all, :download, :prepare, :sync].freeze
 
       attr_reader :syncing_errors, :downloading_errors, :saving_errors, :fetching_errors, :linking_errors
 
@@ -22,20 +22,24 @@ module FolioSync
       def fetch_and_sync_aspace_to_folio_records(last_x_hours, mode)
         raise ArgumentError, "Invalid mode: #{mode}" unless VALID_MODES.include?(mode)
 
-        database_valid?
-
-        modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
-
         if [:all, :download].include?(mode)
+          database_valid?
+          modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
+
           # 1. Fetch resources from ArchivesSpace based on their modification time and save them to the database
           fetch_archivesspace_resources(modified_since)
           # 2. Download MARC XML files from ArchivesSpace and FOLIO
           download_marc_from_archivesspace_and_folio
         end
 
+        # TODO: Implement commented-out lines below
+        # if [:all, :prepare].include?(mode)
+        #   prepare_folio_marc_records
+        # end
+
         if [:all, :sync].include?(mode) # rubocop:disable Style/GuardClause
           # 3. Enhance MARC records and sync them to FOLIO (including the discoverySuppress status)
-          sync_resources_to_folio
+          sync_resources_to_folio # TODO: Rename to sync_prepared_marc_records_to_folio
           # 4. For newly created FOLIO records, update their respective ASpace records with the FOLIO HRIDs
           update_archivesspace_records
         end
