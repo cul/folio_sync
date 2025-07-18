@@ -48,9 +48,12 @@ The purpose of this application is to sync ArchivesSpace records to FOLIO. It au
    ```yaml
    development:
      default_sender_email_address: "folio-sync@abc.com"
+     job_log_entry_batch_size: 200 # Optional configuration, by default set to 100
 
     aspace_to_folio:
-      marc_download_base_directory: <%= Rails.root.join('tmp/development/downloaded_files') %>
+      batch_size: 500 # Optional configuration, by default set to 50
+      marc_download_base_directory: <%= Rails.root.join('tmp/working_data/development/downloaded_files') %>
+      prepared_marc_directory:  <%= Rails.root.join('tmp/working_data/development/prepared_files') %>
       developer_email_address: developer_email@example.com
 
       aspace_instances:
@@ -76,11 +79,34 @@ Fetches ArchivesSpace MARC resources and syncs them to FOLIO. If any errors occu
 
 #### Optional Environment Variables:
 - **`modified_since`**: Accepts an integer representing the last `x` hours. Resources modified within the last `x` hours will be retrieved. If not supplied, all resources are retrieved regardless of their modification date.
+- **`mode`**: Specifies which parts of the sync process to run. Valid values are:
+  - `all` (default): Runs the complete process - download, prepare, and sync
+  - `download`: Only fetches resources from ArchivesSpace and downloads MARC XML files
+  - `prepare`: Only creates enhanced MARC records for export
+  - `sync`: Only syncs prepared MARC records to FOLIO and updates ArchivesSpace records
 - **`clear_downloads`**: If set to `true`, the downloads folder is cleared before processing. If set to `false`, the folder is not cleared. By default, `clear_downloads` is `true`.
 
 #### Usage:
 ```bash
 bundle exec rake folio_sync:aspace_to_folio:run instance_key=instance1 modified_since=25 clear_downloads=false
+```
+
+#### Examples:
+```bash
+# Run with time filter
+bundle exec rake folio_sync:aspace_to_folio:run instance_key=instance1 modified_since=25
+
+# Run the complete sync process (syncs all ArchivesSpace resources)
+bundle exec rake folio_sync:aspace_to_folio:run instance_key=instance1
+
+# Only download MARC files from ArchivesSpace and FOLIO
+bundle exec rake folio_sync:aspace_to_folio:run instance_key=instance1 mode=download
+
+# Only create enhanced MARC records
+bundle exec rake folio_sync:aspace_to_folio:run instance_key=instance1 mode=prepare
+
+# Only sync already enhanced MARC records to FOLIO
+bundle exec rake folio_sync:aspace_to_folio:run instance_key=instance1 mode=sync
 ```
 
 ---

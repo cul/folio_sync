@@ -3,9 +3,12 @@ development:
   job_log_entry_batch_size: 100
 
   aspace_to_folio:
+    batch_size: 500
+
     # NOTE: MARC files will actually be downloaded to "#{marc_download_base_directory}/#{instance_key}"
     marc_download_base_directory: <%= Rails.root.join('tmp/working_data/development/downloaded_files') %>
-    prepared_marc_directory:  <%= Rails.root.join('tmp/working_data/development/downloaded_files') %>
+    # NOTE: Enhanced MARC files will be exported to "#{prepared_marc_directory}/#{instance_key}"
+    prepared_marc_directory:  <%= Rails.root.join('tmp/working_data/development/prepared_files') %>
     developer_email_address: developer_email@example.com
 
     aspace_instances:
@@ -23,9 +26,12 @@ test:
   job_log_entry_batch_size: 100
 
   aspace_to_folio:
+    batch_size: 500
+
     # NOTE: MARC files will actually be downloaded to "#{marc_download_base_directory}/#{instance_key}"
     marc_download_base_directory: <%= Rails.root.join('tmp/working_data/test/downloaded_files') %>
-    prepared_marc_directory:  <%= Rails.root.join('tmp/working_data/test/downloaded_files') %>
+    # NOTE: Enhanced MARC files will be exported to "#{prepared_marc_directory}/#{instance_key}"
+    prepared_marc_directory:  <%= Rails.root.join('tmp/working_data/test/prepared_files') %>
     developer_email_address: developer_email@example.com
 
     aspace_instances:
