@@ -94,7 +94,12 @@ module FolioSync
           )
 
           enhanced_record = create_enhanced_marc(aspace_marc_path, folio_marc_path, record.folio_hrid)
-          File.binwrite(prepared_folio_marc_path, enhanced_record.to_marc)
+
+          # Use MARC::Writer with allow_oversized to handle large MARC records
+          writer = MARC::Writer.new(prepared_folio_marc_path)
+          writer.allow_oversized = true
+          writer.write(enhanced_record)
+          writer.close
 
           @logger.info("Prepared FOLIO MARC record for export: #{prepared_folio_marc_path}")
         rescue StandardError => e

@@ -98,7 +98,7 @@ class Folio::Client::JobExecution
         # NOTE: The order we explicitly set below will appear in the job log entries as the "sourceRecordOrder".
         # It is important for us to be able to match the order of the job log entries with the order of the input data.
         # This order is 0-indexed, meaning that the first record in the overall import will have an order value of 0.
-        { record: marc_record, order: i }
+        { record: marc_record.to_marc, order: i }
       end
     }
 

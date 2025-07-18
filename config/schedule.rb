@@ -16,9 +16,9 @@ set :job_template, "/usr/local/bin/mailifrc -s 'Error - :email_subject' :error_r
 
 job_type :rake, 'cd :path && :environment_variable=:environment bundle exec rake :task --silent :output'
 
-# if Rails.env.folio_sync_prod?
-#   every 1.day, at: '8:00 pm' do
-#     rake 'folio_sync:aspace_to_folio:run instance_key=cul modified_since=25'
-#     rake 'folio_sync:aspace_to_folio:run instance_key=barnard modified_since=25'
-#   end
-# end
+if Rails.env.folio_sync_prod?
+  every 1.day, at: '8:00 pm' do
+    rake 'folio_sync:aspace_to_folio:run instance_key=cul clear_downloads=false modified_since=25'
+    # rake 'folio_sync:aspace_to_folio:run instance_key=barnard modified_since=25'
+  end
+end
