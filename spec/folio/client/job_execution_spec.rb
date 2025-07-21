@@ -173,8 +173,8 @@ RSpec.describe Folio::Client::JobExecution do
 
     before do
       # Mock Time.current to control timing
-      allow(Time).to receive(:current).and_return(Time.now)
       allow(job_execution).to receive(:sleep)
+      allow(Time).to receive(:current).and_return(Time.now)
 
       stub_const('Folio::Client::JobExecutionSummary', Class.new do
         def initialize(processed_records, custom_metadata)
@@ -184,15 +184,20 @@ RSpec.describe Folio::Client::JobExecution do
       end)
     end
 
-    it 'polls for job completion and returns summary' do
+    it 'waits for job to start, complete, and returns summary' do
+      # Mock job starting
       allow(folio_client).to receive(:get)
-        .with("/metadata-provider/jobLogEntries/#{job_execution_id}")
+        .with("/change-manager/jobExecutions/#{job_execution_id}")
+        .and_return({ 'progress' => { 'current' => 1 }, 'status' => 'COMMITTED' })
+
+      # Mock job log entries
+      allow(folio_client).to receive(:get)
+        .with("/metadata-provider/jobLogEntries/#{job_execution_id}", { limit: 3, offset: 0  })
         .and_return({
-          'totalRecords' => number_of_expected_records,
           'entries' => [
-            { 'sourceRecordActionStatus' => 'CREATED' },
-            { 'sourceRecordActionStatus' => 'UPDATED' },
-            { 'sourceRecordActionStatus' => 'CREATED' }
+            { 'sourceRecordOrder' => 0, 'sourceRecordActionStatus' => 'CREATED' },
+            { 'sourceRecordOrder' => 1, 'sourceRecordActionStatus' => 'UPDATED' },
+            { 'sourceRecordOrder' => 2, 'sourceRecordActionStatus' => 'CREATED' }
           ]
         })
 
@@ -200,42 +205,50 @@ RSpec.describe Folio::Client::JobExecution do
       expect(summary).to be_an_instance_of(Folio::Client::JobExecutionSummary)
     end
 
-    xit 'waits for all records to be processed' do
-      # Check if job has started.  Let's say that it has started.
-      allow(folio_client).to receive(:get).with("/change-manager/jobExecutions/#{@id}")
+    it 'calls the three main steps in order' do
+      expect(job_execution).to receive(:wait_for_job_to_start).ordered
+      expect(job_execution).to receive(:wait_for_job_to_complete).ordered
+      expect(job_execution).to receive(:create_job_execution_summary).ordered.and_return(double)
 
+      job_execution.wait_until_complete
+    end
 
+    it 'waits for job to start then complete processing all records' do
       call_count = 0
-      allow(folio_client).to receive(:get) do
+      
+      # Mock the job execution status checks
+      allow(folio_client).to receive(:get)
+        .with("/change-manager/jobExecutions/#{job_execution_id}") do
         call_count += 1
-        if call_count == 1
-          # First call - not all records processed yet
-          {
-            'totalRecords' => number_of_expected_records,
-            'entries' => [
-              { 'id' => '1' }, # No sourceRecordActionStatus yet
-              { 'sourceRecordActionStatus' => 'CREATED' }
-            ]
-          }
+        case call_count
+        when 1
+          # First call - job hasn't started yet
+          { 'progress' => { 'current' => 0 }, 'status' => 'NEW' }
+        when 2
+          # Second call - job has started, one record processed
+          { 'progress' => { 'current' => 1 }, 'status' => 'PROCESSING_IN_PROGRESS' }
+        when 3
+          # Third call - two records processed
+          { 'progress' => { 'current' => 2 }, 'status' => 'PROCESSING_IN_PROGRESS' }
         else
-          # Second call - all records processed
-          {
-            'totalRecords' => number_of_expected_records,
-            'entries' => [
-              { 'sourceRecordActionStatus' => 'CREATED' },
-              { 'sourceRecordActionStatus' => 'UPDATED' },
-              { 'sourceRecordActionStatus' => 'CREATED' }
-            ]
-          }
+          # Final call - job completed
+          { 'progress' => { 'current' => 3 }, 'status' => 'COMMITTED' }
         end
       end
 
-      allow(folio_client).to receive(:get).with("/change-manager/jobExecutions/#{@id}") do
-        #############################################
-      end
+      allow(folio_client).to receive(:get)
+        .with("/metadata-provider/jobLogEntries/#{job_execution_id}", { limit: 3, offset: 0 })
+        .and_return({
+          'entries' => [
+            { 'sourceRecordOrder' => 0, 'sourceRecordActionStatus' => 'CREATED' },
+            { 'sourceRecordOrder' => 1, 'sourceRecordActionStatus' => 'UPDATED' },
+            { 'sourceRecordOrder' => 2, 'sourceRecordActionStatus' => 'CREATED' }
+          ]
+        })
 
-      expect(folio_client).to receive(:get).twice
-      job_execution.wait_until_complete
+      summary = job_execution.wait_until_complete
+      expect(summary).to be_an_instance_of(Folio::Client::JobExecutionSummary)
+      expect(call_count).to be >= 2
     end
   end
 end

@@ -119,7 +119,7 @@ class Folio::Client::JobExecution
     self.flush_unflushed_record_batch unless @unflushed_record_batch.empty?
 
     if @number_of_records_flushed_so_far != @number_of_expected_records
-      raise "Cannot start #{self.class.name}.  Number of records added so far (#{@number_of_records_flushed_so_far}) "\
+      raise "Cannot start #{self.class.name}. Number of records added so far (#{@number_of_records_flushed_so_far}) "\
             "does not equal number of expected records (#{@number_of_expected_records})."
     end
 
@@ -143,9 +143,16 @@ class Folio::Client::JobExecution
   # Blocks until the job execution is complete, and then returns a Folio::Client::JobExecutionSummary.
   # @return A Folio::Client::JobExecutionSummary object containing information about the job once it is complete.
   def wait_until_complete
-    # Wait for job to start
-    Rails.logger.info("Waiting for job execution #{@id} to start. Expecting #{@number_of_expected_records} records.")
     start_time = Time.current
+    wait_for_job_to_start(start_time)
+    wait_for_job_to_complete(start_time)
+    create_job_execution_summary
+  end
+
+  # Waits for the FOLIO job to acknowledge that it has started processing records
+  def wait_for_job_to_start(start_time)
+    Rails.logger.info("Waiting for job execution #{@id} to start. Expecting #{@number_of_expected_records} records.")
+
     loop do
       sleep 2
       break if folio_acknolwedged_job_has_started?
@@ -157,12 +164,17 @@ class Folio::Client::JobExecution
             "Job #{@id} has taken too long to start.  #{time_since_start} seconds have passed and no records "\
             'have been processed.'
     end
-    Rails.logger.info("Job execution #{@id} has started.  It took #{Time.current - start_time} seconds to start.")
 
-    # Wait for job to complete (and monitor for inactivity)
+    Rails.logger.info("Job execution #{@id} has started.  It took #{Time.current - start_time} seconds to start.")
+  end
+
+  # Waits for the job to complete while monitoring for inactivity
+  def wait_for_job_to_complete(start_time)
     Rails.logger.info("Waiting for job execution #{@id} to complete. Expecting #{@number_of_expected_records} records.")
+
     last_activity_time = Time.current
     num_records_processed = 0
+
     loop do
       sleep 2
       folio_job_execution_details = fetch_folio_job_execution_details
@@ -187,9 +199,12 @@ class Folio::Client::JobExecution
             "seconds of inactivity.  Number of records processed: #{num_records_processed} "\
             "out of #{@number_of_expected_records} expected."
     end
-    Rails.logger.info("Job execution #{@id} has finished.  It took #{Time.current - start_time} seconds to run.")
 
-    # When job is complete, iterate over all job log entries and collect relevant info.
+    Rails.logger.info("Job execution #{@id} has finished.  It took #{Time.current - start_time} seconds to run.")
+  end
+
+  # Creates and returns a JobExecutionSummary with detailed logging
+  def create_job_execution_summary
     entries = fetch_aggregated_job_execution_entries
 
     Rails.logger.debug("Number of entries in response: #{entries.length}")
@@ -204,25 +219,20 @@ class Folio::Client::JobExecution
     end
 
     Rails.logger.info("Entries count: #{entries.length}/#{@number_of_expected_records}")
-
     Rails.logger.info("Creating JobExecutionSummary with #{entries.length} entries")
+
     Folio::Client::JobExecutionSummary.new(entries, @custom_metadata_for_records)
   end
 
+  # We might have a very high number of entries in a job.  Could be on the scale of 5000+.
+  # We probably don't want to retrieve 5000 JSON objects in a single request, since FOLIO
+  # sometimes locks up with really large JSON responses, so we'll retrieve the entries in
+  # paginated batches.  If we fail to retrieve one of the pages of results, we'll retry retrieval.
   def fetch_aggregated_job_execution_entries
     entries = []
-
-    # We might have a very high number of entries in a job.  Could be on the scale of 5000+.
-    # We probably don't want to retrieve 5000 JSON objects in a single request, since FOLIO
-    # sometimes locks up with really large JSON responses, so we'll retireve the entries in
-    # paginated batches.  If we fail to retrieve one of the pages of results, we'll retry retrieval.
-
     offset = 0
     limit = @job_log_entry_batch_size
 
-    # offset = 0, limit = 100 ---> 100 records, starting at #1 (1-100)
-    # offset = 100, limit = 100 ---> 100 records, starting at #101 (101-200)
-    # offset = 200, limit = 100 ---> 100 records, starting at #201 (201-300)
     loop do
       Retriable.retriable(on: Faraday::Error, tries: 3, base_interval: 1) do
         Rails.logger.debug(
