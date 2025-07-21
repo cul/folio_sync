@@ -52,7 +52,8 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
     allow(ArchivesSpace::Configuration).to receive(:new).and_return(double('config'))
     allow_any_instance_of(FolioSync::ArchivesSpace::Client).to receive(:login)
 
-    allow(File).to receive(:join).and_return('/mocked/path/to/file.xml')
+    # Allow File.join to work normally for test paths
+    allow(File).to receive(:join).and_call_original
     allow(File).to receive(:binwrite) # Mock file writing
   end
 
@@ -86,34 +87,85 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       allow(Time).to receive(:now).and_return(current_time)
       allow(instance).to receive(:fetch_archivesspace_resources)
       allow(instance).to receive(:download_marc_from_archivesspace_and_folio)
+      allow(instance).to receive(:prepare_folio_marc_records)
       allow(instance).to receive(:sync_prepared_marc_records_to_folio)
       allow(instance).to receive(:update_archivesspace_records)
       allow(instance).to receive(:database_valid?).and_return(true)
     end
 
-    it 'fetches recent MARC resources from ArchivesSpace' do
-      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
-      expect(instance).to have_received(:fetch_archivesspace_resources).with(modified_since)
+    context 'with default mode (:all)' do
+      it 'fetches recent MARC resources from ArchivesSpace' do
+        instance.fetch_and_sync_aspace_to_folio_records(last_x_hours, :all)
+        expect(instance).to have_received(:fetch_archivesspace_resources).with(modified_since)
+      end
+
+      it 'downloads MARC XML from ArchivesSpace and FOLIO' do
+        instance.fetch_and_sync_aspace_to_folio_records(last_x_hours, :all)
+        expect(instance).to have_received(:download_marc_from_archivesspace_and_folio)
+      end
+
+      it 'prepares FOLIO MARC records' do
+        instance.fetch_and_sync_aspace_to_folio_records(last_x_hours, :all)
+        expect(instance).to have_received(:prepare_folio_marc_records)
+      end
+
+      it 'syncs resources to FOLIO' do
+        instance.fetch_and_sync_aspace_to_folio_records(last_x_hours, :all)
+        expect(instance).to have_received(:sync_prepared_marc_records_to_folio)
+      end
+
+      it 'syncs resources to ArchivesSpace' do
+        instance.fetch_and_sync_aspace_to_folio_records(last_x_hours, :all)
+        expect(instance).to have_received(:update_archivesspace_records)
+      end
+
+      it 'handles nil last_x_hours to fetch all resources' do
+        instance.fetch_and_sync_aspace_to_folio_records(nil, :all)
+        expect(instance).to have_received(:fetch_archivesspace_resources).with(nil)
+      end
     end
 
-    it 'downloads MARC XML from ArchivesSpace and FOLIO' do
-      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
-      expect(instance).to have_received(:download_marc_from_archivesspace_and_folio)
+    context 'with :download mode' do
+      it 'fetches and downloads but does not prepare or sync' do
+        instance.fetch_and_sync_aspace_to_folio_records(last_x_hours, :download)
+        
+        expect(instance).to have_received(:fetch_archivesspace_resources).with(modified_since)
+        expect(instance).to have_received(:download_marc_from_archivesspace_and_folio)
+        expect(instance).not_to have_received(:prepare_folio_marc_records)
+        expect(instance).not_to have_received(:sync_prepared_marc_records_to_folio)
+        expect(instance).not_to have_received(:update_archivesspace_records)
+      end
     end
 
-    it 'syncs resources to FOLIO' do
-      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
-      expect(instance).to have_received(:sync_prepared_marc_records_to_folio)
+    context 'with :prepare mode' do
+      it 'only prepares FOLIO MARC records' do
+        instance.fetch_and_sync_aspace_to_folio_records(last_x_hours, :prepare)
+        
+        expect(instance).not_to have_received(:fetch_archivesspace_resources)
+        expect(instance).not_to have_received(:download_marc_from_archivesspace_and_folio)
+        expect(instance).to have_received(:prepare_folio_marc_records)
+        expect(instance).not_to have_received(:sync_prepared_marc_records_to_folio)
+        expect(instance).not_to have_received(:update_archivesspace_records)
+      end
     end
 
-    it 'handles nil last_x_hours to fetch all resources' do
-      instance.fetch_and_sync_aspace_to_folio_records(nil)
-      expect(instance).to have_received(:fetch_archivesspace_resources).with(nil)
+    context 'with :sync mode' do
+      it 'only syncs prepared records' do
+        instance.fetch_and_sync_aspace_to_folio_records(last_x_hours, :sync)
+        
+        expect(instance).not_to have_received(:fetch_archivesspace_resources)
+        expect(instance).not_to have_received(:download_marc_from_archivesspace_and_folio)
+        expect(instance).not_to have_received(:prepare_folio_marc_records)
+        expect(instance).to have_received(:sync_prepared_marc_records_to_folio)
+        expect(instance).to have_received(:update_archivesspace_records)
+      end
     end
 
-    it 'syncs resources to ArchivesSpace' do
-      instance.fetch_and_sync_aspace_to_folio_records(last_x_hours)
-      expect(instance).to have_received(:update_archivesspace_records)
+    context 'with invalid mode' do
+      it 'raises ArgumentError' do
+        expect { instance.fetch_and_sync_aspace_to_folio_records(last_x_hours, :invalid) }
+          .to raise_error(ArgumentError, 'Invalid mode: invalid')
+      end
     end
   end
 
@@ -163,6 +215,81 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::FolioSynchronizer do
       expect(logger).to receive(:error).with(/Errors encountered during MARC download/)
       instance.download_marc_from_archivesspace_and_folio
       expect(instance.downloading_errors).to eq(['download error'])
+    end
+  end
+
+  describe '#create_enhanced_marc' do
+    let(:aspace_marc_path) { '/path/to/aspace.xml' }
+    let(:folio_marc_path) { '/path/to/folio.xml' }
+    let(:folio_hrid) { 'test_hrid' }
+    let(:enhanced_record) { instance_double(MARC::Record) }
+    let(:marc_enhancer) { instance_double(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer) }
+
+    before do
+      allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).and_return(marc_enhancer)
+      allow(marc_enhancer).to receive(:enhance_marc_record!).and_return(enhanced_record)
+    end
+
+    it 'creates MarcRecordEnhancer with correct parameters' do
+      expect(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(
+        aspace_marc_path, folio_marc_path, folio_hrid, instance_key
+      )
+      
+      instance.create_enhanced_marc(aspace_marc_path, folio_marc_path, folio_hrid)
+    end
+
+    it 'calls enhance_marc_record! on the enhancer' do
+      expect(marc_enhancer).to receive(:enhance_marc_record!)
+      
+      instance.create_enhanced_marc(aspace_marc_path, folio_marc_path, folio_hrid)
+    end
+
+    it 'returns the enhanced MARC record' do
+      result = instance.create_enhanced_marc(aspace_marc_path, folio_marc_path, folio_hrid)
+      expect(result).to eq(enhanced_record)
+    end
+  end
+
+  describe '#prepare_folio_marc_records' do
+    let(:pending_records) do
+      [
+        FactoryBot.create(:aspace_to_folio_record, :ready_for_folio, :with_folio_data),
+        FactoryBot.create(:aspace_to_folio_record, :ready_for_folio, :with_folio_data)
+      ]
+    end
+
+    before do
+      allow(instance).to receive(:fetch_pending_records_for_folio_sync).and_return(pending_records)
+      allow(instance).to receive(:prepare_single_marc_record)
+    end
+
+    context 'when there are pending records' do
+      it 'logs the preparation process' do
+        instance.prepare_folio_marc_records
+
+        expect(logger).to have_received(:info).with('Preparing FOLIO MARC records for export')
+        expect(logger).to have_received(:info).with("Found #{pending_records.count} records to prepare")
+      end
+
+      it 'prepares each record' do
+        instance.prepare_folio_marc_records
+
+        pending_records.each do |record|
+          expect(instance).to have_received(:prepare_single_marc_record).with(record)
+        end
+      end
+    end
+
+    context 'when there are no pending records' do
+      let(:pending_records) { [] }
+
+      it 'returns early and does not attempt to prepare records' do
+        instance.prepare_folio_marc_records
+
+        expect(logger).to have_received(:info).with('Preparing FOLIO MARC records for export')
+        expect(logger).not_to have_received(:info).with(/Found .* records to prepare/)
+        expect(instance).not_to have_received(:prepare_single_marc_record)
+      end
     end
   end
 

@@ -5,8 +5,8 @@ require 'rails_helper'
 RSpec.describe FolioSync::ArchivesSpaceToFolio::BatchProcessor do
   let(:instance_key) { 'test_instance' }
   let(:batch_size) { 2 }
-  let(:record1) { double('AspaceToFolioRecord') }
-  let(:record2) { double('AspaceToFolioRecord') }
+  let(:record1) { FactoryBot.build(:aspace_to_folio_record) }
+  let(:record2) { FactoryBot.build(:aspace_to_folio_record) }
   let(:records_relation) { double('ActiveRecord::Relation') }
   let(:processed_record1) { double('ProcessedRecord1') }
   let(:processed_record2) { double('ProcessedRecord2') }
@@ -28,6 +28,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::BatchProcessor do
     before do
       # Simulate in_batches yielding batches of records
       allow(records_relation).to receive(:in_batches).with(of: batch_size).and_yield([record1, record2])
+      allow(records_relation).to receive(:count).and_return(2)
 
       allow(record_processor).to receive(:process_record).with(record1).and_return(processed_record1)
       allow(record_processor).to receive(:process_record).with(record2).and_return(processed_record2)
@@ -41,7 +42,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::BatchProcessor do
       allow(result_processor).to receive(:process_results).with(job_execution_summary)
     end
 
-    xit 'processes records in batches and submits them to FOLIO' do
+    it 'processes records in batches and submits them to FOLIO' do
       expect(records_relation).to receive(:in_batches).with(of: batch_size)
       expect(::Folio::Client::JobExecutionManager).to receive(:new)
       expect(FolioSync::ArchivesSpaceToFolio::JobResultProcessor).to receive(:new)
@@ -55,7 +56,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::BatchProcessor do
     context 'when processing errors occur' do
       let(:processing_errors) { [instance_double(FolioSync::Errors::SyncingError)] }
 
-      xit 'adds processing errors to syncing_errors' do
+      it 'adds processing errors to syncing_errors' do
         batch_processor.process_records(records_relation)
         expect(batch_processor.syncing_errors).to eq(processing_errors)
       end
