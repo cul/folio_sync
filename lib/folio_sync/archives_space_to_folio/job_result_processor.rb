@@ -93,7 +93,9 @@ module FolioSync
       # @param hrid_list [Array<String>] List of HRIDs for the instance,
       # there should be only one HRID in this list if the record was created or updated
       def update_database_record(custom_metadata, instance_action_status, hrid_list)
-        Rails.logger.debug("Updating database record: status=#{instance_action_status}, metadata=#{custom_metadata.inspect}")
+        Rails.logger.debug(
+          "Updating database record: status=#{instance_action_status}, metadata=#{custom_metadata.inspect}"
+        )
 
         record = find_local_record(custom_metadata)
         if record.nil?
@@ -162,7 +164,9 @@ module FolioSync
       end
 
       def handle_suppression_update_error(custom_metadata, instance_record_id, error)
-        Rails.logger.error("Error updating suppression for #{instance_record_id}: #{error.class.name}: #{error.message}")
+        Rails.logger.error(
+          "Error updating suppression for #{instance_record_id}: #{error.class.name}: #{error.message}"
+        )
 
         processing_error = FolioSync::Errors::SyncingError.new(
           resource_uri: "repositories/#{custom_metadata[:repository_key]}/resources/#{custom_metadata[:resource_key]}",
