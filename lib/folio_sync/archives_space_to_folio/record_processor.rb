@@ -17,13 +17,13 @@ module FolioSync
       def process_record(record)
         Rails.logger.debug("Processing record #{record.id}: repo=#{record.repository_key}, " \
                           "resource=#{record.resource_key}, hrid=#{record.folio_hrid}")
-        
+
         enhanced_marc = load_marc_record(record.prepared_folio_marc_path)
         metadata = build_metadata(record)
-        
+
         Rails.logger.debug("Successfully processed record #{record.id} with metadata: #{metadata.inspect}")
         { marc_record: enhanced_marc, metadata: metadata }
-      rescue StandardError => e        
+      rescue StandardError => e
         error = FolioSync::Errors::SyncingError.new(
           resource_uri: "repositories/#{record.repository_key}/resources/#{record.resource_key}",
           message: "Failed to process record: #{e.message}"

@@ -12,9 +12,9 @@ class Folio::Client::JobExecutionSummary
     @raw_results.sort_by! { |a| a['sourceRecordOrder'] }
     @records_processed = @raw_results.length
     @custom_metadata_for_records = custom_metadata_for_records
-    
+
     Rails.logger.debug("JobExecutionSummary initialized with #{@records_processed} processed records")
-    
+
     # Log first few results for debugging
     @raw_results.first(3).each_with_index do |result, index|
       Rails.logger.debug("Result #{index}: sourceRecordOrder=#{result['sourceRecordOrder']}, " \
@@ -32,11 +32,11 @@ class Folio::Client::JobExecutionSummary
       instance_action_status = raw_result.dig('relatedInstanceInfo', 'actionStatus')
       hrid_list = raw_result.dig('relatedInstanceInfo', 'hridList')
       id_list = raw_result.dig('relatedInstanceInfo', 'idList')
-      
+
       Rails.logger.debug("Processing result: order=#{raw_result['sourceRecordOrder']}, " \
                         "status=#{instance_action_status}, hrid=#{hrid_list}, " \
                         "metadata=#{custom_metadata.inspect}")
-      
+
       yield raw_result, custom_metadata, instance_action_status, hrid_list, id_list
     end
   end

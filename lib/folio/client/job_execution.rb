@@ -5,7 +5,7 @@
 # A FOLIO job execution (part of the FOLIO Data Import feature)
 # For more information about Data Import, follow the link below:
 # https://github.com/folio-org/mod-source-record-manager/tree/master?tab=readme-ov-file#data-import-workflow
-class Folio::Client::JobExecution
+class Folio::Client::JobExecution # rubocop:disable Metrics/ClassLength
   JOB_EXECUTION_START_TIMEOUT = 120
   JOB_EXECUTION_INACTIVITY_TIMEOUT = 15
 
