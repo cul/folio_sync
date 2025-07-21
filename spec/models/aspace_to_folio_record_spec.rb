@@ -1,6 +1,12 @@
 require 'rails_helper'
 
 RSpec.describe AspaceToFolioRecord, type: :model do
+  include_context 'FolioSync directory setup'
+
+  let(:downloads_dir) { 'tmp/test/downloaded_files' }
+  let(:prepared_files_dir) { 'tmp/test/prepared_files' }
+  let(:aspace_to_folio_record) { FactoryBot.create(:aspace_to_folio_record) }
+
   describe 'validations' do
     it 'is valid with valid attributes' do
       record = FactoryBot.build(:aspace_to_folio_record)
@@ -124,20 +130,29 @@ RSpec.describe AspaceToFolioRecord, type: :model do
   end
 
   describe '#archivesspace_marc_xml_path' do
-    let(:record) { FactoryBot.create(:aspace_to_folio_record, archivesspace_instance_key: 'test_instance', repository_key: 5, resource_key: 42) }
+    let(:record) { aspace_to_folio_record }
 
     it 'returns the correct path format' do
-      expected_path = "#{record.archivesspace_instance_key}/#{record.repository_key}-#{record.resource_key}-aspace.xml"
-      expect(record.archivesspace_marc_xml_path).to eq(expected_path)
+      instance_specific_path = "#{record.archivesspace_instance_key}/#{record.repository_key}-#{record.resource_key}-aspace.xml"
+      expect(record.archivesspace_marc_xml_path).to eq(File.join(downloads_dir, instance_specific_path))
     end
   end
 
   describe '#folio_marc_xml_path' do
-    let(:record) { FactoryBot.create(:aspace_to_folio_record, archivesspace_instance_key: 'test_instance', repository_key: 5, resource_key: 42) }
+    let(:record) { aspace_to_folio_record }
 
     it 'returns the correct path format' do
-      expected_path = "#{record.archivesspace_instance_key}/#{record.repository_key}-#{record.resource_key}-folio.xml"
-      expect(record.folio_marc_xml_path).to eq(expected_path)
+      instance_specific_path = "#{record.archivesspace_instance_key}/#{record.repository_key}-#{record.resource_key}-folio.xml"
+      expect(record.folio_marc_xml_path).to eq(File.join(downloads_dir, instance_specific_path))
+    end
+  end
+
+  describe '#prepared_folio_marc_path' do
+    let(:record) { aspace_to_folio_record }
+
+    it 'returns the correct path format' do
+      instance_specific_path = "#{record.archivesspace_instance_key}/#{record.repository_key}-#{record.resource_key}-prepared.marc"
+      expect(record.prepared_folio_marc_path).to eq(File.join(prepared_files_dir, instance_specific_path))
     end
   end
 end
