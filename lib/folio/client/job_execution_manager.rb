@@ -13,12 +13,12 @@ class Folio::Client::JobExecutionManager
   # @return [Folio::Client::JobExecutionSummary] The completed job execution summary
   def execute_job(processed_records)
     Rails.logger.info("Starting FOLIO job execution with #{processed_records.length} records")
-    
+
     # Log metadata for each record
     processed_records.each_with_index do |record, index|
       Rails.logger.debug("Record #{index}: metadata=#{record[:metadata].inspect}")
     end
-    
+
     # Create JobExecution
     job_execution = @folio_client.create_job_execution(
       @job_profile_uuid,

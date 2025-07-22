@@ -3,6 +3,8 @@
 module FolioSync
   module ArchivesSpaceToFolio
     class FolioSynchronizer
+      VALID_MODES = [:all, :download, :prepare, :sync].freeze
+
       attr_reader :syncing_errors, :downloading_errors, :saving_errors, :fetching_errors, :linking_errors
 
       ONE_HOUR_IN_SECONDS = 3600
@@ -13,19 +15,34 @@ module FolioSync
         clear_error_arrays!
       end
 
-      def fetch_and_sync_aspace_to_folio_records(last_x_hours)
-        database_valid?
+      # Creates DB records for Aspace records, performs MARC downloads, syncs resources to folio, and updates
+      # aspace record metadata after a sync.
+      # @param [Integer] last_x_hours Records newer than this are synced.
+      # @param [Symbol] mode One of the following values: :all, :download, :prepare, :sync
+      def fetch_and_sync_aspace_to_folio_records(last_x_hours, mode)
+        raise ArgumentError, "Invalid mode: #{mode}" unless VALID_MODES.include?(mode)
 
-        modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
+        if [:all, :download].include?(mode)
+          database_valid?
+          modified_since = Time.now.utc - (ONE_HOUR_IN_SECONDS * last_x_hours) if last_x_hours
 
-        # 1. Fetch resources from ArchivesSpace based on their modification time and save them to the database
-        fetch_archivesspace_resources(modified_since)
-        # 2. Download MARC XML files from ArchivesSpace and FOLIO
-        download_marc_from_archivesspace_and_folio
-        # 3. Enhance MARC records and sync them to FOLIO (including the discoverySuppress status)
-        sync_resources_to_folio
-        # 4. For newly created FOLIO records, update their respective ASpace records with the FOLIO HRIDs
-        update_archivesspace_records
+          # 1. Fetch resources from ArchivesSpace based on their modification time and save them to the database
+          fetch_archivesspace_resources(modified_since)
+          # 2. Download MARC XML files from ArchivesSpace and FOLIO
+          download_marc_from_archivesspace_and_folio
+        end
+
+        if [:all, :prepare].include?(mode)
+          # 3. Prepare enhanced MARC records for syncing to FOLIO
+          prepare_folio_marc_records
+        end
+
+        if [:all, :sync].include?(mode) # rubocop:disable Style/GuardClause
+          # 4. Enhance MARC records and sync them to FOLIO (including the discoverySuppress status)
+          sync_prepared_marc_records_to_folio
+          # 5. For newly created FOLIO records, update their respective ASpace records with the FOLIO HRIDs
+          update_archivesspace_records
+        end
       end
 
       def fetch_archivesspace_resources(modified_since)
@@ -59,11 +76,26 @@ module FolioSync
         @downloading_errors = downloader.downloading_errors
       end
 
-      def sync_resources_to_folio
-        pending_records = AspaceToFolioRecord.where(
-          archivesspace_instance_key: @instance_key,
-          pending_update: 'to_folio'
-        )
+      # Create a new enhanced MARC binary record and save it to a local directory
+      def prepare_folio_marc_records
+        @logger.info('Preparing FOLIO MARC records for export')
+
+        pending_records = fetch_pending_records_for_folio_sync
+        return if pending_records.empty?
+
+        @logger.info("Found #{pending_records.count} records to prepare")
+
+        pending_records.each { |record| prepare_single_marc_record(record) }
+      end
+
+      def create_enhanced_marc(aspace_marc_path, folio_marc_path, folio_hrid)
+        enhancer = FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer.new(aspace_marc_path, folio_marc_path, folio_hrid,
+                                                                           @instance_key)
+        enhancer.enhance_marc_record!
+      end
+
+      def sync_prepared_marc_records_to_folio
+        pending_records = fetch_pending_records_for_folio_sync
 
         if pending_records.empty?
           @logger.info("No pending records to sync for instance: #{@instance_key}")
@@ -127,6 +159,45 @@ module FolioSync
       end
 
       private
+
+      def fetch_pending_records_for_folio_sync
+        AspaceToFolioRecord.where(
+          archivesspace_instance_key: @instance_key,
+          pending_update: 'to_folio'
+        )
+      end
+
+      def prepare_single_marc_record(record)
+        @logger.debug("Preparing FOLIO MARC record for record ID: #{record.id}")
+
+        enhanced_record = create_enhanced_marc_record(record)
+        write_enhanced_marc_record(enhanced_record, record.prepared_folio_marc_path)
+
+        @logger.info("Successfully prepared FOLIO MARC record: #{record.prepared_folio_marc_path}")
+      rescue StandardError => e
+        handle_marc_preparation_error(record, e)
+      end
+
+      def create_enhanced_marc_record(record)
+        aspace_marc_path = record.archivesspace_marc_xml_path
+        folio_marc_path = record.folio_hrid.present? ? record.folio_marc_xml_path : nil
+
+        create_enhanced_marc(aspace_marc_path, folio_marc_path, record.folio_hrid)
+      end
+
+      def write_enhanced_marc_record(enhanced_record, output_path)
+        # Using MARC::Writer with allow_oversized allows for handling large MARC records
+        writer = MARC::Writer.new(output_path)
+        writer.allow_oversized = true
+        writer.write(enhanced_record)
+        writer.close
+      end
+
+      def handle_marc_preparation_error(record, error)
+        @logger.error("Failed to prepare FOLIO MARC record for ID #{record.id}: #{error.message}")
+        @logger.error("Backtrace: #{error.backtrace.join("\n")}")
+        record.update!(pending_update: 'fix_required')
+      end
 
       def clear_error_arrays!
         @syncing_errors = []

@@ -25,19 +25,24 @@ begin
     throw 'Please make sure the folio_sync.yml file contains a developer_email_address'
   end
 
-  base_dir = aspace_to_folio_config[:marc_download_base_directory]
+  downloaded_files_dir = aspace_to_folio_config[:marc_download_base_directory]
+  prepared_files_dir = aspace_to_folio_config[:prepared_marc_directory]
 
-  # If the base directory is not present, set a default base directory
-  if base_dir.blank?
-    current_env = Rails.env
-    base_dir = Rails.root.join("tmp/#{current_env}/downloaded_files")
-    logger.warn("MARC download directory is not configured, defaulting to #{base_dir}")
-    aspace_to_folio_config[:marc_download_base_directory] = base_dir
+  if downloaded_files_dir.blank?
+    logger.error('Directory for downloaded MARC files is not configured')
+    throw 'Please make sure the folio_sync.yml file contains a marc_download_base_directory'
+  end
+
+  if prepared_files_dir.blank?
+    logger.error('Directory for prepared MARC files is not configured')
+    throw 'Please make sure the folio_sync.yml file contains a prepared_marc_directory'
   end
 
   aspace_instances.each_key do |instance_name|
-    instance_dir = File.join(base_dir, instance_name.to_s)
-    FileUtils.mkdir_p(instance_dir)
+    downloads_instance_dir = File.join(downloaded_files_dir, instance_name.to_s)
+    prepared_instance_dir = File.join(prepared_files_dir, instance_name.to_s)
+    FileUtils.mkdir_p(downloads_instance_dir)
+    FileUtils.mkdir_p(prepared_instance_dir)
   end
 rescue StandardError => e
   logger.error("Failed to initialize FOLIO Sync directories: #{e.message}")

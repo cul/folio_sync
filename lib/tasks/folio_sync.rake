@@ -14,10 +14,12 @@ namespace :folio_sync do
         'bundle exec rake folio_sync:aspace_to_folio:run instance_key=cul'
       )
       instance_key = ENV['instance_key']
+      mode = ENV.fetch('mode', 'all').to_sym
 
       # Optional environment variables
       modified_since = ENV['modified_since']
-      clear_downloads = ENV['clear_downloads'].nil? || ENV['clear_downloads'] == 'true'
+      clear_downloads = mode != :sync && mode != :prepare
+      puts "Will downloads be cleared? #{clear_downloads}"
 
       processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
       processor.clear_downloads! if clear_downloads
@@ -33,7 +35,7 @@ namespace :folio_sync do
         end
 
       puts 'Fetching MARC resources...'
-      processor.fetch_and_sync_aspace_to_folio_records(modified_since_time)
+      processor.fetch_and_sync_aspace_to_folio_records(modified_since_time, mode)
 
       if FolioSync::Rake::ErrorLogger.any_errors?(processor)
         FolioSync::Rake::ErrorLogger.log_errors_to_console(processor)
@@ -62,7 +64,7 @@ namespace :folio_sync do
       instance_key = ENV['instance_key']
       puts 'Syncing exported resources...'
       processor = FolioSync::ArchivesSpaceToFolio::FolioSynchronizer.new(instance_key)
-      processor.sync_resources_to_folio
+      processor.sync_prepared_marc_records_to_folio
 
       if processor.syncing_errors.any?
         puts 'Errors occurred during syncing:'

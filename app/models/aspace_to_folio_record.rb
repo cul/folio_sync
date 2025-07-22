@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class AspaceToFolioRecord < ApplicationRecord
-  enum :pending_update, { no_update: 0, to_folio: 1, to_aspace: 2 }
+  enum :pending_update, { no_update: 0, to_folio: 1, to_aspace: 2, fix_required: 3 }
 
   validates :archivesspace_instance_key, presence: true
   validates :repository_key, presence: true
@@ -29,10 +29,23 @@ class AspaceToFolioRecord < ApplicationRecord
   end
 
   def archivesspace_marc_xml_path
-    "#{self.archivesspace_instance_key}/#{self.repository_key}-#{resource_key}-aspace.xml"
+    File.join(aspace_config[:marc_download_base_directory],
+              "#{archivesspace_instance_key}/#{repository_key}-#{resource_key}-aspace.xml")
   end
 
   def folio_marc_xml_path
-    "#{self.archivesspace_instance_key}/#{self.repository_key}-#{resource_key}-folio.xml"
+    File.join(aspace_config[:marc_download_base_directory],
+              "#{archivesspace_instance_key}/#{repository_key}-#{resource_key}-folio.xml")
+  end
+
+  def prepared_folio_marc_path
+    File.join(aspace_config[:prepared_marc_directory],
+              "#{archivesspace_instance_key}/#{repository_key}-#{resource_key}-prepared.marc")
+  end
+
+  private
+
+  def aspace_config
+    Rails.configuration.folio_sync[:aspace_to_folio]
   end
 end

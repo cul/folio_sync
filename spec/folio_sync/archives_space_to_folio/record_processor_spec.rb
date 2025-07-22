@@ -6,31 +6,29 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
   include_context 'FolioSync directory setup'
 
   let(:processor) { described_class.new(instance_key) }
-  let(:folio_hrid) { 'f123' }
   let(:record) { FactoryBot.create(:aspace_to_folio_record, :suppressed_record, :with_folio_data) }
-  let(:base_dir) { 'tmp/test/downloaded_files' }
-  let(:aspace_marc_path) { File.join(base_dir, record.archivesspace_marc_xml_path) }
-  let(:folio_marc_path) { File.join(base_dir, record.folio_marc_xml_path) }
 
   describe '#process_record' do
     context 'when processing succeeds' do
-      let(:fake_marc) { double('Marc::Record') }
-      let(:processed_record) { marc_record.enhance_marc_record! }
+      let(:marc_record) { MARC::Record.new }
+
+      before do
+        FileUtils.mkdir_p(File.dirname(record.prepared_folio_marc_path))
+
+        # Create a sample MARC record and write it to the expected file
+        marc_record.append(MARC::ControlField.new('001', 'test123'))
+        marc_record.append(MARC::DataField.new('245', '0', '0', ['a', 'Test Title']))
+
+        writer = MARC::Writer.new(record.prepared_folio_marc_path)
+        writer.write(marc_record)
+        writer.close
+      end
 
       it 'returns a hash with marc_record and metadata' do
-        fake_marc = double('MARC::Record')
-        enhancer = double('MarcRecordEnhancer')
-        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(
-          aspace_marc_path,
-          folio_marc_path,
-          record.folio_hrid,
-          instance_key
-        ).and_return(enhancer)
-        allow(enhancer).to receive(:enhance_marc_record!).and_return(fake_marc)
-
         result = processor.process_record(record)
         expect(result).to be_a(Hash)
-        expect(result[:marc_record]).to eq(fake_marc)
+        expect(result[:marc_record]).to be_a(MARC::Record)
+        expect(result[:marc_record]['001'].value).to eq('test123')
         expect(result[:metadata]).to eq(
           repository_key: record.repository_key,
           resource_key: record.resource_key,
@@ -39,44 +37,39 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
         )
       end
 
-      it 'resolves correct MARC file paths' do
-        enhancer = double('MarcRecordEnhancer')
-        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(
-          aspace_marc_path,
-          folio_marc_path,
-          record.folio_hrid,
-          instance_key
-        ).and_return(enhancer)
-        allow(enhancer).to receive(:enhance_marc_record!).and_return(double('MARC::Record'))
-
-        processor.process_record(record)
+      it 'loads MARC record from prepared file path' do
+        result = processor.process_record(record)
+        expect(result[:marc_record]).to be_a(MARC::Record)
+        expect(result[:marc_record]['245']['a']).to eq('Test Title')
       end
     end
 
     context 'when folio_hrid is nil' do
+      let(:marc_record) { MARC::Record.new }
+
       before do
         allow(record).to receive(:folio_hrid).and_return(nil)
+
+        FileUtils.mkdir_p(File.dirname(record.prepared_folio_marc_path))
+        marc_record.append(MARC::ControlField.new('001', 'test123'))
+        marc_record.append(MARC::DataField.new('245', '0', '0', ['a', 'Test Title']))
+
+        writer = MARC::Writer.new(record.prepared_folio_marc_path)
+        writer.write(marc_record)
+        writer.close
       end
 
-      it 'passes nil for folio_marc_path' do
-        enhancer = double('MarcRecordEnhancer')
-        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).with(
-          aspace_marc_path,
-          nil,
-          nil,
-          instance_key
-        ).and_return(enhancer)
-        allow(enhancer).to receive(:enhance_marc_record!).and_return('marc')
-
-        processor.process_record(record)
+      it 'still processes the record correctly' do
+        result = processor.process_record(record)
+        expect(result).to be_a(Hash)
+        expect(result[:marc_record]).to be_a(MARC::Record)
+        expect(result[:metadata][:hrid]).to be_nil
       end
     end
 
+    # Skip creating a MARC file, so File.exist? will return false
+    # This will cause load_marc_record to raise an exception
     context 'when an error occurs during processing' do
-      before do
-        allow(FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer).to receive(:new).and_raise(StandardError, 'Test error')
-      end
-
       it 'returns nil and logs the error' do
         expect(Rails.logger).to receive(:error).with(/Error processing record #{record.id}/)
         result = processor.process_record(record)

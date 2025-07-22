@@ -33,18 +33,16 @@ module FolioSync
 
       def download_marc_for_record(record)
         aspace_marc = @aspace_client.fetch_marc_xml_resource(record.repository_key, record.resource_key)
-        save_marc_file(aspace_marc, record.archivesspace_marc_xml_path)
+        save_marc_file(record.archivesspace_marc_xml_path, aspace_marc)
 
         return if record.folio_hrid.blank?
 
         folio_marc = @folio_reader.get_marc_record_as_xml(record.folio_hrid)
-        save_marc_file(folio_marc, record.folio_marc_xml_path) if folio_marc
+        save_marc_file(record.folio_marc_xml_path, folio_marc) if folio_marc
       end
 
-      def save_marc_file(marc_data, file_path)
-        config = Rails.configuration.folio_sync[:aspace_to_folio]
-        instance_file_path = File.join(config[:marc_download_base_directory], file_path)
-        File.binwrite(instance_file_path, marc_data)
+      def save_marc_file(file_path, marc_data)
+        File.binwrite(file_path, marc_data)
       end
     end
   end

@@ -17,14 +17,14 @@ module FolioSync
       # @param job_execution_summary [Folio::Client::JobExecutionSummary] The completed job summary
       # @return [Array<FolioSync::Errors::SyncingError>] Any processing errors that occurred
       def process_results(job_execution_summary)
-        Rails.logger.info("Processing job execution results")
+        Rails.logger.info('Processing job execution results')
         result_count = 0
-        
+
         job_execution_summary.each_result do |_raw_result, custom_metadata, instance_action_status, hrid_list, id_list|
           result_count += 1
           Rails.logger.debug("Processing result #{result_count}: status=#{instance_action_status}, " \
                             "hrid_list=#{hrid_list}, id_list=#{id_list}, metadata=#{custom_metadata.inspect}")
-          
+
           # Update suppression status for successful records
           if ['CREATED', 'UPDATED'].include?(instance_action_status)
             Rails.logger.debug("Record was #{instance_action_status}, updating suppression status")
@@ -36,7 +36,7 @@ module FolioSync
           # Update database record status
           update_database_record(custom_metadata, instance_action_status, hrid_list)
         end
-        
+
         Rails.logger.info("Processed #{result_count} results. Errors: #{@processing_errors.length}")
       end
 
@@ -54,13 +54,13 @@ module FolioSync
       # there should be only one ID in this list
       def update_suppression_status(custom_metadata, id_list)
         if id_list.blank?
-          Rails.logger.warn("No instance IDs provided for suppression update")
+          Rails.logger.warn('No instance IDs provided for suppression update')
           return
         end
 
         instance_record_id = id_list.first
         incoming_suppress = custom_metadata[:suppress_discovery]
-        
+
         Rails.logger.debug("Checking suppression status for instance #{instance_record_id}")
 
         folio_record = @folio_reader.get_instance_by_id(instance_record_id)
@@ -74,7 +74,7 @@ module FolioSync
 
         Rails.logger.info("Updating suppression status for instance #{instance_record_id}: " \
                          "#{current_folio_suppress} -> #{incoming_suppress}")
-        
+
         data_to_send = build_suppression_update_payload(folio_record, incoming_suppress)
         update_folio_instance_suppression(instance_record_id, data_to_send)
       rescue StandardError => e
@@ -93,8 +93,10 @@ module FolioSync
       # @param hrid_list [Array<String>] List of HRIDs for the instance,
       # there should be only one HRID in this list if the record was created or updated
       def update_database_record(custom_metadata, instance_action_status, hrid_list)
-        Rails.logger.debug("Updating database record: status=#{instance_action_status}, metadata=#{custom_metadata.inspect}")
-        
+        Rails.logger.debug(
+          "Updating database record: status=#{instance_action_status}, metadata=#{custom_metadata.inspect}"
+        )
+
         record = find_local_record(custom_metadata)
         if record.nil?
           Rails.logger.error("Could not find local record for repo=#{custom_metadata[:repository_key]}, " \
@@ -123,7 +125,7 @@ module FolioSync
       # Newly created records will have their HRID set and marked for update to ArchivesSpace
       def update_record_status(record, instance_action_status, hrid_list)
         Rails.logger.debug("Updating record status for record #{record.id}: status=#{instance_action_status}")
-        
+
         if instance_action_status == 'CREATED' && hrid_list&.any?
           Rails.logger.info("Record #{record.id} was CREATED with HRID #{hrid_list.first}, marking for ASpace update")
           record.update!(folio_hrid: hrid_list.first, pending_update: 'to_aspace')
@@ -162,8 +164,10 @@ module FolioSync
       end
 
       def handle_suppression_update_error(custom_metadata, instance_record_id, error)
-        Rails.logger.error("Error updating suppression for #{instance_record_id}: #{error.class.name}: #{error.message}")
-        
+        Rails.logger.error(
+          "Error updating suppression for #{instance_record_id}: #{error.class.name}: #{error.message}"
+        )
+
         processing_error = FolioSync::Errors::SyncingError.new(
           resource_uri: "repositories/#{custom_metadata[:repository_key]}/resources/#{custom_metadata[:resource_key]}",
           message: "Failed to update suppression status: #{error.message}"

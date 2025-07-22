@@ -41,6 +41,8 @@ gem 'marc'
 
 gem 'folio_api_client', '~> 0.4.0'
 
+gem 'retriable', '~> 3.1'
+
 group :development, :test do
   # Use SQLite as the database for Active Record, MySQL will be used in production
   gem 'sqlite3'
@@ -50,6 +52,8 @@ group :development, :test do
 
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem 'brakeman', require: false
+
+  gem 'retriable', '~> 3.1'
 
   gem 'rspec-rails', '~> 8.0.0'
 

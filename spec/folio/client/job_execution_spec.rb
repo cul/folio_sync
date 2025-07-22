@@ -8,6 +8,7 @@ RSpec.describe Folio::Client::JobExecution do
   let(:data_type) { 'MARC' }
   let(:number_of_expected_records) { 3 }
   let(:batch_size) { 2 }
+  let(:job_log_entry_batch_size) { 3 }
   let(:user_id) { 'user-456' }
   let(:job_execution_id) { 'job-789' }
   let(:marc_record) { double('MARC::Record', to_marc: 'marc-content') }
@@ -33,7 +34,7 @@ RSpec.describe Folio::Client::JobExecution do
   describe '#initialize' do
     it 'creates a new job execution with correct attributes' do
       job_execution = described_class.new(
-        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size
+        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size, job_log_entry_batch_size
       )
 
       expect(job_execution.client).to eq(folio_client)
@@ -48,7 +49,7 @@ RSpec.describe Folio::Client::JobExecution do
         .and_return({ 'jobExecutions' => [{ 'id' => job_execution_id }] })
 
       described_class.new(
-        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size
+        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size, job_log_entry_batch_size
       )
     end
 
@@ -57,7 +58,7 @@ RSpec.describe Folio::Client::JobExecution do
         .with("/change-manager/jobExecutions/#{job_execution_id}/jobProfile", any_args)
 
       described_class.new(
-        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size
+        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size, job_log_entry_batch_size
       )
     end
   end
@@ -65,7 +66,7 @@ RSpec.describe Folio::Client::JobExecution do
   describe '#add_record' do
     let(:job_execution) do
       described_class.new(
-        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size
+        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size, job_log_entry_batch_size
       )
     end
 
@@ -101,7 +102,7 @@ RSpec.describe Folio::Client::JobExecution do
   describe '#start' do
     let(:job_execution) do
       described_class.new(
-        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size
+        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size, job_log_entry_batch_size
       )
     end
 
@@ -140,7 +141,7 @@ RSpec.describe Folio::Client::JobExecution do
         job_execution.add_record(marc_record)
 
         expect { job_execution.start }.to raise_error(
-          RuntimeError, 
+          RuntimeError,
           /Number of records added so far \(1\) does not equal number of expected records \(3\)/
         )
       end
@@ -153,7 +154,7 @@ RSpec.describe Folio::Client::JobExecution do
 
         # Add one record (won't flush yet)
         job_execution.add_record(marc_record)
-        
+
         # Add second record - this should trigger flush and raise the error
         expect { job_execution.add_record(marc_record) }.to raise_error(
           RuntimeError,
@@ -166,15 +167,15 @@ RSpec.describe Folio::Client::JobExecution do
   describe '#wait_until_complete' do
     let(:job_execution) do
       described_class.new(
-        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size
+        folio_client, job_profile_uuid, data_type, number_of_expected_records, batch_size, job_log_entry_batch_size
       )
     end
 
     before do
       # Mock Time.current to control timing
-      allow(Time).to receive(:current).and_return(Time.now)
       allow(job_execution).to receive(:sleep)
-      
+      allow(Time).to receive(:current).and_return(Time.now)
+
       stub_const('Folio::Client::JobExecutionSummary', Class.new do
         def initialize(processed_records, custom_metadata)
           @processed_records = processed_records
@@ -183,15 +184,20 @@ RSpec.describe Folio::Client::JobExecution do
       end)
     end
 
-    it 'polls for job completion and returns summary' do
+    it 'waits for job to start, complete, and returns summary' do
+      # Mock job starting
       allow(folio_client).to receive(:get)
-        .with("/metadata-provider/jobLogEntries/#{job_execution_id}")
+        .with("/change-manager/jobExecutions/#{job_execution_id}")
+        .and_return({ 'progress' => { 'current' => 1 }, 'status' => 'COMMITTED' })
+
+      # Mock job log entries
+      allow(folio_client).to receive(:get)
+        .with("/metadata-provider/jobLogEntries/#{job_execution_id}", { limit: 3, offset: 0  })
         .and_return({
-          'totalRecords' => number_of_expected_records,
           'entries' => [
-            { 'sourceRecordActionStatus' => 'CREATED' },
-            { 'sourceRecordActionStatus' => 'UPDATED' },
-            { 'sourceRecordActionStatus' => 'CREATED' }
+            { 'sourceRecordOrder' => 0, 'sourceRecordActionStatus' => 'CREATED' },
+            { 'sourceRecordOrder' => 1, 'sourceRecordActionStatus' => 'UPDATED' },
+            { 'sourceRecordOrder' => 2, 'sourceRecordActionStatus' => 'CREATED' }
           ]
         })
 
@@ -199,34 +205,50 @@ RSpec.describe Folio::Client::JobExecution do
       expect(summary).to be_an_instance_of(Folio::Client::JobExecutionSummary)
     end
 
-    it 'waits for all records to be processed' do
+    it 'calls the three main steps in order' do
+      expect(job_execution).to receive(:wait_for_job_to_start).ordered
+      expect(job_execution).to receive(:wait_for_job_to_complete).ordered
+      expect(job_execution).to receive(:create_job_execution_summary).ordered.and_return(double)
+
+      job_execution.wait_until_complete
+    end
+
+    it 'waits for job to start then complete processing all records' do
       call_count = 0
-      allow(folio_client).to receive(:get) do
+      
+      # Mock the job execution status checks
+      allow(folio_client).to receive(:get)
+        .with("/change-manager/jobExecutions/#{job_execution_id}") do
         call_count += 1
-        if call_count == 1
-          # First call - not all records processed yet
-          {
-            'totalRecords' => number_of_expected_records,
-            'entries' => [
-              { 'id' => '1' }, # No sourceRecordActionStatus yet
-              { 'sourceRecordActionStatus' => 'CREATED' }
-            ]
-          }
+        case call_count
+        when 1
+          # First call - job hasn't started yet
+          { 'progress' => { 'current' => 0 }, 'status' => 'NEW' }
+        when 2
+          # Second call - job has started, one record processed
+          { 'progress' => { 'current' => 1 }, 'status' => 'PROCESSING_IN_PROGRESS' }
+        when 3
+          # Third call - two records processed
+          { 'progress' => { 'current' => 2 }, 'status' => 'PROCESSING_IN_PROGRESS' }
         else
-          # Second call - all records processed
-          {
-            'totalRecords' => number_of_expected_records,
-            'entries' => [
-              { 'sourceRecordActionStatus' => 'CREATED' },
-              { 'sourceRecordActionStatus' => 'UPDATED' },
-              { 'sourceRecordActionStatus' => 'CREATED' }
-            ]
-          }
+          # Final call - job completed
+          { 'progress' => { 'current' => 3 }, 'status' => 'COMMITTED' }
         end
       end
 
-      expect(folio_client).to receive(:get).twice
-      job_execution.wait_until_complete
+      allow(folio_client).to receive(:get)
+        .with("/metadata-provider/jobLogEntries/#{job_execution_id}", { limit: 3, offset: 0 })
+        .and_return({
+          'entries' => [
+            { 'sourceRecordOrder' => 0, 'sourceRecordActionStatus' => 'CREATED' },
+            { 'sourceRecordOrder' => 1, 'sourceRecordActionStatus' => 'UPDATED' },
+            { 'sourceRecordOrder' => 2, 'sourceRecordActionStatus' => 'CREATED' }
+          ]
+        })
+
+      summary = job_execution.wait_until_complete
+      expect(summary).to be_an_instance_of(Folio::Client::JobExecutionSummary)
+      expect(call_count).to be >= 2
     end
   end
 end
