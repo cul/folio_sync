@@ -67,9 +67,6 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcDownloader do
 
   describe '#save_marc_file' do
     it 'writes MARC data to the correct file path' do
-      config = { aspace_to_folio: { marc_download_base_directory: '/base/dir' } }
-      allow(Rails.configuration).to receive(:folio_sync).and_return(config)
-
       downloader.save_marc_file(File.join('/base/dir', 'path/to/file.xml'), marc_data)
       expect(File).to have_received(:binwrite).with('/base/dir/path/to/file.xml', marc_data)
     end
