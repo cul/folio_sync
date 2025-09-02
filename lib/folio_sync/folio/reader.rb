@@ -28,9 +28,9 @@ module FolioSync
 
       # Query must be expressed as a CQL string: https://dev.folio.org/reference/glossary/#cql
       def retrieve_circulation_requests(requester_barcode: 'RBXMDTD001')
-        @client.get('/circulation/requests',
-                    { limit: 1000,
-                      query: "requester.barcode=#{requester_barcode} and status=\"Open - Not yet filled\"" })['requests']
+        query = "requester.barcode=#{requester_barcode} and status=\"Open - Not yet filled\""
+
+        @client.get('/circulation/requests', { limit: 1000, query: query })['requests']
       end
     end
   end
