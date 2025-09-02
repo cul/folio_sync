@@ -26,10 +26,11 @@ module FolioSync
         @client.find_instance_record(instance_record_id: instance_id)
       end
 
-      # Query must be expressed as CQL string: https://dev.folio.org/reference/glossary/#cql
-      def retrieve_circulation_requests
+      # Query must be expressed as a CQL string: https://dev.folio.org/reference/glossary/#cql
+      def retrieve_circulation_requests(requester_barcode: 'RBXMDTD001')
         @client.get('/circulation/requests',
-                    { limit: 1000, query: 'requester.barcode=RBXMDTD001 and status="Open - Not yet filled"' })['requests']
+                    { limit: 1000,
+                      query: "requester.barcode=#{requester_barcode} and status=\"Open - Not yet filled\"" })['requests']
       end
     end
   end

@@ -11,13 +11,23 @@ RSpec.describe FolioSync::Folio::Reader do
     { 'fields' => [{ '001' => '123456789' }, { '005' => '20240625231052.0' }] }
   end
   let(:source_record) do
-      { 'parsedRecord' => { 'content' => marc_json_hash } }
-    end
+    { 'parsedRecord' => { 'content' => marc_json_hash } }
+  end
+  let (:item_requests) do
+    [
+
+      { 'id' => 'req1', 'item' => { 'barcode' => 'ITEM123' }, 'requester' => { 'barcode' => 'REQ001' }, 'status' => 'Open - Not yet filled' },
+      { 'id' => 'req2', 'item' => { 'barcode' => 'ITEM456' }, 'requester' => { 'barcode' => 'REQ001' }, 'status' => 'Open - Not yet filled' }
+    ]
+  end
 
   before do
     allow(FolioSync::Folio::Client).to receive(:instance).and_return(folio_client)
     allow(folio_client).to receive(:find_source_record).with(instance_record_hrid: hrid).and_return(source_record)
     allow(MARC::Record).to receive(:new_from_hash).with(marc_json_hash).and_return(marc_record)
+    allow(folio_client).to receive(:get).with('/circulation/requests',
+                                              { limit: 1000, query: 'requester.barcode=RBXMDTD001 and status="Open - Not yet filled"' })
+                                     .and_return({ 'requests' => item_requests })
   end
 
   describe '#initialize' do
@@ -39,6 +49,36 @@ RSpec.describe FolioSync::Folio::Reader do
       result = instance.get_marc_record(hrid)
       expect(result).to be_nil
       expect(folio_client).to have_received(:find_source_record).with(instance_record_hrid: hrid)
+    end
+  end
+
+  describe '#retrieve_circulation_requests' do
+    it 'retrieves circulation requests with default requester barcode' do
+      result = instance.retrieve_circulation_requests
+      
+      expect(result).to eq(item_requests)
+      expect(folio_client).to have_received(:get).with('/circulation/requests',
+                                                       { limit: 1000, query: 'requester.barcode=RBXMDTD001 and status="Open - Not yet filled"' })
+    end
+
+    it 'retrieves circulation requests with custom requester barcode' do
+      custom_barcode = 'CUSTOM123'
+      allow(folio_client).to receive(:get).with('/circulation/requests',
+                                                { limit: 1000, query: "requester.barcode=#{custom_barcode} and status=\"Open - Not yet filled\"" })
+                                           .and_return({ 'requests' => item_requests })
+
+      result = instance.retrieve_circulation_requests(requester_barcode: custom_barcode)
+      
+      expect(result).to eq(item_requests)
+      expect(folio_client).to have_received(:get).with('/circulation/requests',
+                                                       { limit: 1000, query: "requester.barcode=#{custom_barcode} and status=\"Open - Not yet filled\"" })
+    end
+
+    it 'returns an array of requests' do
+      result = instance.retrieve_circulation_requests
+      
+      expect(result).to be_an(Array)
+      expect(result.length).to eq(2)
     end
   end
 end
