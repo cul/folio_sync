@@ -1,13 +1,11 @@
 # frozen_string_literal: true
 
-# TODO: Move the existing ApplicationMailer into something more specific
-# and keep ApplicationMailer as the base class for all mailers.
 class FolioHoldUpdatesErrorMailer < ApplicationMailer
   default from: Rails.configuration.folio_sync['default_sender_email_address']
   layout 'mailer'
 
   def hold_update_error_email
-    body_content = format_errors(errors)
+    body_content = format_errors(params[:errors] || [])
 
     mail(
       to: params[:to],
