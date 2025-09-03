@@ -15,7 +15,6 @@ RSpec.describe FolioSync::Folio::Reader do
   end
   let (:item_requests) do
     [
-
       { 'id' => 'req1', 'item' => { 'barcode' => 'ITEM123' }, 'requester' => { 'barcode' => 'REQ001' }, 'status' => 'Open - Not yet filled' },
       { 'id' => 'req2', 'item' => { 'barcode' => 'ITEM456' }, 'requester' => { 'barcode' => 'REQ001' }, 'status' => 'Open - Not yet filled' }
     ]

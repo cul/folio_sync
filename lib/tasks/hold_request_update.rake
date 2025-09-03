@@ -7,7 +7,13 @@
 namespace :folio_hold_request_update do
   desc 'Process open, not yet filled requests and check out items'
   task run: :environment do
-    updater = FolioSync::Folio::ItemHoldUpdater.new
+    FolioSync::Rake::EnvValidator.validate!(
+      ['repo_key'],
+      'bundle exec rake folio_hold_request_update:run repo_key=rbml'
+    )
+    repo_key = ENV['repo_key']
+
+    updater = FolioSync::Folio::ItemHoldUpdater.new(repo_key)
     updater.remove_permanent_holds_from_items
 
     if updater.updater_errors.any?
@@ -17,7 +23,7 @@ namespace :folio_hold_request_update do
       end
 
       FolioHoldUpdatesErrorMailer.with(
-        to: Rails.configuration.folio_sync[:aspace_to_folio][:developer_email_address],
+        to: Rails.configuration.folio_requests[:repos][repo_key][:cron_email_addresses],
         subject: 'Errors updating holds in FOLIO',
         errors: updater.updater_errors
       ).hold_update_error_email.deliver
