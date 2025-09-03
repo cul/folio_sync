@@ -30,7 +30,7 @@ if Rails.env.folio_sync_prod? # rubocop:disable Rails/UnknownEnv
 end
 
 if Rails.env.folio_sync_dev? # rubocop:disable Rails/UnknownEnv
-  every 1.day, at: '5:26 pm' do
+  every 1.day, at: '5:34 pm' do
     rake 'folio_hold_request_update:run repo_key=rbml'
   end
 end

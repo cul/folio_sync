@@ -20,7 +20,7 @@ module FolioSync
           "servicePointId": folio_requests_config[:service_point_id]
         }
 
-        # @client.post('/circulation/check-out-by-barcode', payload)
+        @client.post('/circulation/check-out-by-barcode', payload)
       end
     end
   end

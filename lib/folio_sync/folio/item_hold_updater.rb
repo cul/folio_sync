@@ -20,7 +20,7 @@ module FolioSync
 
         items_to_check_out.each do |item|
           Rails.logger.debug("Checking out item with barcode: #{item.dig('item', 'barcode')}")
-          # @folio_writer.check_out_item_by_barcode(item.dig('item', 'barcode'), @repo_key)
+          @folio_writer.check_out_item_by_barcode(item.dig('item', 'barcode'), @repo_key)
         rescue StandardError => e
           @updater_errors << "Error removing permanent hold from item with barcode #{item.dig('item', 'barcode')}: #{e.message}"
         end
