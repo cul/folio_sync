@@ -12,7 +12,7 @@ module FolioSync
       end
 
       def check_out_item_by_barcode(barcode, repo_key)
-        folio_requests_config = Rails.configuration.folio_requests[:repos][repo_key]
+        folio_requests_config = Rails.configuration.folio_requests[:repos][repo_key.to_sym]
 
         payload = {
           "itemBarcode": barcode,

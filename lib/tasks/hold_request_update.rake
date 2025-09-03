@@ -23,7 +23,7 @@ namespace :folio_hold_request_update do
       end
 
       FolioHoldUpdatesErrorMailer.with(
-        to: Rails.configuration.folio_requests[:repos][repo_key][:cron_email_addresses],
+        to: Rails.configuration.folio_requests[:repos][repo_key.to_sym][:cron_email_addresses],
         subject: 'Errors updating holds in FOLIO',
         errors: updater.updater_errors
       ).hold_update_error_email.deliver
