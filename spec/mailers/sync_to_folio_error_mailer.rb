@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe ApplicationMailer, type: :mailer do
+RSpec.describe SyncToFolioErrorMailer, type: :mailer do
   subject(:mail_subject) { 'FOLIO Sync Errors' }
 
   let(:to_email) { 'test@example.com' }

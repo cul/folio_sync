@@ -139,7 +139,7 @@ module FolioSync
           folio_hrid: nil
         )
 
-          ApplicationMailer.with(
+          SyncToFolioErrorMailer.with(
             to: Rails.configuration.folio_sync[:aspace_to_folio][:developer_email_address],
             subject: "FOLIO Sync failed to validate database for #{@instance_key}",
             instance_key: @instance_key

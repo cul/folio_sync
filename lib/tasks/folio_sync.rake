@@ -40,7 +40,7 @@ namespace :folio_sync do
       if FolioSync::Rake::ErrorLogger.any_errors?(processor)
         FolioSync::Rake::ErrorLogger.log_errors_to_console(processor)
 
-        ApplicationMailer.with(
+        SyncToFolioErrorMailer.with(
           to: recipients_for(instance_key),
           subject: 'FOLIO Sync Errors',
           fetching_errors: processor.fetching_errors,
@@ -73,7 +73,7 @@ namespace :folio_sync do
           puts "Error: #{error.message}"
         end
 
-        ApplicationMailer.with(
+        SyncToFolioErrorMailer.with(
           to: recipients_for(instance_key),
           subject: 'FOLIO Sync - Error syncing exported resources',
           syncing_errors: processor.syncing_errors
@@ -147,7 +147,7 @@ namespace :folio_sync do
       )
       instance_key = ENV['instance_key']
 
-      ApplicationMailer.with(
+      SyncToFolioErrorMailer.with(
         to: recipients_for(instance_key),
         subject: 'FOLIO Sync Errors - Test Email',
         downloading_errors: [
