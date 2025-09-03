@@ -15,13 +15,12 @@ namespace :folio_hold_request_update do
       end
 
       FolioHoldUpdatesErrorMailer.with(
-          to: Rails.configuration.folio_sync[:aspace_to_folio][:developer_email_address],
-          subject: 'Errors updating holds in FOLIO',
-          errors: updater.updater_errors
-        ).hold_update_error_email.deliver
+        to: Rails.configuration.folio_sync[:aspace_to_folio][:developer_email_address],
+        subject: 'Errors updating holds in FOLIO',
+        errors: updater.updater_errors
+      ).hold_update_error_email.deliver
     else
       puts 'All holds have been removed successfully.'
     end
   end
 end
-
