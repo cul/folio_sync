@@ -13,30 +13,22 @@ namespace :folio_hold_request_update do
     )
     repo_key = ENV['repo_key']
 
-    test_errors = ['Test error', 'Another test error']
+    updater = FolioSync::Folio::ItemHoldUpdater.new(repo_key)
+    updater.remove_permanent_holds_from_items
 
-    FolioHoldUpdatesErrorMailer.with(
+    if updater.updater_errors.any?
+      puts 'Errors encountered during hold removal:'
+      updater.updater_errors.each do |error|
+        puts error
+      end
+
+      FolioHoldUpdatesErrorMailer.with(
         to: Rails.configuration.folio_requests[:repos][repo_key.to_sym][:cron_email_addresses],
-        subject: 'Test error!',
-        errors: test_errors
+        subject: 'Errors updating holds in FOLIO',
+        errors: updater.updater_errors
       ).hold_update_error_email.deliver
-
-    # updater = FolioSync::Folio::ItemHoldUpdater.new(repo_key)
-    # updater.remove_permanent_holds_from_items
-
-    # if updater.updater_errors.any?
-    #   puts 'Errors encountered during hold removal:'
-    #   updater.updater_errors.each do |error|
-    #     puts error
-    #   end
-
-    #   FolioHoldUpdatesErrorMailer.with(
-    #     to: Rails.configuration.folio_requests[:repos][repo_key.to_sym][:cron_email_addresses],
-    #     subject: 'Errors updating holds in FOLIO',
-    #     errors: updater.updater_errors
-    #   ).hold_update_error_email.deliver
-    # else
-    #   puts 'All holds have been removed successfully.'
-    # end
+    else
+      puts 'All holds have been removed successfully.'
+    end
   end
 end

@@ -31,7 +31,7 @@ module FolioSync
         requester_barcode = Rails.configuration.folio_requests[:repos][repo_key.to_sym][:user_barcode]
         query = "requester.barcode=#{requester_barcode} and status=\"Open - Not yet filled\""
 
-        @client.get('/circulation/requests', { limit: 1000, query: query })['requests']
+        @client.get('/circulation/requests', { limit: 2, query: query })['requests']
       end
     end
   end
