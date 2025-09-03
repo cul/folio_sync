@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This task retrieves all open, not yet filled requests for a specific requester barcode
 # and attempts to check out each item associated with those requests.
 # Checking out an item allows the hold to be changed from a permanent hold to a temporary hold
