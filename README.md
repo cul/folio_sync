@@ -160,6 +160,16 @@ bundle exec rake folio_sync:aspace_to_folio:process_marc_with_folio instance_key
 
 ---
 
+### `folio_sync:aspace_to_folio:email_test`
+Sends a test email to the configured recipients to verify the email functionality.
+
+#### Usage:
+```bash
+bundle exec rake folio_sync:aspace_to_folio:email_test instance_key=instance1
+```
+
+---
+
 ### `folio_sync:aspace_to_folio:folio_health_check`
 Performs a health check on the FOLIO API to ensure it is reachable and functioning correctly.
 
@@ -181,18 +191,6 @@ This is a temporary script that relies on the `folio_requests.yml` file to be ad
 ```bash
 bundle exec rake folio_hold_request_update:run repo_key=<repo_key_present_in_folio_requests_yml>
 ```
-
----
-
-### `folio_sync:aspace_to_folio:email_test`
-Sends a test email to the configured recipients to verify the email functionality.
-
-#### Usage:
-```bash
-bundle exec rake folio_sync:aspace_to_folio:email_test instance_key=instance1
-```
-
----
 
 ## Structure
 This application was created using `rails new`. However, since we're using it as a script for now, we're not using Rails' MVC (Model-View-Controller) structure. For clarity, the app folder was kept but it's empty as we don't need its content.
