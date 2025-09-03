@@ -17,14 +17,14 @@ set :job_template, "/usr/local/bin/mailifrc -s 'Error - :email_subject' :error_r
 job_type :rake, 'cd :path && :environment_variable=:environment bundle exec rake :task --silent :output'
 
 if Rails.env.folio_sync_prod? # rubocop:disable Rails/UnknownEnv
+  # Remove permanent hold on items returned from ReCAP
+  every 1.day, at: '7:00 pm' do
+    rake 'folio_hold_request_update:run repo_key=rbml'
+  end
+
   # Sync ArchivesSpace resources to FOLIO
   every 1.day, at: '8:00 pm' do
     rake 'folio_sync:aspace_to_folio:run instance_key=cul clear_downloads=false modified_since=25'
     # rake 'folio_sync:aspace_to_folio:run instance_key=barnard modified_since=25'
   end
-
-  # Remove permanent hold on items returned from ReCAP
-  # every 1.day, at: '9:00 pm' do
-  #   rake 'folio_hold_request_update:run'
-  # end
 end
