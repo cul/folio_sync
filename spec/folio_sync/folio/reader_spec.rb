@@ -53,64 +53,63 @@ RSpec.describe FolioSync::Folio::Reader do
     let(:folio_requests_config) do
       {
         repos: {
-          test_repo: {
-            service_point_id: "your-service-point-id",
-            user_barcode: "REQ123"
+          repo_key.to_sym => {
+            service_point_id: service_point_id,
+            user_barcode: barcode
           }
         }
       }
     end
 
     before do
+      # Update Rails configuration mock for the custom repo
       allow(Rails).to receive(:configuration).and_return(
         double(folio_requests: folio_requests_config)
       )
-      
-      allow(folio_client).to receive(:get).with('/circulation/requests',
-                                                { limit: 1000, query: 'requester.barcode=REQ123 and status="Open - Not yet filled"' })
-                                       .and_return({ 'requests' => item_requests })
+
+      allow(folio_client).to receive(:get).with(
+        '/circulation/requests',
+        { limit: 1000, query: "requester.barcode=#{barcode} and status=\"Open - Not yet filled\"" }
+      ).and_return({ 'requests' => item_requests })
     end
 
-    it 'retrieves circulation requests with default requester barcode' do
-      result = instance.retrieve_circulation_requests(repo_key)
-      
-      expect(result).to eq(item_requests)
-      expect(folio_client).to have_received(:get).with('/circulation/requests',
-                                                       { limit: 1000, query: 'requester.barcode=REQ123 and status="Open - Not yet filled"' })
+    context 'with default requester barcode' do
+      let(:repo_key) { 'test_repo' }
+      let(:barcode) { 'REQ123' }
+      let(:service_point_id) { 'your-service-point-id' }
+
+      it 'retrieves circulation requests' do
+        result = instance.retrieve_circulation_requests(repo_key)
+
+        expect(result).to eq(item_requests)
+        expect(folio_client).to have_received(:get).with(
+          '/circulation/requests',
+          { limit: 1000, query: "requester.barcode=#{barcode} and status=\"Open - Not yet filled\"" }
+        )
+      end
+
+      it 'returns an array of requests' do
+        result = instance.retrieve_circulation_requests(repo_key)
+
+        expect(result).to be_an(Array)
+        expect(result.length).to eq(2)
+      end
     end
 
-    it 'retrieves circulation requests with custom requester barcode' do
-      custom_repo_key = 'custom_repo'
-      custom_barcode = 'CUSTOM123'
-      
-      # Update Rails configuration mock for the custom repo
-      allow(Rails).to receive(:configuration).and_return(
-        double(folio_requests: {
-          repos: {
-            custom_repo: {
-              service_point_id: "custom-service-point-id",
-              user_barcode: custom_barcode
-            }
-          }
-        })
-      )
-      
-      allow(folio_client).to receive(:get).with('/circulation/requests',
-                                                { limit: 1000, query: "requester.barcode=#{custom_barcode} and status=\"Open - Not yet filled\"" })
-                                           .and_return({ 'requests' => item_requests })
+    context 'with custom requester barcode' do
+      let(:repo_key) { 'custom_repo' }
+      let(:barcode) { 'CUSTOM123' }
+      let(:service_point_id) { 'custom-service-point-id' }
 
-      result = instance.retrieve_circulation_requests(custom_repo_key)
-      
-      expect(result).to eq(item_requests)
-      expect(folio_client).to have_received(:get).with('/circulation/requests',
-                                                       { limit: 1000, query: "requester.barcode=#{custom_barcode} and status=\"Open - Not yet filled\"" })
-    end
+      it 'retrieves circulation requests' do
+        result = instance.retrieve_circulation_requests(repo_key)
 
-    it 'returns an array of requests' do
-      result = instance.retrieve_circulation_requests(repo_key)
-      
-      expect(result).to be_an(Array)
-      expect(result.length).to eq(2)
+        expect(result).to eq(item_requests)
+        expect(folio_client).to have_received(:get).with(
+          '/circulation/requests',
+          { limit: 1000, query: "requester.barcode=#{barcode} and status=\"Open - Not yet filled\"" }
+        )
+      end
     end
   end
 end
