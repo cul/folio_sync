@@ -33,6 +33,16 @@ module FolioSync
             Rails.logger.warn("Record has status #{instance_action_status}, skipping suppression update")
           end
 
+          # Create holdings record for newly created instances
+          if instance_action_status == 'CREATED' && id_list&.any?
+            instance_id = id_list.first
+            puts "Got job summary, about to creating holdings with metadata: #{custom_metadata}, instance: #{instance_id}"
+            Rails.logger.debug("Creating holdings record for newly created instance: #{instance_id}")
+            create_holdings_record_for_instance(custom_metadata, instance_id)
+            
+            # TODO: error handling
+          end
+
           # Update database record status
           update_database_record(custom_metadata, instance_action_status, hrid_list)
         end
@@ -79,6 +89,11 @@ module FolioSync
         update_folio_instance_suppression(instance_record_id, data_to_send)
       rescue StandardError => e
         handle_suppression_update_error(custom_metadata, instance_record_id, e)
+      end
+
+      def create_holdings_record_for_instance(custom_metadata, instance_id, permanent_location_code = "NNC-RB")
+        holdings_call_number = custom_metadata[:holdings_call_number]
+        @folio_writer.create_holdings_record(instance_id, holdings_call_number, permanent_location_code)
       end
 
       # @param custom_metadata [Hash] Metadata containing suppression status and other info

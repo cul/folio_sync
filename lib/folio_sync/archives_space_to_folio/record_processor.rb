@@ -42,7 +42,8 @@ module FolioSync
           repository_key: record.repository_key,
           resource_key: record.resource_key,
           hrid: record.folio_hrid,
-          suppress_discovery: record.is_folio_suppressed
+          suppress_discovery: record.is_folio_suppressed,
+          holdings_call_number: record.holdings_call_number,
         }
       end
 

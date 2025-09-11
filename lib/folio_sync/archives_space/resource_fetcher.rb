@@ -51,7 +51,9 @@ module FolioSync
       end
 
       def save_resource_to_database(repo_id, resource)
-        has_folio_hrid = resource.dig('user_defined', 'boolean_1')
+        # has_folio_hrid = resource.dig('user_defined', 'boolean_1')
+        # Force to false for now to test creating new FOLIO records
+        has_folio_hrid = false
         folio_hrid = nil
 
         if has_folio_hrid
@@ -59,13 +61,22 @@ module FolioSync
           folio_hrid = resource.dig('user_defined', 'string_1') if @instance_key == 'barnard'
         end
 
+        holdings_call_number = if repo_id == '2'
+                                 resource.dig('user_defined', 'string_1')
+                               else
+                                 resource['title']
+                               end
+
+        puts "Saving resorce with a call number: #{holdings_call_number}"
+
         data_to_save = {
           archivesspace_instance_key: @instance_key,
           repository_key: repo_id,
           resource_key: extract_id(resource['uri']),
           folio_hrid: folio_hrid,
           pending_update: 'to_folio',
-          is_folio_suppressed: !resource['publish']
+          is_folio_suppressed: !resource['publish'],
+          holdings_call_number: holdings_call_number
         }
 
         AspaceToFolioRecord.create_or_update_from_data(data_to_save)
