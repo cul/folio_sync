@@ -73,35 +73,12 @@ RSpec.describe FolioSync::Folio::Reader do
       ).and_return({ 'requests' => item_requests })
     end
 
-    context 'with default requester barcode' do
-      let(:repo_key) { 'test_repo' }
-      let(:barcode) { 'REQ123' }
-      let(:service_point_id) { 'your-service-point-id' }
-
-      it 'retrieves circulation requests' do
-        result = instance.retrieve_circulation_requests(repo_key)
-
-        expect(result).to eq(item_requests)
-        expect(folio_client).to have_received(:get).with(
-          '/circulation/requests',
-          { limit: 1000, query: "requester.barcode=#{barcode} and status=\"Open - Not yet filled\"" }
-        )
-      end
-
-      it 'returns an array of requests' do
-        result = instance.retrieve_circulation_requests(repo_key)
-
-        expect(result).to be_an(Array)
-        expect(result.length).to eq(2)
-      end
-    end
-
-    context 'with custom requester barcode' do
+    context 'when using a specific repository configuration' do
       let(:repo_key) { 'custom_repo' }
       let(:barcode) { 'CUSTOM123' }
       let(:service_point_id) { 'custom-service-point-id' }
 
-      it 'retrieves circulation requests' do
+      it 'retrieves circulation requests filtered by the repository user barcode' do
         result = instance.retrieve_circulation_requests(repo_key)
 
         expect(result).to eq(item_requests)
@@ -109,6 +86,7 @@ RSpec.describe FolioSync::Folio::Reader do
           '/circulation/requests',
           { limit: 1000, query: "requester.barcode=#{barcode} and status=\"Open - Not yet filled\"" }
         )
+        expect(result.length).to eq(2)
       end
     end
   end
