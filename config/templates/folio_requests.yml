@@ -1,0 +1,17 @@
+development:
+  default_sender_email_address: no-reply@example.com
+
+  repos:
+    repo1:
+      service_point_id: your-service-point-id
+      user_barcode: your-user-barcode
+      cron_email_addresses:
+        - example1@example.com
+        - example2@example.com
+    
+    repo2:
+      service_point_id: your-service-point-id
+      user_barcode: your-user-barcode
+      cron_email_addresses:
+        - example1@example.com
+        - example2@example.com
