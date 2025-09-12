@@ -19,7 +19,9 @@ module FolioSync
                           "resource=#{record.resource_key}, hrid=#{record.folio_hrid}")
 
         enhanced_marc = load_marc_record(record.prepared_folio_marc_path)
-        metadata = build_metadata(record)
+        permanent_location = enhanced_marc['049']['a'] # todo: error handling
+
+        metadata = build_metadata(record, permanent_location)
 
         Rails.logger.debug("Successfully processed record #{record.id} with metadata: #{metadata.inspect}")
         { marc_record: enhanced_marc, metadata: metadata }
@@ -37,13 +39,14 @@ module FolioSync
 
       # Preserve some of the data that cannot be sent in a MARC record
       # To use later when updating the record back in ArchivesSpace
-      def build_metadata(record)
+      def build_metadata(record, permanent_location)
         {
           repository_key: record.repository_key,
           resource_key: record.resource_key,
           hrid: record.folio_hrid,
           suppress_discovery: record.is_folio_suppressed,
           holdings_call_number: record.holdings_call_number,
+          permanent_location: permanent_location
         }
       end
 

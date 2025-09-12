@@ -24,15 +24,10 @@ module FolioSync
       end
 
       def create_holdings_record(instance_id, holdings_call_number, permanent_location)
-        puts "Permanent location is #{permanent_location}"
-        location_map = {
-          "NNC-RB": "f90d928c-e475-4d18-bd99-e0bf2c48de04"
-        }
-
         payload = {
           "instanceId": instance_id,
           "sourceId": "f32d531e-df79-46b3-8932-cdd35f7a2264", # FOLIO source, alternative is MARC
-          "permanentLocationId": location_map[permanent_location.to_sym],
+          "permanentLocationId": permanent_location,
           "holdingsTypeId": "03c9c400-b9e3-4a07-ac0e-05ab470233ed", # Monograph
           "callNumber": holdings_call_number
         }

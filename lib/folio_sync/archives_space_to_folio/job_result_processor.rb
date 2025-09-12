@@ -91,9 +91,12 @@ module FolioSync
         handle_suppression_update_error(custom_metadata, instance_record_id, e)
       end
 
-      def create_holdings_record_for_instance(custom_metadata, instance_id, permanent_location_code = "NNC-RB")
+      def create_holdings_record_for_instance(custom_metadata, instance_id)
         holdings_call_number = custom_metadata[:holdings_call_number]
-        @folio_writer.create_holdings_record(instance_id, holdings_call_number, permanent_location_code)
+        permanent_location_code = custom_metadata[:permanent_location]
+        permanent_location_id = Rails.configuration.folio_holdings[:location_codes][permanent_location_code.to_sym]
+
+        @folio_writer.create_holdings_record(instance_id, holdings_call_number, permanent_location_id)
       end
 
       # @param custom_metadata [Hash] Metadata containing suppression status and other info

@@ -40,6 +40,7 @@
 /config/folio.yml
 /config/folio_sync.yml
 /config/folio_requests.yml
+/config/folio_holdings.yml
 
 # Ignore Mac system files
 .DS_Store
