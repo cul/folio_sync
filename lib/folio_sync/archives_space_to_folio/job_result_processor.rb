@@ -37,7 +37,6 @@ module FolioSync
           # Create holdings record for newly created instances
           if instance_action_status == 'CREATED' && id_list&.any?
             instance_id = id_list.first
-            puts "Got job summary, about to creating holdings with metadata: #{custom_metadata}, instance: #{instance_id}"
             Rails.logger.debug("Creating holdings record for newly created instance: #{instance_id}")
             create_holdings_record_for_instance(custom_metadata, instance_id)
           end

@@ -25,10 +25,7 @@ module FolioSync
 
       def create_holdings_record(instance_id, holdings_call_number, permanent_location_id)
         payload = build_holdings_payload(instance_id, holdings_call_number, permanent_location_id)
-        puts "Before creating holdings with payload #{payload} for instance #{instance_id}"
-
-        res = @client.post('holdings-storage/holdings', payload)
-        puts "After creating holdings, response is #{res}"
+        @client.post('holdings-storage/holdings', payload)
       end
 
       private

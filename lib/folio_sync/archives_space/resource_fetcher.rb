@@ -51,9 +51,7 @@ module FolioSync
       end
 
       def save_resource_to_database(repo_id, resource)
-        # has_folio_hrid = resource.dig('user_defined', 'boolean_1')
-        # Force to false for now to test creating new FOLIO records
-        has_folio_hrid = false
+        has_folio_hrid = resource.dig('user_defined', 'boolean_1')
         folio_hrid = nil
 
         if has_folio_hrid
@@ -62,8 +60,6 @@ module FolioSync
         end
 
         holdings_call_number = resolve_call_number(resource, repo_id)
-        puts "Saving resorce with a call number: #{holdings_call_number}"
-
         data_to_save = {
           archivesspace_instance_key: @instance_key,
           repository_key: repo_id,
