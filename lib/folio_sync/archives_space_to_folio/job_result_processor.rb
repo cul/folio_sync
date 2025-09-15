@@ -40,8 +40,6 @@ module FolioSync
             puts "Got job summary, about to creating holdings with metadata: #{custom_metadata}, instance: #{instance_id}"
             Rails.logger.debug("Creating holdings record for newly created instance: #{instance_id}")
             create_holdings_record_for_instance(custom_metadata, instance_id)
-            
-            # TODO: error handling
           end
 
           # Update database record status

@@ -19,8 +19,7 @@ module FolioSync
                           "resource=#{record.resource_key}, hrid=#{record.folio_hrid}")
 
         enhanced_marc = load_marc_record(record.prepared_folio_marc_path)
-        permanent_location = enhanced_marc['049']['a'] # todo: error handling
-
+        permanent_location = enhanced_marc['049']['a']
         metadata = build_metadata(record, permanent_location)
 
         Rails.logger.debug("Successfully processed record #{record.id} with metadata: #{metadata.inspect}")
