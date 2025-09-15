@@ -93,11 +93,9 @@ module FolioSync
       end
 
       def create_holdings_record_for_instance(custom_metadata, instance_id)
-        holdings_call_number = custom_metadata[:holdings_call_number]
-        permanent_location_code = custom_metadata[:permanent_location]
         @holdings_creator.create_holdings_for_instance(instance_id, {
-          holdings_call_number: holdings_call_number,
-          permanent_location: permanent_location_code
+          holdings_call_number: custom_metadata[:holdings_call_number],
+          permanent_location: custom_metadata[:permanent_location]
         })
       rescue StandardError => e
         Rails.logger.error("Holdings creation failed: #{e.message}")

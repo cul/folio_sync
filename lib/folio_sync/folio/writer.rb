@@ -34,13 +34,15 @@ module FolioSync
       private
 
       def build_holdings_payload(instance_id, holdings_call_number, permanent_location_id)
+        holdings_config = Rails.configuration.folio_holdings
+
         {
           "instanceId": instance_id,
           "permanentLocationId": permanent_location_id,
           "callNumber": holdings_call_number,
-          "sourceId": Rails.application.config.folio_holdings[:holdings_source_id],
-          "holdingsTypeId": Rails.application.config.folio_holdings[:holdings_type_id],
-          "callNumberTypeId":  Rails.application.config.folio_holdings[:holdings_call_number_type_id]
+          "sourceId": holdings_config[:holdings_source_id],
+          "holdingsTypeId": holdings_config[:holdings_type_id],
+          "callNumberTypeId": holdings_config[:holdings_call_number_type_id]
         }
       end
     end
