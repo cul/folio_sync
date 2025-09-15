@@ -12,7 +12,8 @@ module FolioSync
 
         permanent_location_id = resolve_location_id(holdings_metadata[:permanent_location])
 
-        Rails.logger.debug("Creating holdings record for instance #{instance_id} with call number: #{holdings_metadata[:holdings_call_number]}")
+        Rails.logger.debug("Creating holdings record for instance #{instance_id} " \
+        "with call number: #{holdings_metadata[:holdings_call_number]}")
 
         response = @folio_writer.create_holdings_record(
           instance_id,

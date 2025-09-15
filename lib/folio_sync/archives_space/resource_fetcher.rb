@@ -100,7 +100,7 @@ module FolioSync
 
       def resolve_call_number(resource, repo_id)
         return [resource['id_0'], resource['id_1']].compact.join('.') if @instance_key == 'barnard'
-        
+
         repo_id == '2' ? resource.dig('user_defined', 'string_1') : resource['title']
       end
 

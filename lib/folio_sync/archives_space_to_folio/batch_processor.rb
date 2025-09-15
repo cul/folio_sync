@@ -6,8 +6,7 @@ module FolioSync
       attr_reader :syncing_errors
 
       DEFAULT_BATCH_SIZE = 50
-      # DEFAULT_JOB_PROFILE_UUID = '3fe97378-297c-40d9-9b42-232510afc58f' # ArchivesSpace to FOLIO job profile
-      DEFAULT_JOB_PROFILE_UUID = 'ce7928e6-fadb-4bba-aa3a-9ae9b882d454' # my job profile
+      DEFAULT_JOB_PROFILE_UUID = '3fe97378-297c-40d9-9b42-232510afc58f' # ArchivesSpace to FOLIO job profile
 
       def initialize(instance_key)
         @instance_key = instance_key
