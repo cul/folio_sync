@@ -1,9 +1,10 @@
 default: &default
+  # Mapping of ArchivesSpace repository codes to FOLIO location UUIDs
   location_codes:
     NNC-RB: f90d928c-e475-4d18-bd99-e0bf2c48de04 # rbms
     NNC-AV: 5404dd7c-0f05-4c8a-bd80-7e051d15c62f # avda
     NNC-EA: e663c3ce-4107-497b-a68d-88347b68df59 # eaa
-    NNC-UT: ae580e58-16e3-4444-ae90-0e27ce39e646 # uts,arc (burke)
+    NNC-UT: ae580e58-16e3-4444-ae90-0e27ce39e646 # uts,arc
     NNC-UA: 404f3335-493d-46e5-b722-f883754aaef4 # uacl
     NNC-OH: 896bb3d5-9a50-415a-a9af-0275f3f60eef # oral
 
@@ -13,9 +14,14 @@ default: &default
 
 development:
   <<: *default
-
 test:
   <<: *default
-
 production:
+  <<: *default
+
+folio_sync_dev:
+  <<: *default
+folio_sync_test:
+  <<: *default
+folio_sync_prod:
   <<: *default
