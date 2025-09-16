@@ -30,7 +30,6 @@ append  :linked_files,
         'config/archivesspace.yml',
         'config/folio_sync.yml',
         'config/folio_requests.yml',
-        'config/folio_holdings.yml',
         'config/master.key'
 
 # Default value for linked_dirs is []
