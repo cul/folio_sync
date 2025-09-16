@@ -18,7 +18,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
         # Create a sample MARC record and write it to the expected file
         marc_record.append(MARC::ControlField.new('001', 'test123'))
         marc_record.append(MARC::DataField.new('245', '0', '0', ['a', 'Test Title']))
-        marc_record.append(MARC::DataField.new('049', '0', '0', ['a', 'Test Call Number']))
+        marc_record.append(MARC::DataField.new('049', '0', '0', ['a', 'Test Holding Library']))
 
         writer = MARC::Writer.new(record.prepared_folio_marc_path)
         writer.write(marc_record)
@@ -36,7 +36,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
           hrid: record.folio_hrid,
           suppress_discovery: true,
           holdings_call_number: record.holdings_call_number,
-          permanent_location: 'Test Call Number'
+          permanent_location: 'Test Holding Library'
         )
       end
 
@@ -44,7 +44,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
         result = processor.process_record(record)
         expect(result[:marc_record]).to be_a(MARC::Record)
         expect(result[:marc_record]['245']['a']).to eq('Test Title')
-        expect(result[:marc_record]['049']['a']).to eq('Test Call Number')
+        expect(result[:marc_record]['049']['a']).to eq('Test Holding Library')
       end
     end
 
@@ -57,7 +57,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::RecordProcessor do
         FileUtils.mkdir_p(File.dirname(record.prepared_folio_marc_path))
         marc_record.append(MARC::ControlField.new('001', 'test123'))
         marc_record.append(MARC::DataField.new('245', '0', '0', ['a', 'Test Title']))
-        marc_record.append(MARC::DataField.new('049', '0', '0', ['a', 'Test Call Number']))
+        marc_record.append(MARC::DataField.new('049', '0', '0', ['a', 'Test Holding Library']))
 
         writer = MARC::Writer.new(record.prepared_folio_marc_path)
         writer.write(marc_record)
