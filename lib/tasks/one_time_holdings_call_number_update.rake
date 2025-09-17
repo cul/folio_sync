@@ -33,7 +33,7 @@ namespace :one_time_holdings_call_number_update do
       csv << ['Repository ID', 'Resource ID', 'Resolved Call Number', 'Status']
 
       records_to_update.each do |record|
-        puts "Processing record ID: #{record.id}, Repository Key: #{record.repository_key}, Resource Key: #{record.resource_key}"
+        puts "Processing record ID: #{record.id}, Repository ID: #{record.repository_key}, Resource ID: #{record.resource_key}"
 
         begin
           resource_data = client.fetch_resource(record.repository_key, record.resource_key)
