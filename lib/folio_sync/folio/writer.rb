@@ -22,6 +22,26 @@ module FolioSync
 
         @client.post('/circulation/check-out-by-barcode', payload)
       end
+
+      def create_holdings_record(instance_id, holdings_call_number, permanent_location_id)
+        payload = build_holdings_payload(instance_id, holdings_call_number, permanent_location_id)
+        @client.post('holdings-storage/holdings', payload)
+      end
+
+      private
+
+      def build_holdings_payload(instance_id, holdings_call_number, permanent_location_id)
+        holdings_config = Rails.configuration.folio_holdings
+
+        {
+          "instanceId": instance_id,
+          "permanentLocationId": permanent_location_id,
+          "callNumber": holdings_call_number,
+          "sourceId": holdings_config[:holdings_source_id],
+          "holdingsTypeId": holdings_config[:holdings_type_id],
+          "callNumberTypeId": holdings_config[:holdings_call_number_type_id]
+        }
+      end
     end
   end
 end

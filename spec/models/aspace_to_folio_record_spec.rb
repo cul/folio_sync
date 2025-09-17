@@ -45,6 +45,7 @@ RSpec.describe AspaceToFolioRecord, type: :model do
         repository_key: 2,
         resource_key: 123,
         folio_hrid: 'test_hrid',
+        holdings_call_number: 'test_call_number_123'
       }
     end
 
@@ -65,6 +66,7 @@ RSpec.describe AspaceToFolioRecord, type: :model do
         expect(record.pending_update).to eq('no_update')
         expect(record.is_folio_suppressed).to be true
         expect(record.folio_hrid).to eq('test_hrid')
+        expect(record.holdings_call_number).to eq('test_call_number_123')
       end
 
       it 'creates a record with only required fields when optional fields are not provided' do
@@ -75,6 +77,7 @@ RSpec.describe AspaceToFolioRecord, type: :model do
         expect(record.archivesspace_instance_key).to eq('test_instance')
         expect(record.repository_key).to eq(2)
         expect(record.resource_key).to eq(123)
+        expect(record.holdings_call_number).to eq('test_call_number_123')
         expect(record.pending_update).to eq('to_folio') # default value is 'to_folio'
         expect(record.is_folio_suppressed).to be false # default value from schema
       end

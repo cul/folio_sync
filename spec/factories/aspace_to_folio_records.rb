@@ -15,6 +15,7 @@ FactoryBot.define do
     resource_key { resource_keys.sample }
     pending_update { :no_update }
     is_folio_suppressed { false }
+    holdings_call_number { "call_num_123"}
 
     trait :with_folio_data do
       folio_hrid { "folio_hrid_#{SecureRandom.hex}" }

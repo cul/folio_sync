@@ -6,6 +6,7 @@ class AspaceToFolioRecord < ApplicationRecord
   validates :archivesspace_instance_key, presence: true
   validates :repository_key, presence: true
   validates :resource_key, presence: true
+  validates :holdings_call_number, presence: true
 
   def self.create_or_update_from_data(data)
     if data[:folio_hrid].present?

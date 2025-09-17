@@ -9,6 +9,7 @@ module FolioSync
         @folio_reader = folio_reader
         @folio_writer = folio_writer
         @instance_key = instance_key
+        @holdings_creator = FolioSync::Folio::HoldingsCreator.new(@folio_writer)
         @processing_errors = []
         Rails.logger.debug("JobResultProcessor initialized for instance #{instance_key}")
       end
@@ -31,6 +32,13 @@ module FolioSync
             update_suppression_status(custom_metadata, id_list)
           else
             Rails.logger.warn("Record has status #{instance_action_status}, skipping suppression update")
+          end
+
+          # Create holdings record for newly created instances
+          if instance_action_status == 'CREATED' && id_list&.any?
+            instance_id = id_list.first
+            Rails.logger.debug("Creating holdings record for newly created instance: #{instance_id}")
+            create_holdings_record_for_instance(custom_metadata, instance_id)
           end
 
           # Update database record status
@@ -79,6 +87,20 @@ module FolioSync
         update_folio_instance_suppression(instance_record_id, data_to_send)
       rescue StandardError => e
         handle_suppression_update_error(custom_metadata, instance_record_id, e)
+      end
+
+      def create_holdings_record_for_instance(custom_metadata, instance_id)
+        @holdings_creator.create_holdings_for_instance(instance_id, {
+          holdings_call_number: custom_metadata[:holdings_call_number],
+          permanent_location: custom_metadata[:permanent_location]
+        })
+      rescue StandardError => e
+        Rails.logger.error("Holdings creation failed: #{e.message}")
+        processing_error = FolioSync::Errors::SyncingError.new(
+          resource_uri: "repositories/#{custom_metadata[:repository_key]}/resources/#{custom_metadata[:resource_key]}",
+          message: "Holdings creation failed for instance #{instance_id}: #{e.message}"
+        )
+        @processing_errors << processing_error
       end
 
       # @param custom_metadata [Hash] Metadata containing suppression status and other info

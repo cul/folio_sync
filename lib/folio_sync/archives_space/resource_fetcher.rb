@@ -59,13 +59,15 @@ module FolioSync
           folio_hrid = resource.dig('user_defined', 'string_1') if @instance_key == 'barnard'
         end
 
+        holdings_call_number = resolve_call_number(resource, repo_id)
         data_to_save = {
           archivesspace_instance_key: @instance_key,
           repository_key: repo_id,
           resource_key: extract_id(resource['uri']),
           folio_hrid: folio_hrid,
           pending_update: 'to_folio',
-          is_folio_suppressed: !resource['publish']
+          is_folio_suppressed: !resource['publish'],
+          holdings_call_number: holdings_call_number
         }
 
         AspaceToFolioRecord.create_or_update_from_data(data_to_save)
@@ -94,6 +96,12 @@ module FolioSync
         end
 
         query
+      end
+
+      def resolve_call_number(resource, repo_id)
+        return [resource['id_0'], resource['id_1'], resource['id_2']].compact.join('.') if @instance_key == 'barnard'
+
+        repo_id == '2' ? resource.dig('user_defined', 'string_1') : resource['title']
       end
 
       def extract_id(uri)
