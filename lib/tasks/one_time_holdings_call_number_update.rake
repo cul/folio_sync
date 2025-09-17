@@ -22,25 +22,37 @@ namespace :one_time_holdings_call_number_update do
       "tmp/#{instance_key}_updated_db_records_with_holdings_call_number_#{Time.zone.now.strftime('%Y%m%d%H%M%S')}.csv"
     )
 
-    # Get all AspaceToFolioRecord records with missing holdings_call_number
     records_to_update = AspaceToFolioRecord.where(holdings_call_number: [nil, ''], archivesspace_instance_key: instance_key)
     puts "Found #{records_to_update.count} records with missing holdings_call_number."
 
-    # Update each record and log the changes to a CSV file
+    success_count = 0
+    error_count = 0
+
+    # Update each record with the call number and log the changes to a CSV file
     CSV.open(csv_file_path, 'w') do |csv|
-      csv << ['Resource URI', 'Resolved Call Number']
+      csv << ['Repository ID', 'Resource ID', 'Resolved Call Number', 'Status']
 
       records_to_update.each do |record|
         puts "Processing record ID: #{record.id}, Repository Key: #{record.repository_key}, Resource Key: #{record.resource_key}"
-        resource_data = client.fetch_resource(record.repository_key, record.resource_key)
 
-        puts "Fetched resource for repo key #{record.repository_key}, resource key #{record.resource_key}, instance key #{instance_key}"
+        begin
+          resource_data = client.fetch_resource(record.repository_key, record.resource_key)
+          call_number = resolve_call_number(resource_data, record.repository_key, instance_key)
+          call_number = call_number&.strip || 'N/A'
 
-        call_number = resolve_call_number(resource_data, record.repository_key, instance_key)
-        puts "Resolved call number: #{call_number} for resource #{resource_data['uri']}"
-        record.update(holdings_call_number: call_number.strip)
-        csv << [resource_data['uri'], call_number]
+          puts "Resolved call number: #{call_number} for resource #{resource_data['uri']}"
+          record.update!(holdings_call_number: call_number)
+          csv << [record.repository_key, record.resource_key, call_number, 'SUCCESS']
+          success_count += 1
+        rescue StandardError => e
+          puts "Error processing record ID #{record.id}: #{e.message}"
+          csv << [record.repository_key, record.resource_key, "Error: #{e.message}", 'ERROR']
+          error_count += 1
+        end
       end
     end
+
+    puts "\nCompleted: #{success_count} successful, #{error_count} errors"
+    puts "Results saved to: #{csv_file_path}"
   end
 end
