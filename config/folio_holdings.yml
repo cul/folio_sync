@@ -7,6 +7,7 @@ default: &default
     NNC-UT: ae580e58-16e3-4444-ae90-0e27ce39e646 # uts,arc
     NNC-UA: 404f3335-493d-46e5-b722-f883754aaef4 # uacl
     NNC-OH: 896bb3d5-9a50-415a-a9af-0275f3f60eef # oral
+    BASC: a82f1a45-3e41-41df-aedf-e6401a80c574 # bar,bda
 
   holdings_type_id: 03c9c400-b9e3-4a07-ac0e-05ab470233ed # Monograph
   holdings_source_id: f32d531e-df79-46b3-8932-cdd35f7a2264 # FOLIO source, alternative is MARC
