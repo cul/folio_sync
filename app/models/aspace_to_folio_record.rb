@@ -19,6 +19,7 @@ class AspaceToFolioRecord < ApplicationRecord
         update_attributes[:pending_update] = data[:pending_update] if data.key?(:pending_update)
         update_attributes[:is_folio_suppressed] = data[:is_folio_suppressed] if data.key?(:is_folio_suppressed)
         update_attributes[:folio_hrid] = data[:folio_hrid] if data.key?(:folio_hrid)
+        update_attributes[:holdings_call_number] = data[:holdings_call_number] if existing_record.holdings_call_number.blank?
 
         existing_record.update!(update_attributes)
         return existing_record
