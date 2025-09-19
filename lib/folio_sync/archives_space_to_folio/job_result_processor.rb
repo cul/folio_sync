@@ -90,6 +90,11 @@ module FolioSync
       end
 
       def create_holdings_record_for_instance(custom_metadata, instance_id)
+        if custom_metadata[:holdings_call_number].blank?
+          Rails.logger.error('Holdings creation failed: holdings_call_number is missing or empty')
+          raise StandardError, 'holdings_call_number is missing or empty'
+        end
+
         @holdings_creator.create_holdings_for_instance(instance_id, {
           holdings_call_number: custom_metadata[:holdings_call_number],
           permanent_location: custom_metadata[:permanent_location]
