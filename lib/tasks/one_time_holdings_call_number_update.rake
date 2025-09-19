@@ -30,7 +30,7 @@ namespace :one_time_holdings_call_number_update do
 
     # Update each record with the call number and log the changes to a CSV file
     CSV.open(csv_file_path, 'w') do |csv|
-      csv << ['Repository ID', 'Resource ID', 'Resolved Call Number', 'Status']
+      csv << ['Repository ID', 'Resource ID', 'FOLIO HRID', 'Resolved Call Number', 'Status']
 
       records_to_update.each do |record|
         puts "Processing record ID: #{record.id}, Repository ID: #{record.repository_key}, Resource ID: #{record.resource_key}"
@@ -42,11 +42,11 @@ namespace :one_time_holdings_call_number_update do
 
           puts "Resolved call number: #{call_number} for resource #{resource_data['uri']}"
           record.update!(holdings_call_number: call_number)
-          csv << [record.repository_key, record.resource_key, call_number, 'SUCCESS']
+          csv << [record.repository_key, record.resource_key, record.folio_hrid, call_number, 'SUCCESS']
           success_count += 1
         rescue StandardError => e
           puts "Error processing record ID #{record.id}: #{e.message}"
-          csv << [record.repository_key, record.resource_key, "Error: #{e.message}", 'ERROR']
+          csv << [record.repository_key, record.resource_key, record.folio_hrid, "Error: #{e.message}", 'ERROR']
           error_count += 1
         end
       end
