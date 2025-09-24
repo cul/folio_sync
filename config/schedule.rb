@@ -22,9 +22,13 @@ if Rails.env.folio_sync_prod? # rubocop:disable Rails/UnknownEnv
     rake 'folio_hold_request_update:run repo_key=rbml'
   end
 
-  # Sync ArchivesSpace resources to FOLIO
+  # Sync Barnard ArchivesSpace resources to FOLIO
+  every 1.day, at: '7:45 pm' do
+    rake 'folio_sync:aspace_to_folio:run instance_key=barnard clear_downloads=false modified_since=25'
+  end
+
+  # Sync CUL ArchivesSpace resources to FOLIO
   every 1.day, at: '8:00 pm' do
     rake 'folio_sync:aspace_to_folio:run instance_key=cul clear_downloads=false modified_since=25'
-    # rake 'folio_sync:aspace_to_folio:run instance_key=barnard modified_since=25'
   end
 end
