@@ -172,14 +172,9 @@ module FolioSync
       end
 
       def build_suppression_update_payload(folio_record, incoming_suppress)
-        payload = {
-          'discoverySuppress' => incoming_suppress,
-          'title' => folio_record['title'],
-          'source' => 'MARC',
-          'instanceTypeId' => folio_record['instanceTypeId'],
-          'hrid' => folio_record['hrid'],
-          '_version' => folio_record['_version']
-        }
+        payload = folio_record.dup
+        payload['discoverySuppress'] = incoming_suppress
+
         Rails.logger.debug("Built suppression update payload: #{payload.inspect}")
         payload
       end
