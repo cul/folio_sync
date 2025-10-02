@@ -5,6 +5,7 @@ module FolioSync
     class MarcDownloader
       def initialize
         @folio_client = FolioSync::Folio::Client.instance
+        @folio_reader = FolioSync::Folio::Reader.new
         @downloading_errors = []
       end
 
@@ -19,7 +20,12 @@ module FolioSync
           response = @folio_client.get('source-storage/source-records', params)
 
           puts "New page: There are #{response['sourceRecords'].length} records in this page, totalRecords=#{response['totalRecords']}"
-          yield(response['sourceRecords']) if block_given?
+
+          if block_given?
+            response['sourceRecords'].each do |source_record|
+              yield(source_record['parsedRecord']['content']) if source_record['parsedRecord']['content']
+            end
+          end
 
           break if (params[:offset] + params[:limit]) >= response['totalRecords']
 
@@ -33,18 +39,17 @@ module FolioSync
         modified_since = Time.now.utc - (3600 * last_x_hours) if last_x_hours
         modified_since_utc = modified_since&.utc&.iso8601
 
-        retrieve_paginated_source_records(modified_since_utc) do |source_records|
-          source_records.each do |source_record|
-            if has_965hyacinth_field?(source_record)
-              puts "Found 965hyacinth field in source record ID #{source_record['parsedRecord']['content']['fields']}"
-              save_marc_record_to_file(source_record)
-            end
+        retrieve_paginated_source_records(modified_since_utc) do |parsed_record|
+          if has_965hyacinth_field?(parsed_record)
+            puts 'Found 965hyacinth field'
+            save_marc_record_to_file(parsed_record)
           end
         end
       end
 
-      def has_965hyacinth_field?(source_record)
-        fields = source_record['parsedRecord']['content']['fields']
+      # @param [Hash] marc_record A MARC record represented as a Hash (as returned in the 'parsedRecord' attribute of a source record)
+      def has_965hyacinth_field?(marc_record)
+        fields = marc_record['fields']
 
         fields.any? do |field|
           next unless field['965']
@@ -53,27 +58,24 @@ module FolioSync
         end
       end
 
-      def save_marc_record_to_file(source_record)
-        marc_record = source_record['parsedRecord']['content']
-        return unless marc_record
-
-        filename = "srs_record_#{source_record['recordId']}.mrc"
+      def save_marc_record_to_file(marc_record)
+        filename = marc_record['fields'].find { |f| f['001'] }['001']
         formatted_marc = MARC::Record.new_from_hash(marc_record)
-        puts "Saving formatted MARC to tmp/#{filename}"
 
-        File.binwrite("tmp/#{filename}", formatted_marc)
+        File.binwrite("tmp/#{filename}.mrc", formatted_marc)
       end
 
       # Downloads a single SRS MARC record to the download directory.  Raises an exception if the record with the given `folio_hrid`
       # does NOT have at least one 965 field with a subfield $a value of '965hyacinth'.
       def download_single_965hyacinth_marc_record(folio_hrid)
         source_record = @folio_client.find_source_record(instance_record_hrid: folio_hrid)
+        marc_record = source_record['parsedRecord']['content'] if source_record
 
-        unless has_965hyacinth_field?(source_record)
+        unless has_965hyacinth_field?(marc_record)
           raise "Source record with HRID #{folio_hrid} doesn't have a 965 field with subfield $a value of '965hyacinth'. Not downloading."
         end
 
-        save_marc_record_to_file(source_record)
+        save_marc_record_to_file(marc_record)
       end
     end
   end
