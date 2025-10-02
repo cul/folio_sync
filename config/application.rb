@@ -27,6 +27,7 @@ module FolioSync
     config.folio_sync = config_for(:folio_sync)
     config.folio_requests = config_for(:folio_requests)
     config.folio_holdings = config_for(:folio_holdings)
+    config.folio_to_hyacinth = config_for(:folio_to_hyacinth)
 
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0

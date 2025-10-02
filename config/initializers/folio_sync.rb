@@ -4,11 +4,17 @@
 begin
   logger = Logger.new($stdout)
   folio_config = Rails.configuration.folio_sync
+  folio_to_hyacinth_config = Rails.configuration.folio_to_hyacinth
   aspace_to_folio_config = folio_config[:aspace_to_folio]
 
   if folio_config.blank?
     logger.error('FOLIO sync configuration is missing or empty')
     throw 'Please make sure the folio_sync.yml file is present and properly configured.'
+  end
+
+  if folio_to_hyacinth_config.blank?
+    logger.error('FOLIO to Hyacinth configuration is missing or empty')
+    throw 'Please make sure the folio_to_hyacinth.yml file is present and properly configured.'
   end
 
   aspace_instances = aspace_to_folio_config[:aspace_instances] || {}
@@ -38,6 +44,10 @@ begin
     throw 'Please make sure the folio_sync.yml file contains a prepared_marc_directory'
   end
 
+  # Prepare downloads directory for FOLIO to Hyacinth sync
+  FileUtils.mkdir_p(folio_to_hyacinth_config[:download_directory])
+
+  # Prepare subdirectories for ArchivesSpace to FOLIO sync
   aspace_instances.each_key do |instance_name|
     downloads_instance_dir = File.join(downloaded_files_dir, instance_name.to_s)
     prepared_instance_dir = File.join(prepared_files_dir, instance_name.to_s)

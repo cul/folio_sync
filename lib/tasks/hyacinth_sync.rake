@@ -3,9 +3,19 @@
 namespace :folio_sync do
   namespace :folio_to_hyacinth do
     task run: :environment do
+      modified_since = ENV['modified_since']
+      modified_since_num =
+        if modified_since && !modified_since.strip.empty?
+          begin
+            Integer(modified_since)
+          rescue ArgumentError
+            puts 'Error: modified_since must be an integer (number of hours).'
+            exit 1
+          end
+        end
+
       downloader = FolioSync::FolioToHyacinth::MarcDownloader.new
-      res = downloader.download_965hyacinth_marc_records(24)
-      puts res
+      downloader.download_965hyacinth_marc_records(modified_since_num)
     end
 
     task download_single_file: :environment do
