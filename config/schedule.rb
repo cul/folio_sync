@@ -27,6 +27,11 @@ if Rails.env.folio_sync_prod? # rubocop:disable Rails/UnknownEnv
     rake 'folio_hold_request_update:run repo_key=burke'
   end
 
+  # Remove permanent hold on Starr items returned from ReCAP
+  every 1.day, at: '7:30 pm' do
+    rake 'folio_hold_request_update:run repo_key=starr'
+  end
+
   # Sync Barnard ArchivesSpace resources to FOLIO
   every 1.day, at: '7:45 pm' do
     rake 'folio_sync:aspace_to_folio:run instance_key=barnard clear_downloads=false modified_since=25'
