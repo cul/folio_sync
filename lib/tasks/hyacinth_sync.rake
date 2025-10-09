@@ -28,5 +28,21 @@ namespace :folio_sync do
       downloader = FolioSync::FolioToHyacinth::MarcDownloader.new
       downloader.download_single_965hyacinth_marc_record(folio_hrid)
     end
+
+    task api_test: :environment do
+      FolioSync::Rake::EnvValidator.validate!(
+        ['pid'],
+        'bundle exec rake folio_sync:folio_to_hyacinth:download_single_file pid=123abc'
+      )
+      folio_pid = ENV['pid']
+
+      client = Hyacinth::ApiClient.instance
+      results = client.find_by_pid(folio_pid)
+      puts results.inspect
+    end
+
+    task encode: :environment do
+      puts Base64.strict_encode64("#{Rails.configuration.hyacinth['email']}:#{Rails.configuration.hyacinth['password']}")
+    end
   end
 end
