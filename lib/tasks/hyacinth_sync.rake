@@ -29,7 +29,42 @@ namespace :folio_sync do
       downloader.download_single_965hyacinth_marc_record(folio_hrid)
     end
 
-    task api_test: :environment do
+    # Test Hyacinth API client and record creation/updating
+    task create_or_update_record: :environment do
+      FolioSync::Rake::EnvValidator.validate!(
+        ['hrid'],
+        'bundle exec rake folio_sync:folio_to_hyacinth:download_single_file hrid=123abc'
+      )
+      folio_hrid = ENV['hrid']
+      potential_clio_identifier = "clio#{folio_hrid}"
+
+      client = Hyacinth::ApiClient.instance
+
+      # Check if item with given identifier already exists in Hyacinth
+      results = client.find_by_identifier(potential_clio_identifier, { f: { digital_object_type_display_label_sim: ['Item'] } })
+      puts "Found #{results.length} records with identifier #{potential_clio_identifier}."
+
+      # TODO: Eventually this logic will be placed under FolioToHyacinth namespace
+      if results.length == 0
+        puts 'No records found. Creating a new record in Hyacinth.'
+        response = client.create_new_record(folio_hrid, publish: true)
+        puts response.inspect
+      elsif results.length == 1
+        pid = results.first['pid']
+        puts "Found 1 record with pid: #{pid}."
+
+        # Before updating:
+        # 1. Preserve existing identifiers
+        # 2. Preserve existing projects
+
+        # For now, just send the data back to test the update functionality
+        client.update_existing_record(pid, results.first, publish: true)
+      else
+        puts "Error: Found multiple records with identifier 'cul:3xsj3tx968'."
+      end
+    end
+
+    task get_record_by_pid: :environment do
       FolioSync::Rake::EnvValidator.validate!(
         ['pid'],
         'bundle exec rake folio_sync:folio_to_hyacinth:download_single_file pid=123abc'
