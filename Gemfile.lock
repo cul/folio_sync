@@ -189,6 +189,7 @@ GEM
     marcel (1.1.0)
     method_source (1.1.0)
     mini_mime (1.1.5)
+    mini_portile2 (2.8.9)
     minitest (5.26.0)
     multi_xml (0.7.2)
       bigdecimal (~> 3.1)
@@ -210,15 +211,8 @@ GEM
       net-protocol
     net-ssh (7.3.0)
     nio4r (2.7.4)
-    nokogiri (1.17.2-aarch64-linux)
-      racc (~> 1.4)
-    nokogiri (1.17.2-arm-linux)
-      racc (~> 1.4)
-    nokogiri (1.17.2-arm64-darwin)
-      racc (~> 1.4)
-    nokogiri (1.17.2-x86_64-darwin)
-      racc (~> 1.4)
-    nokogiri (1.17.2-x86_64-linux)
+    nokogiri (1.18.10)
+      mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
     ostruct (0.6.2)
     parallel (1.27.0)
@@ -290,7 +284,7 @@ GEM
     reline (0.6.1)
       io-console (~> 0.5)
     retriable (3.1.2)
-    rexml (3.4.1)
+    rexml (3.4.4)
     rspec-core (3.13.5)
       rspec-support (~> 3.13.0)
     rspec-expectations (3.13.5)
@@ -432,7 +426,7 @@ DEPENDENCIES
   kamal
   marc
   mysql2
-  nokogiri (~> 1.17.2)
+  nokogiri (~> 1.18, >= 1.18.9)
   propshaft
   pry (~> 0.15.0)
   puma (>= 5.0)

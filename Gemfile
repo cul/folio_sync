@@ -22,8 +22,7 @@ gem 'kamal', require: false
 gem 'thruster', require: false
 
 # Version 1.18 doesn't run on a Linux because our GLIBC version is less than required 2.29
-# Nokogiri 1.17 runs successfully
-gem 'nokogiri', '~> 1.17.2'
+gem 'nokogiri', '~> 1.18', '>= 1.18.9', force_ruby_platform: true
 
 # For cron tasks
 gem 'whenever', require: false
