@@ -7,6 +7,7 @@ RSpec.describe FolioSync::FolioToHyacinth::MarcDownloader do
   let(:folio_client) { instance_double(FolioSync::Folio::Client) }
   let(:folio_reader) { instance_double(FolioSync::Folio::Reader) }
   let(:config) { { download_directory: '/tmp/downloads' } }
+  let(:value_965) { '965hyacinth' }
   
   let(:marc_record_with_965hyacinth) do
     {
@@ -66,7 +67,7 @@ RSpec.describe FolioSync::FolioToHyacinth::MarcDownloader do
         expect(Rails.logger).to have_received(:info).with(
           'Downloading MARC with 965hyacinth (all records)'
         )
-        expect(folio_client).to have_received(:find_source_marc_records).with(nil, has_965hyacinth: true)
+        expect(folio_client).to have_received(:find_source_marc_records).with(modified_since: nil, with_965_value: value_965)
         expect(instance).to have_received(:save_marc_record_to_file).with(marc_record_with_965hyacinth).once
         expect(instance).not_to have_received(:save_marc_record_to_file).with(marc_record_without_965hyacinth)
       end
@@ -86,7 +87,7 @@ RSpec.describe FolioSync::FolioToHyacinth::MarcDownloader do
         expect(Rails.logger).to have_received(:info).with(
           "Downloading MARC with 965hyacinth modified since: #{expected_time.utc.iso8601}"
         )
-        expect(folio_client).to have_received(:find_source_marc_records).with(expected_time.utc.iso8601, has_965hyacinth: true)
+        expect(folio_client).to have_received(:find_source_marc_records).with(modified_since: expected_time.utc.iso8601, with_965_value: value_965)
         expect(instance).to have_received(:save_marc_record_to_file).with(marc_record_with_965hyacinth).once
       end
     end

@@ -16,6 +16,11 @@ namespace :folio_sync do
 
       downloader = FolioSync::FolioToHyacinth::MarcDownloader.new
       downloader.download_965hyacinth_marc_records(modified_since_num)
+
+      if downloader.downloading_errors.present?
+        puts "Errors encountered during MARC download: #{downloader.downloading_errors}"
+        exit 1
+      end
     end
 
     task download_single_file: :environment do
