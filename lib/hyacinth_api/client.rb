@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-class Hyacinth::ApiClient
-  include Hyacinth::Finders
+class HyacinthApi::Client
+  include HyacinthApi::Finders
+  include HyacinthApi::DigitalObjects
 
   attr_reader :config
 
-  # TODO: Configure timeout and retry logic (Retriable?)
-  def initialize(config = nil)
-    @config = config || default_config
-    @auth_token = Base64.strict_encode64("#{@config[:email]}:#{@config[:password]}")
+  def initialize(config)
+    @config = config
+    @auth_token = Base64.strict_encode64("#{@config.email}:#{@config.password}")
   end
 
   def self.instance
@@ -36,20 +36,11 @@ class Hyacinth::ApiClient
     handle_response(response)
   end
 
-  private
-
-  def default_config
-    {
-      url: Rails.configuration.hyacinth['url'],
-      email: Rails.configuration.hyacinth['email'],
-      password: Rails.configuration.hyacinth['password']
-    }
-  end
-
   def connection
     @connection ||= Faraday.new(
-      url: @config[:url],
-      headers: headers
+      url: @config.url,
+      headers: headers,
+      request: { timeout: @config.timeout }
     ) do |faraday|
       faraday.adapter Faraday.default_adapter
       faraday.use Faraday::Response::RaiseError
@@ -69,6 +60,7 @@ class Hyacinth::ApiClient
 
     JSON.parse(response.body)
   rescue JSON::ParserError => e
+    Rails.logger.error("Invalid JSON response: #{response.body}")
     raise "Invalid JSON response: #{e.message}"
   end
 end

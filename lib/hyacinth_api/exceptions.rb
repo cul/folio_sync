@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class HyacinthApiClient
+module HyacinthApi
   module Exceptions
     class HyacinthError < StandardError; end
 

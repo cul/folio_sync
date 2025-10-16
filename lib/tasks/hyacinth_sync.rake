@@ -43,7 +43,7 @@ namespace :folio_sync do
       folio_hrid = ENV['hrid']
       potential_clio_identifier = "clio#{folio_hrid}"
 
-      client = Hyacinth::ApiClient.instance
+      client = FolioSync::Hyacinth::Client.instance
 
       # Check if item with given identifier already exists in Hyacinth
       results = client.find_by_identifier(potential_clio_identifier, { f: { digital_object_type_display_label_sim: ['Item'] } })
@@ -53,7 +53,7 @@ namespace :folio_sync do
       if results.length == 0
         puts 'No records found. Creating a new record in Hyacinth.'
         response = client.create_new_record(folio_hrid, publish: true)
-        puts response.inspect
+        puts "Response from Hyacinth when creating record with hrid #{folio_hrid}: #{response.inspect}"
       elsif results.length == 1
         pid = results.first['pid']
         puts "Found 1 record with pid: #{pid}."
@@ -63,7 +63,8 @@ namespace :folio_sync do
         # 2. Preserve existing projects
 
         # For now, just send the data back to test the update functionality
-        client.update_existing_record(pid, results.first, publish: true)
+        response = client.update_existing_record(pid, results.first, publish: true)
+        puts "Response from Hyacinth when updating record #{pid}: #{response.inspect}"
       else
         puts "Error: Found multiple records with identifier 'cul:3xsj3tx968'."
       end
@@ -76,9 +77,9 @@ namespace :folio_sync do
       )
       folio_pid = ENV['pid']
 
-      client = Hyacinth::ApiClient.instance
-      results = client.find_by_pid(folio_pid)
-      puts results.inspect
+      client = FolioSync::Hyacinth::Client.instance
+      response = client.find_by_pid(folio_pid)
+      puts response.inspect
     end
 
     task encode: :environment do
