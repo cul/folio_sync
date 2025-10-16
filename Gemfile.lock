@@ -1,7 +1,7 @@
 GIT
   remote: https://github.com/cul/folio_api_client.git
-  revision: 5a97f68fa93dfb6fc801feffa38bf798d974afd3
-  branch: feature/FOLIOSYNC-7-create-source-marc-records-query
+  revision: 31b4fa338695801922fd63659d1a07ced3f7ab54
+  branch: main
   specs:
     folio_api_client (0.4.3)
       faraday (~> 2.13)
