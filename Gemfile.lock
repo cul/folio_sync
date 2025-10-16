@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/cul/folio_api_client.git
-  revision: e86f1141f18682360c70bf18ebf2a76dadb44e58
+  revision: 5a97f68fa93dfb6fc801feffa38bf798d974afd3
   branch: feature/FOLIOSYNC-7-create-source-marc-records-query
   specs:
     folio_api_client (0.4.3)
@@ -144,7 +144,7 @@ GEM
     factory_bot_rails (6.5.0)
       factory_bot (~> 6.5)
       railties (>= 6.1.0)
-    faraday (2.13.2)
+    faraday (2.14.0)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger

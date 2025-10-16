@@ -19,7 +19,7 @@ class FolioSync::FolioToHyacinth::MarcDownloader
       "Downloading MARC with 965hyacinth#{modified_since_utc ? " modified since: #{modified_since_utc}" : ' (all records)'}"
     )
 
-    @folio_client.find_source_marc_records(modified_since_utc, has_965hyacinth: true) do |parsed_record|
+    @folio_client.find_source_marc_records(modified_since: modified_since_utc, with_965_value: '965hyacinth') do |parsed_record|
       # The returned MARC record has been filtered to include records with "965hyacinth" identifiers
       # but we want to double-check that the identifier lives in the 965$a field.
       if has_965hyacinth_field?(parsed_record)
