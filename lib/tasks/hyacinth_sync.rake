@@ -50,7 +50,7 @@ namespace :folio_sync do
       puts "Found #{results.length} records with identifier #{potential_clio_identifier}."
 
       # TODO: Eventually this logic will be placed under FolioToHyacinth namespace
-      if results.length == 0
+      if results.empty?
         puts 'No records found. Creating a new record in Hyacinth.'
         response = client.create_new_record(folio_hrid, publish: true)
         puts "Response from Hyacinth when creating record with hrid #{folio_hrid}: #{response.inspect}"

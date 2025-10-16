@@ -9,11 +9,11 @@ module HyacinthApi
         base_interval: 1
       ) do
         # For testing, we'll change the title before sending the update
-        digital_object_data['dynamic_field_data']['title'] = [{ "title_sort_portion" => 'Test - Changed title' }]
+        digital_object_data['dynamic_field_data']['title'] = [{ 'title_sort_portion' => 'Test - Changed title' }]
         puts "Sending data: #{digital_object_data}"
 
         response = put("/digital_objects/#{pid}.json", {
-          'digital_object_data_json' => JSON.generate(digital_object_data.merge({ publish: publish.to_s}))
+          'digital_object_data_json' => JSON.generate(digital_object_data.merge({ publish: publish.to_s }))
         })
         puts "Response from Hyacinth when updating record #{pid}: #{response.inspect}"
 

@@ -7,7 +7,7 @@ class FolioSync::Hyacinth::Client < HyacinthApi::Client
       HyacinthApi::Configuration.new(
         url: Rails.configuration.hyacinth['url'],
         email: Rails.configuration.hyacinth['email'],
-        password: Rails.configuration.hyacinth['password'],
+        password: Rails.configuration.hyacinth['password']
       )
     )
     @instance
