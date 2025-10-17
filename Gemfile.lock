@@ -432,6 +432,7 @@ DEPENDENCIES
   capistrano-rails (~> 1.4)
   debug
   factory_bot_rails
+  faraday (~> 2.14)
   folio_api_client!
   kamal
   marc

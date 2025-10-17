@@ -22,8 +22,12 @@ Bundler.require(*Rails.groups)
 
 module FolioSync
   class Application < Rails::Application
+    # API client configurations
     config.archivesspace = config_for(:archivesspace)
     config.folio = config_for(:folio)
+    config.hyacinth = config_for(:hyacinth)
+
+    # Script configurations
     config.folio_sync = config_for(:folio_sync)
     config.folio_requests = config_for(:folio_requests)
     config.folio_holdings = config_for(:folio_holdings)

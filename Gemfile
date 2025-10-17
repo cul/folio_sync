@@ -42,6 +42,8 @@ gem 'marc'
 # gem 'folio_api_client', '~> 0.4.0'
 gem "folio_api_client", github: "cul/folio_api_client", branch: "main"
 
+gem 'faraday', '~> 2.14'
+
 gem 'retriable', '~> 3.1'
 
 group :development, :test do
