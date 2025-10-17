@@ -8,6 +8,7 @@ module FolioSync::Exceptions
   class FolioRequestError < FolioSyncException; end
 
   class InvalidDatabaseState < FolioSyncException; end
+  class Missing001Field < FolioSyncException; end
 
   class JobExecutionStartTimeoutError < FolioSyncException; end
   class JobExecutionInactivityTimeoutError < FolioSyncException; end

@@ -1,0 +1,9 @@
+development:
+  url: https://example-dev.library.edu/api
+  email: example-email
+  password: example-password
+
+test:
+  url: https://example-test.library.edu/api
+  email: example-email
+  password: example-password

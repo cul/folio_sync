@@ -1,3 +1,13 @@
+GIT
+  remote: https://github.com/cul/folio_api_client.git
+  revision: 31b4fa338695801922fd63659d1a07ced3f7ab54
+  branch: main
+  specs:
+    folio_api_client (0.4.3)
+      faraday (~> 2.13)
+      marc (~> 1.3)
+      zeitwerk (~> 2.7)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -134,7 +144,7 @@ GEM
     factory_bot_rails (6.5.0)
       factory_bot (~> 6.5)
       railties (>= 6.1.0)
-    faraday (2.13.2)
+    faraday (2.14.0)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
@@ -422,7 +432,8 @@ DEPENDENCIES
   capistrano-rails (~> 1.4)
   debug
   factory_bot_rails
-  folio_api_client (~> 0.4.0)
+  faraday (~> 2.14)
+  folio_api_client!
   kamal
   marc
   mysql2
