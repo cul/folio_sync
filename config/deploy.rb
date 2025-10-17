@@ -28,8 +28,10 @@ append  :linked_files,
         'config/database.yml',
         'config/folio.yml',
         'config/archivesspace.yml',
+        'config/hyacinth.yml',
         'config/folio_sync.yml',
         'config/folio_requests.yml',
+        'config/folio_to_hyacinth.yml',
         'config/master.key'
 
 # Default value for linked_dirs is []

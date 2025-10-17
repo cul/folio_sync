@@ -1,0 +1,5 @@
+development:
+  download_directory: <%= Rails.root.join('tmp/working_data/development/folio_to_hyacinth/downloaded_files') %>
+
+test:
+  download_directory: <%= Rails.root.join('tmp/working_data/test/folio_to_hyacinth/downloaded_files') %>
