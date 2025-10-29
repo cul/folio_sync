@@ -42,21 +42,5 @@ module HyacinthApi
     rescue StandardError => e
       raise "Error creating new record. Details: #{e.message}"
     end
-
-    # TODO: Move to a class responsible for building digital object data
-    def minimal_data_for_record
-      {
-        'project' => { "string_key": 'academic_commons' }, # Required! Will be derived from 965$a fields
-        'digital_object_type' => { 'string_key' => 'item' },
-        'dynamic_field_data' => {
-          "title": [
-            {
-              "title_sort_portion": 'Test Record'
-            }
-          ]
-        },
-        'identifiers' => []
-      }
-    end
   end
 end

@@ -56,7 +56,7 @@ class FolioSync::FolioToHyacinth::MarcDownloader
     formatted_marc = MARC::Record.new_from_hash(marc_record)
 
     Rails.logger.info("Saving MARC record with 001=#{filename} to #{file_path}")
-    File.binwrite(file_path, formatted_marc)
+    File.binwrite(file_path, formatted_marc.to_marc)
   end
 
   # Downloads a single SRS MARC record to the download directory.  Raises an exception if the record with the given `folio_hrid`

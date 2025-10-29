@@ -34,6 +34,19 @@ namespace :folio_sync do
       downloader.download_single_965hyacinth_marc_record(folio_hrid)
     end
 
+    task create_enhanced_marc_file: :environment do
+      # FolioSync::Rake::EnvValidator.validate!(
+      #   ['filename'],
+      #   'bundle exec rake folio_sync:folio_to_hyacinth:create_enhanced_marc_file filename=filename-in-tmp-dir'
+      # )
+      # filename = ENV['filename']
+      filename = 'bin3.marc'
+      filepath = Rails.root.join('tmp/working_data/development/folio_to_hyacinth/downloaded_files', filename)
+
+      record = FolioToHyacinthRecord.new(filepath.to_s)
+      puts "Enhanced record for file #{filename}: #{record.digital_object_data}"
+    end
+
     # Test Hyacinth API client and record creation/updating
     task create_or_update_record: :environment do
       FolioSync::Rake::EnvValidator.validate!(
