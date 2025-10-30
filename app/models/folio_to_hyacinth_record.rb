@@ -2,17 +2,20 @@
 
 class FolioToHyacinthRecord
   include FolioSync::FolioToHyacinth::MarcParsingMethods
+  # Always include CLIO identifier extraction before other extraction
+  # modules so that errors can be reported with CLIO ID
   include FolioSync::FolioToHyacinth::MarcParsingMethods::ClioIdentifier
+  include FolioSync::FolioToHyacinth::MarcParsingMethods::Identifiers
   include FolioSync::FolioToHyacinth::MarcParsingMethods::Title
   include FolioSync::FolioToHyacinth::MarcParsingMethods::Project
   
   attr_reader :digital_object_data, :errors
 
-  def initialize(initial_marc_record_path)
+  def initialize(initial_marc_record_path, existing_hyacinth_record = nil)
     puts "Initializing FolioToHyacinthRecord with MARC record at path: #{initial_marc_record_path}"
     reader = MARC::Reader.new(initial_marc_record_path)
     @marc_record = reader.first
-    @digital_object_data = minimal_data_for_record
+    @digital_object_data = existing_hyacinth_record || minimal_data_for_record
     @errors = []
 
     prepare_hyacinth_record(@marc_record)
@@ -20,6 +23,10 @@ class FolioToHyacinthRecord
 
   def dynamic_field_data
     @digital_object_data['dynamic_field_data'] ||= {}
+  end
+
+  def clio_id
+    dynamic_field_data['clio_identifier'].first['clio_identifier_value']
   end
 
   def minimal_data_for_record

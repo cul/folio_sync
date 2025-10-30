@@ -1,0 +1,21 @@
+# frozen_string_literal: true
+
+# ? Is this module necessary if we can extract it from the filename?
+module FolioSync
+  module FolioToHyacinth
+    module MarcParsingMethods
+      module Identifiers
+        extend ActiveSupport::Concern
+
+        included do
+          register_parsing_method :add_identifiers
+        end
+
+        def add_identifiers(marc_record, mapping_ruleset)
+          digital_object_data['identifiers'] ||= []
+          digital_object_data['identifiers'] << "clio#{self.clio_id}" unless self.clio_id.nil?
+        end
+      end
+    end
+  end
+end

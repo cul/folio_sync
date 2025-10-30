@@ -19,7 +19,7 @@ module FolioSync
 
           dynamic_field_data['title'] ||= []
           dynamic_field_data['title'] << {
-            # 'title_non_sort_portion' => title[0...non_sort_portion_length],
+            'title_non_sort_portion' => title[0...non_sort_portion_length],
             'title_sort_portion' => title[non_sort_portion_length..]
           }
         end
