@@ -1,11 +1,5 @@
 development:
   download_directory: <%= Rails.root.join('tmp/working_data/development/folio_to_hyacinth/downloaded_files') %>
-  project_mappings:
-    project_key: Project Label
-    another_project_key: Another Label
 
 test:
   download_directory: <%= Rails.root.join('tmp/working_data/test/folio_to_hyacinth/downloaded_files') %>
-  project_mappings:
-    project_key: Project Label
-    another_project_key: Another Label
