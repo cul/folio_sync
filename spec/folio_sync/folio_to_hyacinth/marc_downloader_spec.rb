@@ -116,7 +116,7 @@ RSpec.describe FolioSync::FolioToHyacinth::MarcDownloader do
       end
 
       it 'returns false' do
-        expect(instance.has_965hyacinth_field?(marc_record_no_965)). to be false
+        expect(instance.has_965hyacinth_field?(marc_record_no_965)).to be false
       end
     end
 

@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# ? Is this module necessary if we can extract it from the filename?
 module FolioSync
   module FolioToHyacinth
     module MarcParsingMethods
