@@ -11,7 +11,7 @@ module FolioSync
           register_parsing_method :add_identifiers
         end
 
-        def add_identifiers(marc_record, mapping_ruleset)
+        def add_identifiers(_marc_record, _mapping_ruleset)
           digital_object_data['identifiers'] ||= []
           digital_object_data['identifiers'] << "clio#{self.clio_id}" unless self.clio_id.nil?
         end

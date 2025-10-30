@@ -25,7 +25,7 @@ module FolioSync
         end
 
         def extract_title(marc_record, mapping_ruleset)
-          field = marc_record["245"]
+          field = marc_record['245']
           return nil if field.nil?
 
           title = field['a']

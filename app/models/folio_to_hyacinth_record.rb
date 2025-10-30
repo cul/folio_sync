@@ -8,11 +8,10 @@ class FolioToHyacinthRecord
   include FolioSync::FolioToHyacinth::MarcParsingMethods::Identifiers
   include FolioSync::FolioToHyacinth::MarcParsingMethods::Title
   include FolioSync::FolioToHyacinth::MarcParsingMethods::Project
-  
+
   attr_reader :digital_object_data, :errors
 
   def initialize(initial_marc_record_path, existing_hyacinth_record = nil)
-    puts "Initializing FolioToHyacinthRecord with MARC record at path: #{initial_marc_record_path}"
     reader = MARC::Reader.new(initial_marc_record_path)
     @marc_record = reader.first
     @digital_object_data = existing_hyacinth_record || minimal_data_for_record

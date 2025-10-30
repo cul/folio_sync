@@ -2,7 +2,7 @@
 
 module HyacinthApi
   module DigitalObjects
-    def update_existing_record(pid, digital_object_data, publish: false)
+    def update_existing_record(pid, digital_object_data, publish: true)
       Retriable.retriable(
         on: [Faraday::ConnectionFailed, Faraday::TimeoutError],
         tries: 2,
@@ -11,7 +11,6 @@ module HyacinthApi
         response = put("/digital_objects/#{pid}.json", {
           'digital_object_data_json' => JSON.generate(digital_object_data.merge({ publish: publish.to_s }))
         })
-        puts "Response from Hyacinth when updating record #{pid}: #{response.inspect}"
 
         unless response['success']
           raise HyacinthApi::Exceptions::UpdateError,

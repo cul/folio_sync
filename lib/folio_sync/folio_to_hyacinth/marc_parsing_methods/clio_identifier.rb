@@ -11,7 +11,7 @@ module FolioSync
           register_parsing_method :add_clio_identifier
         end
 
-        def add_clio_identifier(marc_record, mapping_ruleset)
+        def add_clio_identifier(marc_record, _mapping_ruleset)
           dynamic_field_data['clio_identifier'] ||= []
           dynamic_field_data['clio_identifier'] << {
             'clio_identifier_value' => marc_record['001'].value
