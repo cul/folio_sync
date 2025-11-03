@@ -62,7 +62,11 @@ namespace :folio_sync do
           pid = results.first['pid']
           puts "Found 1 record with pid: #{pid}."
 
-          updated_record = FolioToHyacinthRecord.new(marc_file_path, results.first)
+          # Get only the minimal keys needed for update
+          keys_to_preserve = %w[digital_object_type project identifiers dynamic_field_data]
+          preserved_data = results.first.slice(*keys_to_preserve)
+
+          updated_record = FolioToHyacinthRecord.new(marc_file_path, preserved_data)
           puts "Updated record digital object data: #{updated_record.digital_object_data}"
           response = client.update_existing_record(pid, updated_record.digital_object_data, publish: true)
           puts "Response from Hyacinth when updating record #{pid}: #{response.inspect}"
@@ -83,8 +87,13 @@ namespace :folio_sync do
       reader = MARC::Reader.new(filepath.to_s)
       marc_record = reader.first
 
+      # Remove existing 965p fields
+      marc_record.fields('965').each do |field|
+        field.subfields.delete_if { |subfield| subfield.code == 'p' }
+      end
+
       # Add 965p field with value academic_commons, ensure 965$a is set to 965hyacinth
-      marc_record.append(MARC::DataField.new('965', ' ', ' ', ['a', '965hyacinth'], ['p', 'academic_commons']))
+      marc_record.append(MARC::DataField.new('965', ' ', ' ', ['a', '965hyacinth'], ['p', 'academic_commons'], ['p', 'test']))
       puts "Modified MARC record with new 965 field: #{marc_record.inspect}"
 
       new_filepath = Rails.root.join(Rails.configuration.folio_to_hyacinth[:download_directory], 'modified_marc.mrc')

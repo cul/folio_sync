@@ -11,11 +11,12 @@ class FolioToHyacinthRecord
 
   attr_reader :digital_object_data, :errors
 
-  def initialize(initial_marc_record_path, existing_hyacinth_record = nil)
+  def initialize(initial_marc_record_path, existing_hyacinth_fields = nil)
     reader = MARC::Reader.new(initial_marc_record_path)
     @marc_record = reader.first
-    @digital_object_data = existing_hyacinth_record || minimal_data_for_record
+    @digital_object_data = existing_hyacinth_fields || minimal_data_for_record
     @errors = []
+    @is_new_record = existing_hyacinth_fields.nil?
 
     prepare_hyacinth_record(@marc_record)
   end
@@ -25,7 +26,13 @@ class FolioToHyacinthRecord
   end
 
   def clio_id
+    return nil unless dynamic_field_data['clio_identifier']&.first
+
     dynamic_field_data['clio_identifier'].first['clio_identifier_value']
+  end
+
+  def new_record?
+    @is_new_record
   end
 
   def minimal_data_for_record

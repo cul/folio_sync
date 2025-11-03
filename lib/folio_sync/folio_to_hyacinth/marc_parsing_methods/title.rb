@@ -17,11 +17,12 @@ module FolioSync
           title = extract_title(marc_record, mapping_ruleset)
           return if title.nil?
 
-          dynamic_field_data['title'] ||= []
-          dynamic_field_data['title'] << {
-            'title_non_sort_portion' => title[0...non_sort_portion_length],
-            'title_sort_portion' => title[non_sort_portion_length..]
-          }
+          dynamic_field_data['title'] = [
+            {
+              'title_non_sort_portion' => title[0...non_sort_portion_length],
+              'title_sort_portion' => title[non_sort_portion_length..]
+            }
+          ]
         end
 
         def extract_title(marc_record, mapping_ruleset)

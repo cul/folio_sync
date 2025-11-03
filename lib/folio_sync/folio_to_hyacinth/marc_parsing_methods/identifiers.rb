@@ -13,6 +13,7 @@ module FolioSync
         def add_identifiers(_marc_record, _mapping_ruleset)
           digital_object_data['identifiers'] ||= []
           digital_object_data['identifiers'] << "clio#{self.clio_id}" unless self.clio_id.nil?
+          digital_object_data['identifiers'].uniq!
         end
       end
     end
