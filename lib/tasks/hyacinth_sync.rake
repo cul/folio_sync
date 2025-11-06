@@ -62,10 +62,8 @@ namespace :folio_sync do
           pid = results.first['pid']
           puts "Found 1 record with pid: #{pid}."
 
-          # Get only the minimal keys needed for update
-          keys_to_preserve = %w[digital_object_type project identifiers dynamic_field_data]
-          preserved_data = results.first.slice(*keys_to_preserve)
-
+          # Get only the data needed for update
+          preserved_data = { 'identifiers' => results.first['identifiers'] }
           updated_record = FolioToHyacinthRecord.new(marc_file_path, preserved_data)
           puts "Updated record digital object data: #{updated_record.digital_object_data}"
           response = client.update_existing_record(pid, updated_record.digital_object_data, publish: true)

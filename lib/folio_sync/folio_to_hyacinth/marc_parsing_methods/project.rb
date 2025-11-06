@@ -17,18 +17,17 @@ module FolioSync
         # If multiple 965$p fields are present, the first is treated as the primary project,
         # and any additional ones are added as other projects.
         def add_project(marc_record, _mapping_ruleset)
-          existing_project = current_project_string_key
           project_string_keys = extract_all_project_string_keys_from_marc(marc_record)
 
           return if project_string_keys.empty?
 
           # For now, we'll log a message if there's an attempt to change the project
-          if should_skip_project_update?(existing_project)
-            puts "Updating projects is not supported. Falling back to the current project: #{existing_project}"
+          unless new_record?
+            puts 'Updating projects is not supported. Falling back to the current project.'
             return
           end
 
-          assign_projects(project_string_keys, existing_project)
+          assign_projects(project_string_keys)
         end
 
         private
@@ -50,23 +49,15 @@ module FolioSync
                .reject(&:empty?)
         end
 
-        def assign_projects(project_string_keys, existing_project)
+        def assign_projects(project_string_keys)
           primary_project = project_string_keys.first
           other_projects = project_string_keys[1..]
 
-          create_project_data(primary_project) if existing_project.nil?
+          create_project_data(primary_project)
 
           return unless new_record? && other_projects.any?
 
           create_other_project_data(other_projects)
-        end
-
-        def should_skip_project_update?(existing_project)
-          !new_record? && existing_project
-        end
-
-        def current_project_string_key
-          digital_object_data.dig('project', 'string_key')
         end
 
         def create_project_data(project_string_key)
