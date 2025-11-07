@@ -142,6 +142,7 @@ RSpec.describe FolioSync::FolioToHyacinth::MarcDownloader do
 
     before do
       allow(MARC::Record).to receive(:new_from_hash).with(marc_record_with_965hyacinth).and_return(formatted_marc)
+      allow(formatted_marc).to receive(:to_marc).and_return('binary_marc_data')
       allow(File).to receive(:binwrite)
       allow(Rails.logger).to receive(:info)
     end
@@ -153,7 +154,7 @@ RSpec.describe FolioSync::FolioToHyacinth::MarcDownloader do
         'Saving MARC record with 001=123456 to /tmp/downloads/123456.mrc'
       )
       expect(MARC::Record).to have_received(:new_from_hash).with(marc_record_with_965hyacinth)
-      expect(File).to have_received(:binwrite).with(expected_file_path, formatted_marc)
+      expect(File).to have_received(:binwrite).with(expected_file_path, 'binary_marc_data')
     end
   end
 
