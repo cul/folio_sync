@@ -3,25 +3,31 @@
 namespace :folio_sync do
   namespace :folio_to_hyacinth do
     task run: :environment do
-      modified_since = ENV['modified_since']
-      modified_since_num =
-        if modified_since && !modified_since.strip.empty?
-          begin
-            Integer(modified_since)
-          rescue ArgumentError
-            puts 'Error: modified_since must be an integer (number of hours).'
-            exit 1
-          end
-        end
-
-      downloader = FolioSync::FolioToHyacinth::MarcDownloader.new
-      downloader.download_965hyacinth_marc_records(modified_since_num)
-
-      if downloader.downloading_errors.present?
-        puts "Errors encountered during MARC download: #{downloader.downloading_errors}"
-        exit 1
-      end
+      puts 'Starting Folio to Hyacinth sync task...'
+      synchronizer = FolioSync::FolioToHyacinth::HyacinthSynchronizer.new
+      synchronizer.download_and_sync_folio_to_hyacinth_records(24)
     end
+
+    # task run: :environment do
+    #   modified_since = ENV['modified_since']
+    #   modified_since_num =
+    #     if modified_since && !modified_since.strip.empty?
+    #       begin
+    #         Integer(modified_since)
+    #       rescue ArgumentError
+    #         puts 'Error: modified_since must be an integer (number of hours).'
+    #         exit 1
+    #       end
+    #     end
+
+    #   downloader = FolioSync::FolioToHyacinth::MarcDownloader.new
+    #   downloader.download_965hyacinth_marc_records(modified_since_num)
+
+    #   if downloader.downloading_errors.present?
+    #     puts "Errors encountered during MARC download: #{downloader.downloading_errors}"
+    #     exit 1
+    #   end
+    # end
 
     task download_single_file: :environment do
       FolioSync::Rake::EnvValidator.validate!(
@@ -62,10 +68,14 @@ namespace :folio_sync do
           pid = results.first['pid']
           puts "Found 1 record with pid: #{pid}."
 
+          puts results.first.inspect
+
           # Get only the data needed for update
           preserved_data = { 'identifiers' => results.first['identifiers'] }
           updated_record = FolioToHyacinthRecord.new(marc_file_path, preserved_data)
           puts "Updated record digital object data: #{updated_record.digital_object_data}"
+
+          # return
           response = client.update_existing_record(pid, updated_record.digital_object_data, publish: true)
           puts "Response from Hyacinth when updating record #{pid}: #{response.inspect}"
         else
@@ -91,7 +101,7 @@ namespace :folio_sync do
       end
 
       # Add 965p field with value academic_commons, ensure 965$a is set to 965hyacinth
-      marc_record.append(MARC::DataField.new('965', ' ', ' ', ['a', '965hyacinth'], ['p', 'academic_commons'], ['p', 'test']))
+      marc_record.append(MARC::DataField.new('965', ' ', ' ', ['a', '965hyacinth'], ['p', 'Test']))
       puts "Modified MARC record with new 965 field: #{marc_record.inspect}"
 
       new_filepath = Rails.root.join(Rails.configuration.folio_to_hyacinth[:download_directory], 'modified_marc.mrc')
@@ -100,7 +110,15 @@ namespace :folio_sync do
         writer.write(marc_record)
         writer.close
       end
-      puts "Final MARC record: #{marc_record.inspect}"
+      # puts "Final MARC record: #{marc_record}"
+
+      reader = MARC::Reader.new(new_filepath.to_s)
+      reader.each do |record|
+        # Get author fields by supplying a list of tags
+        record.fields.each_by_tag(['965']) do |field|
+          puts field
+        end
+      end
     end
 
     task create_new_hyacinth_record: :environment do
