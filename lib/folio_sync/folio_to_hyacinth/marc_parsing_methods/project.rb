@@ -21,12 +21,6 @@ module FolioSync
 
           return if project_string_keys.empty?
 
-          # For now, we'll log a message if there's an attempt to change the project
-          unless new_record?
-            puts 'Updating projects is not supported. Falling back to the current project.'
-            return
-          end
-
           assign_projects(project_string_keys)
         end
 
