@@ -4,30 +4,49 @@ namespace :folio_sync do
   namespace :folio_to_hyacinth do
     task run: :environment do
       puts 'Starting Folio to Hyacinth sync task...'
+
+      modified_since = ENV['modified_since']
+
+      modified_since_sanitized =
+        if modified_since && !modified_since.strip.empty?
+          begin
+            Integer(modified_since)
+          rescue ArgumentError
+            puts 'Error: modified_since must be an integer (number of hours).'
+            exit 1
+          end
+        end
+
+      clear_downloads = ENV['clear_downloads'].nil? || ENV['clear_downloads'] == 'true'
+
       synchronizer = FolioSync::FolioToHyacinth::HyacinthSynchronizer.new
-      synchronizer.download_and_sync_folio_to_hyacinth_records(24)
+      synchronizer.clear_downloads! if clear_downloads
+      synchronizer.download_and_sync_folio_to_hyacinth_records(modified_since_sanitized)
+
+      # Handle errors
     end
 
-    # task run: :environment do
-    #   modified_since = ENV['modified_since']
-    #   modified_since_num =
-    #     if modified_since && !modified_since.strip.empty?
-    #       begin
-    #         Integer(modified_since)
-    #       rescue ArgumentError
-    #         puts 'Error: modified_since must be an integer (number of hours).'
-    #         exit 1
-    #       end
-    #     end
+    # Download part only
+    task download_folio_marc_files: :environment do
+      modified_since = ENV['modified_since']
+      modified_since_num =
+        if modified_since && !modified_since.strip.empty?
+          begin
+            Integer(modified_since)
+          rescue ArgumentError
+            puts 'Error: modified_since must be an integer (number of hours).'
+            exit 1
+          end
+        end
 
-    #   downloader = FolioSync::FolioToHyacinth::MarcDownloader.new
-    #   downloader.download_965hyacinth_marc_records(modified_since_num)
+      downloader = FolioSync::FolioToHyacinth::MarcDownloader.new
+      downloader.download_965hyacinth_marc_records(modified_since_num)
 
-    #   if downloader.downloading_errors.present?
-    #     puts "Errors encountered during MARC download: #{downloader.downloading_errors}"
-    #     exit 1
-    #   end
-    # end
+      if downloader.downloading_errors.present?
+        puts "Errors encountered during MARC download: #{downloader.downloading_errors}"
+        exit 1
+      end
+    end
 
     task download_single_file: :environment do
       FolioSync::Rake::EnvValidator.validate!(
