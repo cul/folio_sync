@@ -18,18 +18,27 @@ namespace :folio_sync do
         end
 
       clear_downloads = ENV['clear_downloads'].nil? || ENV['clear_downloads'] == 'true'
+      puts "Will downloads be cleared? #{clear_downloads}"
 
       synchronizer = FolioSync::FolioToHyacinth::HyacinthSynchronizer.new
       synchronizer.clear_downloads! if clear_downloads
       synchronizer.download_and_sync_folio_to_hyacinth_records(modified_since_sanitized)
 
-      # Handle errors
+      if synchronizer.downloading_errors.any? || synchronizer.syncing_errors.any?
+        puts 'Errors encountered during Folio to Hyacinth sync:'
+        puts "Downloading Errors: #{synchronizer.downloading_errors}" if synchronizer.downloading_errors.any?
+        puts "Syncing Errors: #{synchronizer.syncing_errors}" if synchronizer.syncing_errors.any?
+
+        exit 1
+      else
+        puts 'Folio to Hyacinth sync completed successfully.'
+      end
     end
 
-    # Download part only
+    # Downloads FOLIO MARC records, skipping the syncing step
     task download_folio_marc_files: :environment do
       modified_since = ENV['modified_since']
-      modified_since_num =
+      modified_since_sanitized =
         if modified_since && !modified_since.strip.empty?
           begin
             Integer(modified_since)
@@ -40,7 +49,7 @@ namespace :folio_sync do
         end
 
       downloader = FolioSync::FolioToHyacinth::MarcDownloader.new
-      downloader.download_965hyacinth_marc_records(modified_since_num)
+      downloader.download_965hyacinth_marc_records(modified_since_sanitized)
 
       if downloader.downloading_errors.present?
         puts "Errors encountered during MARC download: #{downloader.downloading_errors}"
@@ -59,47 +68,19 @@ namespace :folio_sync do
       downloader.download_single_965hyacinth_marc_record(folio_hrid)
     end
 
-    # WIP: This task syncs all downloaded FOLIO MARC records to Hyacinth
+    # Syncs all previously downloaded FOLIO MARC records to Hyacinth
     task sync_to_hyacinth: :environment do
       puts 'Starting Folio to Hyacinth sync task...'
-      file_dir = Rails.root.join('tmp/working_data/development/folio_to_hyacinth/downloaded_files')
 
-      # For each MARC file in the download directory, create or update the corresponding Hyacinth record
-      Dir.glob(File.join(file_dir, '*.mrc')).each do |marc_file_path|
-        puts "Processing MARC file: #{marc_file_path}"
+      synchronizer = FolioSync::FolioToHyacinth::HyacinthSynchronizer.new
+      synchronizer.prepare_and_sync_folio_to_hyacinth_records
 
-        # Check if the record already exists in Hyacinth
-        folio_hrid = File.basename(marc_file_path, '.mrc')
-        potential_clio_identifier = "clio#{folio_hrid}"
-        client = FolioSync::Hyacinth::Client.instance
-        results = client.find_by_identifier(potential_clio_identifier,
-                                            { f: { digital_object_type_display_label_sim: ['Item'] } })
-        puts "Found #{results.length} records with identifier #{potential_clio_identifier}."
-
-        # TODO: Eventually this logic will be placed under FolioToHyacinth namespace
-        if results.empty?
-          puts 'No records found. Creating a new record in Hyacinth.'
-          new_record = FolioToHyacinthRecord.new(marc_file_path)
-          puts "New record digital object data: #{new_record.digital_object_data}"
-          response = client.create_new_record(new_record.digital_object_data, publish: true)
-          puts "Response from Hyacinth when creating record with hrid #{folio_hrid}: #{response.inspect}"
-        elsif results.length == 1
-          pid = results.first['pid']
-          puts "Found 1 record with pid: #{pid}."
-
-          puts results.first.inspect
-
-          # Get only the data needed for update
-          preserved_data = { 'identifiers' => results.first['identifiers'] }
-          updated_record = FolioToHyacinthRecord.new(marc_file_path, preserved_data)
-          puts "Updated record digital object data: #{updated_record.digital_object_data}"
-
-          # return
-          response = client.update_existing_record(pid, updated_record.digital_object_data, publish: true)
-          puts "Response from Hyacinth when updating record #{pid}: #{response.inspect}"
-        else
-          puts "Error: Found multiple records with identifier #{potential_clio_identifier}."
-        end
+      if synchronizer.syncing_errors.any?
+        puts 'Errors encountered during Folio to Hyacinth sync:'
+        puts "Syncing Errors: #{synchronizer.syncing_errors}" if synchronizer.syncing_errors.any?
+        exit 1
+      else
+        puts 'Folio to Hyacinth sync completed successfully.'
       end
     end
 

@@ -7,13 +7,15 @@ module FolioSync
 
       def initialize
         @logger = Logger.new($stdout)
+        @downloading_errors = []
+        @syncing_errors = []
       end
 
       # Performs MARC downloads and syncs resources to Hyacinth
       # @param [Integer] last_x_hours Records newer than this are synced.
       def download_and_sync_folio_to_hyacinth_records(last_x_hours)
-        # download_marc_from_folio(last_x_hours)
-        prepare_hyacinth_records
+        download_marc_from_folio(last_x_hours)
+        prepare_and_sync_folio_to_hyacinth_records
       end
 
       def clear_downloads!
@@ -31,9 +33,9 @@ module FolioSync
         @downloading_errors = downloader.downloading_errors
       end
 
-      def prepare_hyacinth_records
+      def prepare_and_sync_folio_to_hyacinth_records
         marc_files = Dir.glob(downloaded_marc_files_path)
-        puts "Processing #{marc_files.count} MARC files"
+        @logger.info("Processing #{marc_files.count} MARC files")
 
         marc_files.each do |marc_file_path|
           process_marc_file(marc_file_path)
@@ -48,7 +50,9 @@ module FolioSync
 
       def process_marc_file(marc_file_path)
         processor = FolioSync::FolioToHyacinth::MarcProcessor.new(marc_file_path)
-        processor.create_and_sync_hyacinth_record!
+        processor.prepare_and_sync_folio_to_hyacinth_record!
+
+        @syncing_errors.concat(processor.syncing_errors) if processor.syncing_errors.any?
       end
     end
   end
