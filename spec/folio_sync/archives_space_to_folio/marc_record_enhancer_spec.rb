@@ -63,7 +63,7 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
 
   before do
     File.write(aspace_marc_path, aspace_mock)
-    File.write(folio_marc_path, folio_mock)
+    File.write(folio_marc_path, folio_mock) if folio_marc_path
 
     # Mock FOLIO::Reader
     folio_reader = instance_double(FolioSync::Folio::Reader)
@@ -167,6 +167,122 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
         marc_record.send(:update_controlfield_001)
         expect(marc_record.marc_record['001']).to be_nil
       end
+    end
+  end
+
+  describe '#add_948_field' do
+    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key) }
+
+    context 'when FOLIO record has no 948 field' do
+      it 'creates a new 948 field with subfields a, b and d' do
+        marc_record.send(:add_948_field)
+        field_948 = marc_record.marc_record['948']
+
+        expect(field_948).not_to be_nil
+        expect(field_948['a']).to match(/\A\d{8}\z/) # YYYYMMDD format
+        expect(field_948['b']).to eq('STATORGL')
+        expect(field_948['d']).to eq('ASOCLC')
+      end
+    end
+
+    context 'when FOLIO record has 948 field with d == ASOCLC' do
+      let(:folio_mock) do
+        <<-XML
+          <record xmlns="http://www.loc.gov/MARC21/slim">
+            <controlfield tag="001">7890</controlfield>
+            <datafield tag="948" ind1=" " ind2=" ">
+              <subfield code="a">20200101</subfield>
+              <subfield code="b">STATORGL</subfield>
+              <subfield code="d">ASOCLC</subfield>
+            </datafield>
+          </record>
+        XML
+      end
+
+      it 'preserves existing subfields and updates subfield a to current date' do
+        marc_record.send(:add_948_field)
+        field_948 = marc_record.marc_record['948']
+
+        expect(field_948['a']).to match(/\A\d{8}\z/)
+        expect(field_948['a']).not_to eq('20200101')
+        expect(field_948['b']).to eq('STATORGL')
+        expect(field_948['d']).to eq('ASOCLC')
+      end
+    end
+
+    context 'when FOLIO record has 948 field with different d value' do
+      let(:folio_mock) do
+        <<-XML
+          <record xmlns="http://www.loc.gov/MARC21/slim">
+            <controlfield tag="001">7890</controlfield>
+            <datafield tag="948" ind1=" " ind2=" ">
+              <subfield code="a">20200101</subfield>
+              <subfield code="d">MPS</subfield>
+            </datafield>
+          </record>
+        XML
+      end
+
+      it 'creates a new 948 field' do
+        marc_record.send(:add_948_field)
+        field_948 = marc_record.marc_record['948']
+
+        expect(field_948['d']).to eq('ASOCLC')
+        expect(field_948['b']).to eq('STATORGL')
+      end
+    end
+  end
+
+  describe '#find_folio_948_asoclc_field' do
+    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key) }
+
+    context 'when no folio_marc exists' do
+      let(:folio_marc_path) { nil }
+
+      it 'returns nil' do
+        result = marc_record.send(:find_folio_948_asoclc_field)
+        expect(result).to be_nil
+      end
+    end
+
+    context 'when folio_marc has 948 with d == ASOCLC' do
+      let(:folio_mock) do
+        <<-XML
+          <record xmlns="http://www.loc.gov/MARC21/slim">
+            <datafield tag="948" ind1=" " ind2=" ">
+              <subfield code="a">20200101</subfield>
+              <subfield code="d">ASOCLC</subfield>
+            </datafield>
+          </record>
+        XML
+      end
+
+      it 'returns the matching field' do
+        result = marc_record.send(:find_folio_948_asoclc_field)
+        expect(result).not_to be_nil
+        expect(result['d']).to eq('ASOCLC')
+      end
+    end
+  end
+
+  describe '#update_948_date' do
+    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key) }
+    let(:field) do
+      MARC::DataField.new('948', ' ', ' ',
+                          ['a', '20200101'],
+                          ['b', 'STATORGL'],
+                          ['d', 'ASOCLC'])
+    end
+
+    it 'updates subfield a to the new date' do
+      result = marc_record.send(:update_948_date, field, '20260202')
+      expect(result['a']).to eq('20260202')
+    end
+
+    it 'preserves other subfields' do
+      result = marc_record.send(:update_948_date, field, '20260202')
+      expect(result['b']).to eq('STATORGL')
+      expect(result['d']).to eq('ASOCLC')
     end
   end
 
