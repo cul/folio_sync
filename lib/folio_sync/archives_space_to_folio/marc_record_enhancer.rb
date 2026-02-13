@@ -5,8 +5,9 @@ module FolioSync
     class MarcRecordEnhancer
       attr_reader :marc_record, :hrid
 
-      def initialize(aspace_marc_path, folio_marc_path, hrid, _instance_key)
+      def initialize(aspace_marc_path, folio_marc_path, hrid, instance_key)
         @hrid = hrid
+        @instance_key = instance_key
 
         aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
         # The final MARC record is mostly constructed from the ArchivesSpace MARC
@@ -28,7 +29,7 @@ module FolioSync
           update_datafield_099
           update_datafield_100
           update_datafield_856
-          add_948_field
+          add_948_field if @instance_key == 'cul'
           add_965_no_export_auth
           remove_corpname_punctuation
         rescue StandardError => e
