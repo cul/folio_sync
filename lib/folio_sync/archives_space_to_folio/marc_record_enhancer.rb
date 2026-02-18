@@ -5,8 +5,9 @@ module FolioSync
     class MarcRecordEnhancer
       attr_reader :marc_record, :hrid
 
-      def initialize(aspace_marc_path, folio_marc_path, hrid, _instance_key)
+      def initialize(aspace_marc_path, folio_marc_path, hrid, instance_key)
         @hrid = hrid
+        @instance_key = instance_key
 
         aspace_record = MARC::XMLReader.new(aspace_marc_path, parser: 'nokogiri')
         # The final MARC record is mostly constructed from the ArchivesSpace MARC
@@ -28,6 +29,7 @@ module FolioSync
           update_datafield_099
           update_datafield_100
           update_datafield_856
+          add_948_field if @instance_key == 'cul'
           add_965_no_export_auth
           remove_corpname_punctuation
         rescue StandardError => e
@@ -110,6 +112,23 @@ module FolioSync
         end
       end
 
+      # OCLC sync support: Add or update datafield 948
+      def add_948_field
+        current_date = Time.now.utc.strftime('%Y%m%d')
+        existing_oclc_field = find_folio_948_asoclc_field
+
+        oclc_field = if existing_oclc_field
+                       update_948_date(existing_oclc_field, current_date)
+                     else
+                       MARC::DataField.new('948', ' ', ' ',
+                                           ['a', current_date],
+                                           ['b', 'STATORGL'],
+                                           ['d', 'ASOCLC'])
+                     end
+
+        @marc_record.append(oclc_field)
+      end
+
       # Add 965 field
       def add_965_no_export_auth
         field_965 = MARC::DataField.new('965', ' ', ' ', ['a', '965noexportAUTH'])
@@ -141,6 +160,33 @@ module FolioSync
           subfields_b.each do |subfield|
             subfield.value = remove_trailing_commas(subfield.value)
           end
+        end
+      end
+
+      def update_948_date(field, date)
+        updated_field = MARC::DataField.new(
+          field.tag,
+          field.indicator1,
+          field.indicator2,
+          *field.subfields.map { |sf| [sf.code, sf.value] }
+        )
+
+        subfield_a = updated_field.subfields.find { |sf| sf.code == 'a' }
+        if subfield_a
+          subfield_a.value = date
+        else
+          updated_field.append(MARC::Subfield.new('a', date))
+        end
+
+        updated_field
+      end
+
+      def find_folio_948_asoclc_field
+        return nil unless @folio_marc
+
+        @folio_marc.fields('948').find do |field|
+          subfield_d = field['d']
+          subfield_d == 'ASOCLC'
         end
       end
 
