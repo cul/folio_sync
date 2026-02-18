@@ -110,11 +110,8 @@ namespace :folio_sync do
         writer.write(marc_record)
         writer.close
       end
-      # puts "Final MARC record: #{marc_record}"
-
       reader = MARC::Reader.new(new_filepath.to_s)
       reader.each do |record|
-        # Get author fields by supplying a list of tags
         record.fields.each_by_tag(['965']) do |field|
           puts field
         end
