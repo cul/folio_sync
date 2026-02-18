@@ -6,13 +6,13 @@ RSpec.describe FolioSync::FolioToHyacinth::MarcProcessor do
   let(:marc_file_path) { '/tmp/folio_to_hyacinth/downloaded_files/45678.mrc' }
   let(:instance) { described_class.new(marc_file_path) }
   let(:logger) { instance_double(Logger, info: nil, error: nil, debug: nil) }
-  let(:record_syncer) { instance_double(FolioSync::FolioToHyacinth::RecordSyncer, syncing_errors: []) }
+  let(:record_syncer) { instance_double(FolioSync::FolioToHyacinth::HyacinthRecordWriter, syncing_errors: []) }
   let(:hyacinth_client) { instance_double(FolioSync::Hyacinth::Client) }
   let(:folio_hrid) { '45678' }
 
   before do
     allow(Logger).to receive(:new).and_return(logger)
-    allow(FolioSync::FolioToHyacinth::RecordSyncer).to receive(:new).and_return(record_syncer)
+    allow(FolioSync::FolioToHyacinth::HyacinthRecordWriter).to receive(:new).and_return(record_syncer)
     allow(FolioSync::Hyacinth::Client).to receive(:instance).and_return(hyacinth_client)
   end
 

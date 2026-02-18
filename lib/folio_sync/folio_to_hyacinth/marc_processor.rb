@@ -6,7 +6,7 @@ class FolioSync::FolioToHyacinth::MarcProcessor
   def initialize(marc_file_path)
     @marc_file_path = marc_file_path
     @logger = Logger.new($stdout)
-    @record_syncer = FolioSync::FolioToHyacinth::RecordSyncer.new
+    @record_syncer = FolioSync::FolioToHyacinth::HyacinthRecordWriter.new
     @syncing_errors = []
   end
 

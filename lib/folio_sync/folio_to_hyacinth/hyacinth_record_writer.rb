@@ -2,7 +2,7 @@
 
 module FolioSync
   module FolioToHyacinth
-    class RecordSyncer
+    class HyacinthRecordWriter
       attr_reader :syncing_errors
 
       def initialize
