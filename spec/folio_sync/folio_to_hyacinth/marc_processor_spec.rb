@@ -44,17 +44,11 @@ RSpec.describe FolioSync::FolioToHyacinth::MarcProcessor do
 
     it 'extracts the HRID from the filename' do
       instance.prepare_and_sync_folio_to_hyacinth_record!
-      expect(hyacinth_client).to have_received(:find_by_identifier).with(
-        "clio#{folio_hrid}",
-        { f: { digital_object_type_display_label_sim: ['Item'] } }
-      )
+      expect(hyacinth_client).to have_received(:find_by_identifier).with("clio#{folio_hrid}")
     end
 
     it 'fetches existing Hyacinth records' do
-      expect(hyacinth_client).to receive(:find_by_identifier).with(
-        "clio#{folio_hrid}",
-        { f: { digital_object_type_display_label_sim: ['Item'] } }
-      )
+      expect(hyacinth_client).to receive(:find_by_identifier).with("clio#{folio_hrid}")
       instance.prepare_and_sync_folio_to_hyacinth_record!
     end
 
@@ -163,22 +157,18 @@ RSpec.describe FolioSync::FolioToHyacinth::MarcProcessor do
 
   describe '#fetch_existing_hyacinth_records' do
     let(:clio_identifier) { "clio#{folio_hrid}" }
-    let(:search_params) { { f: { digital_object_type_display_label_sim: ['Item'] } } }
 
     before do
       allow(hyacinth_client).to receive(:find_by_identifier).and_return([])
     end
 
     it 'constructs the correct clio identifier' do
-      expect(hyacinth_client).to receive(:find_by_identifier).with(clio_identifier, search_params)
+      expect(hyacinth_client).to receive(:find_by_identifier).with(clio_identifier)
       instance.send(:fetch_existing_hyacinth_records, folio_hrid)
     end
 
-    it 'searches for Item type records' do
-      expect(hyacinth_client).to receive(:find_by_identifier).with(
-        anything,
-        { f: { digital_object_type_display_label_sim: ['Item'] } }
-      )
+    it 'searches by clio identifier only' do
+      expect(hyacinth_client).to receive(:find_by_identifier).with(anything)
       instance.send(:fetch_existing_hyacinth_records, folio_hrid)
     end
 

@@ -32,9 +32,6 @@ class FolioSync::FolioToHyacinth::MarcProcessor
   def fetch_existing_hyacinth_records(folio_hrid)
     potential_clio_identifier = "clio#{folio_hrid}"
     client = FolioSync::Hyacinth::Client.instance
-    client.find_by_identifier(
-      potential_clio_identifier,
-      { f: { digital_object_type_display_label_sim: ['Item'] } }
-    )
+    client.find_by_identifier(potential_clio_identifier)
   end
 end
