@@ -57,6 +57,9 @@ module FolioSync
         update_resource_with_folio_data(record.repository_key, record.resource_key) do |resource_data|
           resource_data.merge(
             'id_0' => record.folio_hrid,
+            'id_1' => '',
+            'id_2' => '',
+            'id_3' => '',
             'ead_id' => record.folio_hrid
           )
         end

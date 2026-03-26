@@ -89,6 +89,22 @@ RSpec.describe FolioSync::ArchivesSpace::ResourceUpdater do
       expect(updater).to receive(:update_resource_with_folio_data).with(1, 123)
       updater.update_id_fields(record)
     end
+
+    it 'clears id_1, id_2, and id_3 while setting id_0 and ead_id to folio_hrid' do
+      updater = described_class.new('cul')
+      resource_data = { 'id_0' => 'old', 'id_1' => 'part1', 'id_2' => 'part2', 'id_3' => 'part3' }
+
+      allow(client).to receive(:fetch_resource).with(1, 123).and_return(resource_data)
+      expect(client).to receive(:update_resource) do |_repo_id, _res_id, data|
+        expect(data['id_0']).to eq('hrid1')
+        expect(data['ead_id']).to eq('hrid1')
+        expect(data['id_1']).to eq('')
+        expect(data['id_2']).to eq('')
+        expect(data['id_3']).to eq('')
+      end
+
+      updater.update_id_fields(record)
+    end
   end
 
   describe '#update_string_1_field' do
