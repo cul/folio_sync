@@ -233,6 +233,51 @@ RSpec.describe FolioSync::ArchivesSpaceToFolio::MarcRecordEnhancer do
     end
   end
 
+  describe '#merge_035_fields' do
+    let(:instance_key) { 'cul'}
+    let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key) }
+    let(:processed_record) { marc_record.enhance_marc_record! }
+
+    let(:aspace_mock) do
+      <<-XML
+        <record xmlns="http://www.loc.gov/MARC21/slim">
+          <controlfield tag="001">123456</controlfield>
+          <datafield tag="035" ind1=" " ind2=" ">
+            <subfield code="a">CULASPC-123456</subfield>
+          </datafield>
+          <datafield tag="035" ind1=" " ind2=" ">
+            <subfield code="a">(OCoLC)789</subfield>
+          </datafield>
+        </record>
+      XML
+    end
+
+    context 'when hrid is nil and instance_key is "cul"' do
+      let(:hrid) { nil }
+      let(:folio_marc_path) { nil }
+
+      it 'removes 035 fields matching the CULASPC- pattern' do
+        culaspc_field = processed_record.fields('035').find { |f| f['a'] == 'CULASPC-123456' }
+        expect(culaspc_field).to be_nil
+      end
+
+      it 'retains other 035 fields' do
+        oclc_field = processed_record.fields('035').find { |f| f['a'] == '(OCoLC)789' }
+        expect(oclc_field).not_to be_nil
+      end
+    end
+
+    context 'when hrid is present (existing record)' do
+      let(:hrid) { 'HRID123' }
+      let(:folio_marc_path) { nil }
+
+      it 'retains the CULASPC- 035 field' do
+        culaspc_field = processed_record.fields('035').find { |f| f['a'] == 'CULASPC-123456' }
+        expect(culaspc_field).not_to be_nil
+      end
+    end
+  end
+
   describe '#find_folio_948_asoclc_field' do
     let(:marc_record) { described_class.new(aspace_marc_path, folio_marc_path, hrid, instance_key) }
 
