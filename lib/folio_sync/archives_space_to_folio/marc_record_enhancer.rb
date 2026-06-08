@@ -65,6 +65,7 @@ module FolioSync
       # Merge 035 fields from ASpace and FOLIO MARC records
       # When folio record is present, combine fields from both records and ensure uniqueness
       # When folio record is not present, ensure ASpace 035 fields are retained
+      # For new CUL records, remove the temporary identifier from the 035 fields
       def merge_035_fields
         aspace_035_fields = @marc_record.fields('035') || []
         folio_035_fields = @folio_marc&.fields('035') || []
@@ -73,6 +74,8 @@ module FolioSync
           # Uniqueness is determined by the tag, indicators, and subfield values
           [field.tag, field.indicator1, field.indicator2, field.subfields.map { |sf| [sf.code, sf.value] }]
         end
+
+        combined_035_fields.reject! { |field| temporary_culaspc_035?(field) } if new_cul_record?
 
         @marc_record.fields.delete_if { |field| field.tag == '035' }
         combined_035_fields.each { |field| @marc_record.append(field) }
@@ -196,6 +199,14 @@ module FolioSync
 
       def remove_trailing_punctuation(value)
         value.gsub(/[,.]$/, '')
+      end
+
+      def new_cul_record?
+        @hrid.nil? && @instance_key == 'cul'
+      end
+
+      def temporary_culaspc_035?(field)
+        field.subfields.any? { |sf| sf.code == 'a' && sf.value&.start_with?('CULASPC-') }
       end
     end
   end
