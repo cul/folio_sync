@@ -36,8 +36,6 @@ module FolioSync
           raise "Error enhancing ArchivesSpace MARC record: #{e.message}"
         end
 
-        # puts "Enhanced MARC record: #{@marc_record}"
-
         @marc_record
       end
 
